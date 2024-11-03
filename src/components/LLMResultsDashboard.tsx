@@ -54,9 +54,9 @@ const LLMResultsDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">LLM Scan Results</h2>
+        <h2 className="text-2xl font-bold text-left">LLM Scan Results</h2>
         <div className="w-[200px]">
-          <Label>Filter by Type</Label>
+          <Label className="text-left">Filter by Type</Label>
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger>
               <SelectValue placeholder="Select filter type" />
@@ -74,7 +74,7 @@ const LLMResultsDashboard = () => {
         {results?.map((result) => (
           <Card key={result.id} className="p-6">
             <div className="flex items-start justify-between mb-4">
-              <div className="space-y-1">
+              <div className="space-y-1 text-left">
                 <div className="flex items-center gap-2">
                   <Badge variant={result.scan_type === 'manual' ? 'default' : 'secondary'}>
                     {result.scan_type === 'manual' ? 'Manual Prompt' : 'Batch Scan'}
@@ -98,14 +98,14 @@ const LLMResultsDashboard = () => {
             </div>
             <div className="space-y-4">
               <div>
-                <Label>Prompt</Label>
-                <div className="mt-1 text-sm bg-muted p-3 rounded-md">
+                <Label className="text-left">Prompt</Label>
+                <div className="mt-1 text-sm bg-muted p-3 rounded-md text-left">
                   {result.prompt}
                 </div>
               </div>
               <div>
-                <Label>Result</Label>
-                <div className="mt-1 text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">
+                <Label className="text-left">Result</Label>
+                <div className="mt-1 text-sm bg-muted p-3 rounded-md whitespace-pre-wrap text-left">
                   {result.result}
                 </div>
               </div>
