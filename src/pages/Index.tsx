@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import DomainRecon from "@/components/DomainRecon";
 import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
@@ -52,22 +53,37 @@ const Index = () => {
 
         {activeCategory === "web" ? (
           <Tabs defaultValue="recon" className="w-full">
-            <div className="mb-4 overflow-x-auto scrollbar-hide">
-              <TabsList className="inline-flex min-w-full sm:w-auto h-auto p-1 gap-1">
-                <TabsTrigger value="recon" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  Domain Recon
-                </TabsTrigger>
-                <TabsTrigger value="recon-results" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  Recon Results
-                </TabsTrigger>
-                <TabsTrigger value="nuclei" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  Nuclei Scanner
-                </TabsTrigger>
-                <TabsTrigger value="nuclei-results" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  Nuclei Results
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <div className="flex p-1">
+                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
+                  <TabsTrigger 
+                    value="recon" 
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    Domain Recon
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="recon-results"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    Recon Results
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="nuclei"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    Nuclei Scanner
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="nuclei-results"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    Nuclei Results
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
             <div className="mt-4">
               <TabsContent value="recon">
                 <DomainRecon />
@@ -85,22 +101,37 @@ const Index = () => {
           </Tabs>
         ) : (
           <Tabs defaultValue="llm" className="w-full">
-            <div className="mb-4 overflow-x-auto scrollbar-hide">
-              <TabsList className="inline-flex min-w-full sm:w-auto h-auto p-1 gap-1">
-                <TabsTrigger value="llm" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  LLM Scanner
-                </TabsTrigger>
-                <TabsTrigger value="llm-results" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  LLM Results
-                </TabsTrigger>
-                <TabsTrigger value="datasets" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  Datasets
-                </TabsTrigger>
-                <TabsTrigger value="prompt-augmentation" className="text-xs sm:text-sm whitespace-nowrap py-1.5">
-                  Prompt Augmentation
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <div className="flex p-1">
+                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
+                  <TabsTrigger 
+                    value="llm"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    LLM Scanner
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="llm-results"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    LLM Results
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="datasets"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    Datasets
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="prompt-augmentation"
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+                  >
+                    Prompt Augmentation
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
             <div className="mt-4">
               <TabsContent value="llm">
                 <LLMScanner />
