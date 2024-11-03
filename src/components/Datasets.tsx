@@ -9,6 +9,7 @@ import { DatasetCard } from "./datasets/DatasetCard";
 import { useDatasetExport } from "./datasets/useDatasetExport";
 import { Dataset } from "./datasets/types";
 import { CategorySelect } from "./datasets/CategorySelect";
+import { toast } from "sonner";
 
 const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,13 +33,15 @@ const Datasets = () => {
       if (!selectedCategory) {
         throw new Error("Please select a category");
       }
+      
       const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
         body: { apiKey, category: selectedCategory }
       });
+      
       if (error) throw error;
       return data.data as Dataset[];
     },
-    enabled: !!apiKey && !!selectedCategory,
+    enabled: Boolean(apiKey && selectedCategory),
   });
 
   const handleApiKeyChange = (newKey: string) => {
@@ -46,10 +49,19 @@ const Datasets = () => {
     localStorage.setItem('huggingface_api_key', newKey);
   };
 
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    refetch(); // Explicitly trigger a refetch when category changes
+  };
+
   const filteredDatasets = datasets?.filter(dataset => 
     dataset?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     dataset?.description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) ?? [];
+
+  if (error) {
+    toast.error("Failed to load datasets. Please check your API key and try again.");
+  }
 
   return (
     <div className="space-y-6">
@@ -62,7 +74,7 @@ const Datasets = () => {
       {apiKey && (
         <CategorySelect
           value={selectedCategory}
-          onValueChange={setSelectedCategory}
+          onValueChange={handleCategoryChange}
         />
       )}
 
@@ -103,6 +115,13 @@ const Datasets = () => {
                   onExport={exportData}
                 />
               ))}
+              {filteredDatasets.length === 0 && !isLoading && (
+                <Card className="p-6 col-span-full">
+                  <div className="text-center text-muted-foreground">
+                    No datasets found for this category.
+                  </div>
+                </Card>
+              )}
             </div>
           )}
         </>
