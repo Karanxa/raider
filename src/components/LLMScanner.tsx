@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProviderSelect, providers } from "./llm-scanner/ProviderSelect";
 import { CustomEndpoint } from "./llm-scanner/CustomEndpoint";
 import { PromptInput } from "./llm-scanner/PromptInput";
+import { useSession } from '@supabase/auth-helpers-react';
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -17,10 +18,16 @@ const LLMScanner = () => {
   const [result, setResult] = useState<string>("");
   const [prompts, setPrompts] = useState<string[]>([]);
   const [currentPromptIndex, setCurrentPromptIndex] = useState<number>(0);
+  const session = useSession();
 
   const handleScan = async (promptToScan: string) => {
     if (!selectedProvider) {
       toast.error("Please select a provider");
+      return;
+    }
+
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to run scans");
       return;
     }
 
@@ -47,7 +54,18 @@ const LLMScanner = () => {
         }
 
         const data = await response.json();
-        return typeof data === "string" ? data : JSON.stringify(data, null, 2);
+        const result = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+        
+        await supabase.from('llm_scan_results').insert({
+          prompt: promptToScan,
+          result,
+          provider: 'custom',
+          scan_type: prompts.length > 0 ? 'batch' : 'manual',
+          batch_id: prompts.length > 0 ? crypto.randomUUID() : null,
+          user_id: session.user.id,
+        });
+
+        return result;
       } catch (error) {
         console.error("Custom endpoint error:", error);
         throw new Error(`Error with custom endpoint: ${error.message}`);
@@ -73,6 +91,17 @@ const LLMScanner = () => {
     }
 
     if (error) throw error;
+
+    await supabase.from('llm_scan_results').insert({
+      prompt: promptToScan,
+      result: data.result,
+      provider: selectedProvider,
+      model: selectedModel,
+      scan_type: prompts.length > 0 ? 'batch' : 'manual',
+      batch_id: prompts.length > 0 ? crypto.randomUUID() : null,
+      user_id: session.user.id,
+    });
+
     return data.result;
   };
 
@@ -85,6 +114,7 @@ const LLMScanner = () => {
     setScanning(true);
     try {
       if (prompts.length > 0) {
+        const batchId = crypto.randomUUID();
         let allResults = "";
         for (let i = 0; i < prompts.length; i++) {
           setCurrentPromptIndex(i);

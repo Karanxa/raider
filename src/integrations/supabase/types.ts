@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      llm_scan_results: {
+        Row: {
+          batch_id: string | null
+          batch_name: string | null
+          created_at: string | null
+          id: string
+          model: string | null
+          prompt: string
+          provider: string
+          result: string
+          scan_type: string
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          batch_name?: string | null
+          created_at?: string | null
+          id?: string
+          model?: string | null
+          prompt: string
+          provider: string
+          result: string
+          scan_type: string
+          user_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          batch_name?: string | null
+          created_at?: string | null
+          id?: string
+          model?: string | null
+          prompt?: string
+          provider?: string
+          result?: string
+          scan_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       nuclei_scan_results: {
         Row: {
           created_at: string | null

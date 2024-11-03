@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import DomainInput from "@/components/DomainInput";
 import Dashboard from "@/components/Dashboard";
 import LLMScanner from "@/components/LLMScanner";
+import LLMResultsDashboard from "@/components/LLMResultsDashboard";
 import { Domain } from "@/types/domain";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -42,10 +43,11 @@ const Index = () => {
         </div>
         
         <Tabs defaultValue="input" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="input">Domain Input</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="llm">LLM Scanner</TabsTrigger>
+            <TabsTrigger value="results">Results</TabsTrigger>
           </TabsList>
           
           <TabsContent value="input">
@@ -58,6 +60,10 @@ const Index = () => {
 
           <TabsContent value="llm">
             <LLMScanner />
+          </TabsContent>
+
+          <TabsContent value="results">
+            <LLMResultsDashboard />
           </TabsContent>
         </Tabs>
       </div>
