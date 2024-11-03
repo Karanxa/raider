@@ -34,10 +34,7 @@ const LLMResultsDashboard = () => {
     queryFn: async () => {
       let query = supabase
         .from('llm_scan_results')
-        .select(`
-          *,
-          user_email:profiles!inner(email)
-        `)
+        .select('*, profiles!llm_scan_results_user_id_fkey(email)')
         .order('created_at', { ascending: false });
 
       if (filterType === "manual") {
@@ -51,7 +48,7 @@ const LLMResultsDashboard = () => {
 
       return data.map(result => ({
         ...result,
-        user_email: result.user_email?.[0]?.email || null
+        user_email: result.profiles?.email || null
       })) as ScanResult[];
     },
   });
