@@ -15,6 +15,7 @@ export const FileUpload = ({ onFileUpload, isProcessing }: FileUploadProps) => {
 
     Papa.parse(file, {
       complete: (results) => {
+        // Extract prompts from the 'prompts' column, preserving newlines within cells
         const promptList = results.data
           .map((row: any) => row.prompts)
           .filter((prompt: any) => prompt && typeof prompt === "string");
@@ -28,9 +29,10 @@ export const FileUpload = ({ onFileUpload, isProcessing }: FileUploadProps) => {
         toast.success(`Loaded ${promptList.length} prompts from CSV`);
       },
       header: true,
-      error: (error) => {
-        toast.error(`Error parsing CSV: ${error.message}`);
-      },
+      skipEmptyLines: true,
+      // This ensures newlines within quoted fields are preserved
+      newline: "\n",
+      quoteChar: '"',
     });
   };
 

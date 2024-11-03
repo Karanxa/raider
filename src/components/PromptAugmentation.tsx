@@ -39,8 +39,10 @@ const PromptAugmentation = () => {
       return;
     }
 
+    // For CSV mode, we use the prompts array directly
+    // For single prompt mode, we use the single prompt
     const promptList = isCsvMode 
-      ? prompts.split('\n').map(prompt => prompt.trim()).filter(Boolean)
+      ? prompts
       : [prompts.trim()];
     
     if (promptList.length === 0 || !keyword) {
