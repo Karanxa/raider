@@ -15,6 +15,8 @@ const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [customKeyword, setCustomKeyword] = useState("");
+  const [useCustomKeyword, setUseCustomKeyword] = useState(false);
   const { exportData } = useDatasetExport();
 
   useEffect(() => {
@@ -25,23 +27,29 @@ const Datasets = () => {
   }, []);
 
   const { data: datasets, isLoading, error, refetch } = useQuery({
-    queryKey: ["adversarial-datasets", apiKey, selectedCategory],
+    queryKey: ["adversarial-datasets", apiKey, useCustomKeyword ? customKeyword : selectedCategory],
     queryFn: async () => {
       if (!apiKey) {
         throw new Error("Please enter your HuggingFace API key");
       }
-      if (!selectedCategory) {
-        throw new Error("Please select a category");
+      if (!useCustomKeyword && !selectedCategory) {
+        throw new Error("Please select a category or use custom search");
+      }
+      if (useCustomKeyword && !customKeyword) {
+        throw new Error("Please enter search keywords");
       }
       
       const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
-        body: { apiKey, category: selectedCategory }
+        body: { 
+          apiKey, 
+          category: useCustomKeyword ? customKeyword : selectedCategory 
+        }
       });
       
       if (error) throw error;
       return data.data as Dataset[];
     },
-    enabled: Boolean(apiKey && selectedCategory),
+    enabled: Boolean(apiKey && (useCustomKeyword ? customKeyword : selectedCategory)),
   });
 
   const handleApiKeyChange = (newKey: string) => {
@@ -51,7 +59,7 @@ const Datasets = () => {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    refetch(); // Explicitly trigger a refetch when category changes
+    refetch();
   };
 
   const filteredDatasets = datasets?.filter(dataset => 
@@ -75,13 +83,28 @@ const Datasets = () => {
         <CategorySelect
           value={selectedCategory}
           onValueChange={handleCategoryChange}
+          customKeyword={customKeyword}
+          onCustomKeywordChange={setCustomKeyword}
+          useCustomKeyword={useCustomKeyword}
+          onUseCustomKeywordChange={(value) => {
+            setUseCustomKeyword(value);
+            if (value) {
+              setSelectedCategory("");
+            } else {
+              setCustomKeyword("");
+            }
+          }}
         />
       )}
 
-      {selectedCategory && (
+      {(selectedCategory || (useCustomKeyword && customKeyword)) && (
         <>
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Adversarial Datasets - {selectedCategory}</h2>
+            <h2 className="text-2xl font-bold">
+              {useCustomKeyword 
+                ? `Search Results - "${customKeyword}"`
+                : `Adversarial Datasets - ${selectedCategory}`}
+            </h2>
             <div className="relative w-[300px]">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -118,7 +141,7 @@ const Datasets = () => {
               {filteredDatasets.length === 0 && !isLoading && (
                 <Card className="p-6 col-span-full">
                   <div className="text-center text-muted-foreground">
-                    No datasets found for this category.
+                    No datasets found for {useCustomKeyword ? 'these keywords' : 'this category'}.
                   </div>
                 </Card>
               )}
