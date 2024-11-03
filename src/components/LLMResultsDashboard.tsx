@@ -11,7 +11,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface ScanResult {
   id: string;
@@ -28,9 +29,10 @@ interface ScanResult {
 const LLMResultsDashboard = () => {
   const [filterType, setFilterType] = useState<string>("all");
   const location = useLocation();
+  const navigate = useNavigate();
   const batchId = location.state?.batchId;
 
-  const { data: results, isLoading } = useQuery({
+  const { data: results, isLoading, error } = useQuery({
     queryKey: ["llm-results", filterType, batchId],
     queryFn: async () => {
       let query = supabase
@@ -49,21 +51,62 @@ const LLMResultsDashboard = () => {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        toast.error("Failed to fetch results: " + error.message);
+        throw error;
+      }
+      if (!data || data.length === 0) {
+        if (batchId) {
+          toast.error("No results found for this batch");
+        }
+      }
       return data as ScanResult[];
     },
   });
 
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-red-500">
+          Failed to load results. Please try again.
+        </div>
+      </Card>
+    );
+  }
+
   if (isLoading) {
-    return <div className="text-center py-8">Loading results...</div>;
+    return (
+      <Card className="p-6">
+        <div className="text-center">Loading results...</div>
+      </Card>
+    );
+  }
+
+  if (!results || results.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-gray-500">
+          {batchId 
+            ? "No results found for this batch. The scan might still be in progress."
+            : "No scan results available yet. Start a new scan from the LLM Scanner tab."}
+        </div>
+      </Card>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-left">
-          {batchId ? "Batch Scan Results" : "LLM Scan Results"}
-        </h2>
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold text-left">
+            {batchId ? "Batch Scan Results" : "LLM Scan Results"}
+          </h2>
+          {batchId && (
+            <div className="text-sm text-muted-foreground">
+              Batch ID: {batchId}
+            </div>
+          )}
+        </div>
         {!batchId && (
           <div className="w-[200px]">
             <Label className="text-left">Filter by Type</Label>
