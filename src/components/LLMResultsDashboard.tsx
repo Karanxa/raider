@@ -24,6 +24,9 @@ interface ScanResult {
   batch_name: string | null;
   user_id: string;
   user_email: string | null;
+  profiles: {
+    email: string;
+  } | null;
 }
 
 const LLMResultsDashboard = () => {
