@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
@@ -9,6 +9,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ChatSupport } from "@/components/chat-support/ChatSupport";
+import { Settings as SettingsIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Settings from "@/pages/Settings";
@@ -31,6 +33,13 @@ const App: React.FC = () => {
                 <div className="min-h-screen bg-background transition-colors duration-300">
                   <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
                     <div className="max-w-[1200px] mx-auto">
+                      <div className="flex justify-end mb-4">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to="/settings" className="hover:text-primary">
+                            <SettingsIcon className="h-5 w-5" />
+                          </Link>
+                        </Button>
+                      </div>
                       <Routes>
                         <Route 
                           path="/login" 
