@@ -8,6 +8,7 @@ import { ApiKeyInput } from "./llm-scanner/ApiKeyInput";
 import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
 import { useSession } from '@supabase/auth-helpers-react';
 import { useScanLogic } from "./llm-scanner/useScanLogic";
+import { useNavigate } from "react-router-dom";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -20,8 +21,15 @@ const LLMScanner = () => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
   const session = useSession();
+  const navigate = useNavigate();
 
-  const { scanning, result, currentPromptIndex, processPrompts } = useScanLogic(session);
+  const { scanning, result, currentPromptIndex, processPrompts, batchId } = useScanLogic(session);
+
+  const handleViewResults = () => {
+    if (batchId) {
+      navigate('/results');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -85,10 +93,18 @@ const LLMScanner = () => {
             )}
           </Button>
 
-          {result && (
+          {batchId ? (
+            <Button 
+              variant="secondary" 
+              className="w-full"
+              onClick={handleViewResults}
+            >
+              View Batch Results
+            </Button>
+          ) : result && (
             <Card className="p-4 mt-4">
-              <h3 className="font-semibold mb-2">Scan Results</h3>
-              <div className="whitespace-pre-wrap text-sm">{result}</div>
+              <h3 className="font-semibold mb-2 text-left">Scan Results</h3>
+              <div className="whitespace-pre-wrap text-sm text-left">{result}</div>
             </Card>
           )}
 
