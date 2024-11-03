@@ -23,38 +23,25 @@ serve(async (req) => {
       throw new Error('Category is required');
     }
 
-    // Create a more targeted search query based on the category
-    let searchQuery;
-    const baseCategory = category.toLowerCase();
-    
-    if (baseCategory.includes('jail breaking')) {
-      searchQuery = 'jailbreak+llm+prompt';
-    } else if (baseCategory.includes('prompt injection')) {
-      searchQuery = 'prompt+injection+attack';
-    } else if (baseCategory.includes('encoding')) {
-      searchQuery = 'encoding+adversarial+llm';
-    } else if (baseCategory.includes('unsafe')) {
-      searchQuery = 'unsafe+prompt+harmful';
-    } else if (baseCategory.includes('uncensored')) {
-      searchQuery = 'uncensored+prompt+bypass';
-    } else if (baseCategory.includes('language based')) {
-      searchQuery = 'language+adversarial+attack';
-    } else if (baseCategory.includes('glitch')) {
-      searchQuery = 'glitch+token+prompt';
-    } else if (baseCategory.includes('llm evasion')) {
-      searchQuery = 'llm+evasion+technique';
-    } else if (baseCategory.includes('leaking')) {
-      searchQuery = 'system+prompt+leak';
-    } else if (baseCategory.includes('insecure')) {
-      searchQuery = 'insecure+output+prompt';
-    } else {
-      searchQuery = baseCategory.split(' ').join('+');
-    }
-    
-    // Add common terms to improve results
-    const finalQuery = `${searchQuery}+dataset+llm`;
-    
-    const response = await fetch(`${HUGGINGFACE_API}?search=${finalQuery}&full=true&limit=100`, {
+    // Map categories to actual HuggingFace search terms
+    const searchMapping = {
+      "Jail Breaking": "jailbreak llm prompt",
+      "Prompt Injection": "prompt injection attack",
+      "Encoding Based": "encoding adversarial prompt",
+      "Unsafe Prompts": "unsafe harmful prompt",
+      "Uncensored Prompts": "uncensored prompt",
+      "Language Based Adversial Prompts": "language adversarial prompt",
+      "Glitch Tokens": "glitch token prompt",
+      "LLM evasion": "llm evasion bypass",
+      "Leaking System Prompts": "system prompt leak",
+      "Insecure Output Handling": "insecure output prompt"
+    };
+
+    const searchTerm = searchMapping[category] || category.toLowerCase();
+    console.log(`Searching HuggingFace for: ${searchTerm}`);
+
+    // Use the exact search term without additional modifications
+    const response = await fetch(`${HUGGINGFACE_API}?search=${encodeURIComponent(searchTerm)}&full=true&limit=50`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
       },
@@ -66,12 +53,19 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Filter out datasets with no downloads or likes to ensure quality
-    const filteredData = data.filter((dataset: any) => 
-      (dataset.downloads > 0 || dataset.likes > 0) && 
-      dataset.id && 
-      dataset.description
-    );
+    // Filter and transform the results to match what we'd see on HuggingFace
+    const filteredData = data
+      .filter((dataset: any) => dataset.id && dataset.description)
+      .map((dataset: any) => ({
+        id: dataset.id,
+        name: dataset.id.split('/').pop(),
+        downloads: dataset.downloads,
+        likes: dataset.likes,
+        description: dataset.description
+      }))
+      .sort((a: any, b: any) => (b.downloads || 0) - (a.downloads || 0));
+    
+    console.log(`Found ${filteredData.length} datasets for category: ${category}`);
     
     return new Response(
       JSON.stringify({ data: filteredData }),
