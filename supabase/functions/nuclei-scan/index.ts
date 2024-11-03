@@ -1,83 +1,102 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-const NUCLEI_API_URL = Deno.env.get('NUCLEI_API_URL');
-const NUCLEI_API_KEY = Deno.env.get('NUCLEI_API_KEY');
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { domains, userId } = await req.json()
-    console.log('Received scan request for domains:', domains)
+    const { domain, userId, templates, url } = await req.json();
+    console.log(`Starting Nuclei scan for ${url ? 'URL: ' + url : 'domain: ' + domain}`);
 
-    // Initialize Supabase client
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    // Convert domains to URLs if they don't start with http
-    const urls = domains.map((domain: string) => 
-      domain.startsWith('http') ? domain : `http://${domain}`
-    )
+    let targets: string[] = [];
+    
+    if (url) {
+      // Ad-hoc scan
+      targets = [url];
+    } else {
+      // Domain-based scan
+      const { data: reconData } = await supabaseAdmin
+        .from('domain_recon_results')
+        .select('ok_endpoints, live_subdomains')
+        .eq('root_domain', domain)
+        .eq('user_id', userId)
+        .order('scan_timestamp', { ascending: false })
+        .limit(1)
+        .single();
 
-    // Send scan request to Nuclei server
-    const scanResponse = await fetch(NUCLEI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${NUCLEI_API_KEY}`,
-      },
-      body: JSON.stringify({ urls }),
-    })
-
-    if (!scanResponse.ok) {
-      throw new Error(`Nuclei scan failed: ${scanResponse.statusText}`)
+      if (reconData) {
+        targets = [...reconData.ok_endpoints, ...reconData.live_subdomains];
+      }
     }
 
-    const scanResults = await scanResponse.json()
-    console.log('Received scan results:', scanResults)
+    if (targets.length === 0) {
+      throw new Error('No targets found for scanning');
+    }
 
-    // Store results in database
-    const { data, error } = await supabaseAdmin
-      .from('nuclei_scan_results')
-      .insert(
-        scanResults.map((result: any) => ({
-          domain: result.domain,
-          url: result.url,
-          template_id: result.template_id,
-          severity: result.severity,
-          finding_name: result.name,
-          finding_description: result.description,
-          matched_at: result.matched_at,
-          user_id: userId,
-        }))
-      )
+    // Write targets to a temporary file
+    const tempFile = await Deno.makeTempFile();
+    await Deno.writeTextFile(tempFile, targets.join('\n'));
 
-    if (error) throw error
+    // Prepare nuclei command arguments
+    const args = ["-l", tempFile, "-silent"];
+    if (templates && templates.length > 0) {
+      args.push("-t", ...templates);
+    }
+
+    // Run nuclei scan
+    const nucleiProcess = new Deno.Command("nuclei", { args });
+    const nucleiOutput = await nucleiProcess.output();
+    const findings = new TextDecoder().decode(nucleiOutput.stdout).trim().split('\n');
+
+    // Parse and store findings
+    for (const finding of findings) {
+      if (!finding) continue;
+      
+      try {
+        const [severity, name, url, matched] = finding.split('|').map(s => s.trim());
+        
+        await supabaseAdmin
+          .from('nuclei_scan_results')
+          .insert({
+            domain: domain || new URL(url).hostname,
+            url,
+            severity,
+            finding_name: name,
+            matched_at: matched,
+            user_id: userId
+          });
+      } catch (e) {
+        console.error('Error parsing finding:', e);
+      }
+    }
+
+    // Cleanup
+    await Deno.remove(tempFile);
 
     return new Response(
-      JSON.stringify({ message: 'Scan completed', results: scanResults }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+      JSON.stringify({ message: 'Nuclei scan completed successfully', findingsCount: findings.length }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Error in nuclei-scan function:', error)
+    console.error('Error in nuclei-scan function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
+      { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
   }
-})
+});

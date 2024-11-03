@@ -4,20 +4,16 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import DomainInput from "@/components/DomainInput";
-import Dashboard from "@/components/Dashboard";
+import DomainRecon from "@/components/DomainRecon";
+import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
 import LLMResultsDashboard from "@/components/LLMResultsDashboard";
-import { Domain } from "@/types/domain";
+import NucleiScanner from "@/components/NucleiScanner";
+import NucleiResults from "@/components/NucleiResults";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
-  const [domains, setDomains] = useState<Domain[]>([]);
   const navigate = useNavigate();
-
-  const handleDomainSubmit = (domain: Domain) => {
-    setDomains((prev) => [...prev, domain]);
-  };
 
   const handleLogout = async () => {
     try {
@@ -42,20 +38,32 @@ const Index = () => {
           </div>
         </div>
         
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs defaultValue="recon" className="w-full">
           <div className="mb-6 overflow-x-auto">
             <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 gap-1 flex-wrap sm:flex-nowrap">
               <TabsTrigger 
-                value="dashboard" 
+                value="recon" 
                 className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Dashboard
+                Domain Recon
               </TabsTrigger>
               <TabsTrigger 
-                value="input" 
+                value="recon-results" 
                 className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Domain Input
+                Recon Results
+              </TabsTrigger>
+              <TabsTrigger 
+                value="nuclei" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Nuclei Scanner
+              </TabsTrigger>
+              <TabsTrigger 
+                value="nuclei-results" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Nuclei Results
               </TabsTrigger>
               <TabsTrigger 
                 value="llm" 
@@ -64,28 +72,36 @@ const Index = () => {
                 LLM Scanner
               </TabsTrigger>
               <TabsTrigger 
-                value="results" 
+                value="llm-results" 
                 className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Results
+                LLM Results
               </TabsTrigger>
             </TabsList>
           </div>
           
           <div className="mt-4">
-            <TabsContent value="dashboard" className="m-0">
-              <Dashboard domains={domains} />
+            <TabsContent value="recon" className="m-0">
+              <DomainRecon />
             </TabsContent>
             
-            <TabsContent value="input" className="m-0">
-              <DomainInput onSubmit={handleDomainSubmit} />
+            <TabsContent value="recon-results" className="m-0">
+              <ReconResults />
+            </TabsContent>
+
+            <TabsContent value="nuclei" className="m-0">
+              <NucleiScanner />
+            </TabsContent>
+
+            <TabsContent value="nuclei-results" className="m-0">
+              <NucleiResults domain={null} />
             </TabsContent>
 
             <TabsContent value="llm" className="m-0">
               <LLMScanner />
             </TabsContent>
 
-            <TabsContent value="results" className="m-0">
+            <TabsContent value="llm-results" className="m-0">
               <LLMResultsDashboard />
             </TabsContent>
           </div>

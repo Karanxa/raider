@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      domain_recon_results: {
+        Row: {
+          error_message: string | null
+          file_endpoints: Json | null
+          id: string
+          js_files: Json | null
+          live_subdomains: Json | null
+          ok_endpoints: Json | null
+          root_domain: string
+          scan_status: string | null
+          scan_timestamp: string | null
+          user_id: string
+        }
+        Insert: {
+          error_message?: string | null
+          file_endpoints?: Json | null
+          id?: string
+          js_files?: Json | null
+          live_subdomains?: Json | null
+          ok_endpoints?: Json | null
+          root_domain: string
+          scan_status?: string | null
+          scan_timestamp?: string | null
+          user_id: string
+        }
+        Update: {
+          error_message?: string | null
+          file_endpoints?: Json | null
+          id?: string
+          js_files?: Json | null
+          live_subdomains?: Json | null
+          ok_endpoints?: Json | null
+          root_domain?: string
+          scan_status?: string | null
+          scan_timestamp?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       llm_scan_results: {
         Row: {
           batch_id: string | null
