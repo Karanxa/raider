@@ -9,6 +9,9 @@ import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
 import { useSession } from '@supabase/auth-helpers-react';
 import { useScanLogic } from "./llm-scanner/useScanLogic";
 import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -20,6 +23,7 @@ const LLMScanner = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [prompts, setPrompts] = useState<string[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
+  const [qps, setQps] = useState<number>(10);
   const session = useSession();
   const navigate = useNavigate();
 
@@ -28,6 +32,15 @@ const LLMScanner = () => {
   const handleViewResults = () => {
     if (batchId) {
       navigate('/results');
+    }
+  };
+
+  const handleQpsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(event.target.value);
+    if (value > 0) {
+      setQps(value);
+    } else {
+      toast.error("QPS must be greater than 0");
     }
   };
 
@@ -69,6 +82,22 @@ const LLMScanner = () => {
             onPromptsFromCSV={setPrompts}
           />
 
+          {prompts.length > 0 && (
+            <div className="space-y-2">
+              <Label>Queries Per Second (QPS)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={qps}
+                onChange={handleQpsChange}
+                placeholder="Enter QPS rate (e.g., 10)"
+              />
+              <p className="text-sm text-muted-foreground">
+                Limit the rate of API requests per second
+              </p>
+            </div>
+          )}
+
           <Button
             onClick={() => processPrompts(
               prompts,
@@ -79,7 +108,8 @@ const LLMScanner = () => {
               curlCommand,
               promptPlaceholder,
               customHeaders,
-              selectedModel
+              selectedModel,
+              qps
             )}
             disabled={scanning}
             className="w-full"
@@ -103,8 +133,8 @@ const LLMScanner = () => {
             </Button>
           ) : result && (
             <Card className="p-4 mt-4">
-              <h3 className="font-semibold mb-2 text-left">Scan Results</h3>
-              <div className="whitespace-pre-wrap text-sm text-left">{result}</div>
+              <h3 className="font-semibold mb-2">Scan Results</h3>
+              <div className="whitespace-pre-wrap text-sm">{result}</div>
             </Card>
           )}
 

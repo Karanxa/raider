@@ -19,7 +19,8 @@ export const useScanLogic = (session: any) => {
     curlCommand: string,
     promptPlaceholder: string,
     customHeaders: string,
-    selectedModel: string
+    selectedModel: string,
+    qps: number = 10
   ) => {
     if (prompts.length === 0 && !prompt) {
       toast.error("Please enter a prompt or upload a CSV file");
@@ -51,7 +52,8 @@ export const useScanLogic = (session: any) => {
           customHeaders,
           selectedModel,
           session.user.id,
-          setCurrentPromptIndex
+          setCurrentPromptIndex,
+          qps
         );
         setBatchId(newBatchId);
         toast.success("Batch processing completed");
