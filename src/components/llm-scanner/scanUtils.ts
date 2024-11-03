@@ -18,7 +18,8 @@ export const handleSingleScan = async (
       curlCommand,
       promptPlaceholder,
       customHeaders,
-      userId
+      userId,
+      'manual'
     );
   }
 
@@ -27,7 +28,8 @@ export const handleSingleScan = async (
     selectedProvider,
     apiKey,
     selectedModel,
-    userId
+    userId,
+    'manual'
   );
 };
 
@@ -37,7 +39,8 @@ const handleCustomProviderScan = async (
   curlCommand: string,
   promptPlaceholder: string,
   customHeaders: string,
-  userId: string
+  userId: string,
+  scanType: 'manual' | 'batch'
 ) => {
   try {
     let response;
@@ -90,7 +93,7 @@ const handleCustomProviderScan = async (
       prompt,
       result,
       provider: 'custom',
-      scan_type: 'manual',
+      scan_type: scanType,
       user_id: userId,
     });
 
@@ -106,7 +109,8 @@ const handleStandardProviderScan = async (
   provider: string,
   apiKey: string,
   model: string,
-  userId: string
+  userId: string,
+  scanType: 'manual' | 'batch'
 ) => {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -135,7 +139,7 @@ const handleStandardProviderScan = async (
     result: generatedText,
     provider,
     model,
-    scan_type: 'manual',
+    scan_type: scanType,
     user_id: userId,
   });
 
