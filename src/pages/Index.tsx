@@ -8,6 +8,7 @@ import DomainInput from "@/components/DomainInput";
 import Dashboard from "@/components/Dashboard";
 import LLMScanner from "@/components/LLMScanner";
 import { Domain } from "@/types/domain";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -28,13 +29,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Domain Reconnaissance Dashboard</h1>
-          <Button variant="outline" onClick={handleLogout}>
-            Logout
-          </Button>
+          <h1 className="text-3xl font-bold text-foreground">Domain Reconnaissance Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
         </div>
         
         <Tabs defaultValue="input" className="w-full">
