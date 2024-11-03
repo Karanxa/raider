@@ -23,8 +23,14 @@ const Login = () => {
         <h1 className="text-2xl font-bold text-center mb-6">Welcome to Domain Explorer</h1>
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
-          theme="light"
+          appearance={{ 
+            theme: ThemeSupa,
+            style: {
+              button: { background: 'rgb(59, 130, 246)', color: 'white' },
+              anchor: { color: 'rgb(59, 130, 246)' }
+            }
+          }}
+          theme="default"
           providers={[]}
         />
       </div>
