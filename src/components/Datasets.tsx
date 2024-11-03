@@ -32,17 +32,19 @@ const Datasets = () => {
       if (!apiKey) {
         throw new Error("Please enter your HuggingFace API key");
       }
-      if (!useCustomKeyword && !selectedCategory) {
-        throw new Error("Please select a category or use custom search");
-      }
-      if (useCustomKeyword && !customKeyword) {
-        throw new Error("Please enter search keywords");
+
+      const searchQuery = useCustomKeyword ? customKeyword : selectedCategory;
+      if (!searchQuery) {
+        throw new Error(useCustomKeyword 
+          ? "Please enter search keywords" 
+          : "Please select a category"
+        );
       }
       
       const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
         body: { 
           apiKey, 
-          category: useCustomKeyword ? customKeyword : selectedCategory 
+          category: searchQuery
         }
       });
       
