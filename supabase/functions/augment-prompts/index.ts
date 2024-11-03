@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,33 +12,62 @@ serve(async (req) => {
   }
 
   try {
-    const { prompts, keyword } = await req.json();
+    const { prompts, keyword, userId } = await req.json();
 
-    const augmentedPrompts = prompts.map((prompt: string) => {
-      // Simple augmentation logic based on the keyword
-      return `${prompt.replace("location", "delivery location, data, orderID")} (augmented with keyword: ${keyword})`;
-    });
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
-    // Save augmented prompts to the database
-    const { error } = await supabase.from('prompt_augmentations').insert(
-      augmentedPrompts.map(augmented_prompt => ({
-        user_id: "user-id-placeholder", // Replace with actual user ID
-        original_prompt: prompts,
-        keyword,
-        augmented_prompt,
-      }))
+    // Initialize Supabase client with environment variables
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    if (error) throw error;
+    const augmentedPrompts = prompts.map((prompt: string) => {
+      let augmentedPrompt = prompt;
 
-    return new Response(JSON.stringify({ success: true, augmentedPrompts }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      // More sophisticated augmentation logic based on keyword
+      if (keyword.toLowerCase() === 'ecommerce') {
+        // Replace common generic terms with ecommerce-specific terms
+        augmentedPrompt = augmentedPrompt
+          .replace(/\blocation\b/gi, "delivery address")
+          .replace(/\buser\b/gi, "customer")
+          .replace(/\bdata\b/gi, "order data")
+          .replace(/\bid\b/gi, "order ID")
+          .replace(/\bpayment\b/gi, "payment method")
+          .replace(/\bitem\b/gi, "product");
+      }
+
+      // Add context based on the keyword if not already present
+      if (!augmentedPrompt.toLowerCase().includes(keyword.toLowerCase())) {
+        augmentedPrompt = `${augmentedPrompt} in the context of ${keyword}`;
+      }
+
+      return augmentedPrompt;
     });
+
+    // Save each augmented prompt individually
+    const promises = augmentedPrompts.map((augmentedPrompt: string, index: number) => {
+      return supabaseClient.from('prompt_augmentations').insert({
+        user_id: userId,
+        original_prompt: prompts[index],
+        keyword,
+        augmented_prompt: augmentedPrompt,
+      });
+    });
+
+    await Promise.all(promises);
+
+    return new Response(
+      JSON.stringify({ success: true, augmentedPrompts }), 
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Error in augment-prompts function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
