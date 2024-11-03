@@ -48,13 +48,13 @@ export const CustomProviderSettings = ({
       <div className="space-y-2">
         <Label>cURL Command Template</Label>
         <Textarea
-          placeholder='curl -X POST "https://api.example.com/v1/chat" -H "Authorization: Bearer $API_KEY" -d "{\\"prompt\\": \\"{{PROMPT}}\\"}"'
+          placeholder={'curl -X POST "https://api.example.com/v1/chat" -H "Authorization: Bearer $API_KEY" -d "{\\"prompt\\": \\"{{PROMPT}}\\"}"'}
           value={curlCommand}
           onChange={(e) => onCurlCommandChange(e.target.value)}
           className="font-mono text-sm min-h-[100px]"
         />
         <p className="text-sm text-muted-foreground">
-          Use {{PROMPT}} as a placeholder where the prompt should be inserted
+          Use {`{{PROMPT}}`} as a placeholder where the prompt should be inserted
         </p>
       </div>
 
