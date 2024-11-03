@@ -13,7 +13,8 @@ import { FileUpload } from './prompt-augmentation/FileUpload';
 import { ResultsPreview } from './prompt-augmentation/ResultsPreview';
 
 const PromptAugmentation = () => {
-  const [prompts, setPrompts] = useState<string>("");
+  const [prompts, setPrompts] = useState<string[]>([]);
+  const [promptText, setPromptText] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
   const [provider, setProvider] = useState<string>("");
   const [apiKey, setApiKey] = useState<string>("");
@@ -43,7 +44,7 @@ const PromptAugmentation = () => {
     // For single prompt mode, we use the single prompt
     const promptList = isCsvMode 
       ? prompts
-      : [prompts.trim()];
+      : [promptText.trim()];
     
     if (promptList.length === 0 || !keyword) {
       toast.error("Please provide prompts and a keyword");
@@ -100,7 +101,7 @@ const PromptAugmentation = () => {
   };
 
   const handleFileUpload = (promptList: string[]) => {
-    setPrompts(promptList.join('\n'));
+    setPrompts(promptList);
     setIsCsvMode(true);
   };
 
@@ -143,10 +144,13 @@ const PromptAugmentation = () => {
           
           <Textarea
             placeholder="Enter prompts, one per line..."
-            value={prompts}
+            value={isCsvMode ? prompts.join('\n') : promptText}
             onChange={(e) => {
-              setPrompts(e.target.value);
-              setIsCsvMode(e.target.value.includes('\n'));
+              if (isCsvMode) {
+                setPrompts(e.target.value.split('\n'));
+              } else {
+                setPromptText(e.target.value);
+              }
             }}
             className="min-h-[100px]"
           />
