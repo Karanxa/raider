@@ -147,6 +147,36 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_augmentations: {
+        Row: {
+          augmented_prompt: string
+          category: string | null
+          created_at: string | null
+          id: string
+          keyword: string
+          original_prompt: string
+          user_id: string
+        }
+        Insert: {
+          augmented_prompt: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          keyword: string
+          original_prompt: string
+          user_id: string
+        }
+        Update: {
+          augmented_prompt?: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          keyword?: string
+          original_prompt?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scheduled_llm_scans: {
         Row: {
           active: boolean | null
