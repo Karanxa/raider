@@ -11,6 +11,7 @@ import LLMResultsDashboard from "@/components/LLMResultsDashboard";
 import NucleiScanner from "@/components/NucleiScanner";
 import NucleiResults from "@/components/NucleiResults";
 import Datasets from "@/components/Datasets";
+import PromptAugmentation from "@/components/PromptAugmentation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
@@ -84,6 +85,12 @@ const Index = () => {
               >
                 Datasets
               </TabsTrigger>
+              <TabsTrigger 
+                value="prompt-augmentation" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Prompt Augmentation
+              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -114,6 +121,10 @@ const Index = () => {
 
             <TabsContent value="datasets" className="m-0">
               <Datasets />
+            </TabsContent>
+
+            <TabsContent value="prompt-augmentation" className="m-0">
+              <PromptAugmentation />
             </TabsContent>
           </div>
         </Tabs>
