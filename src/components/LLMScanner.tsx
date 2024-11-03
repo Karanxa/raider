@@ -18,6 +18,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -26,6 +27,7 @@ const LLMScanner = () => {
   const [customEndpoint, setCustomEndpoint] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [scanning, setScanning] = useState(false);
+  const [result, setResult] = useState<string>("");
 
   const providers = {
     openai: {
@@ -48,22 +50,35 @@ const LLMScanner = () => {
       return;
     }
 
-    if (!apiKey && selectedProvider !== "custom") {
-      toast.error("Please enter an API key");
-      return;
-    }
-
     if (selectedProvider === "custom" && !customEndpoint) {
       toast.error("Please enter a custom endpoint URL");
       return;
     }
 
+    if (!prompt) {
+      toast.error("Please enter a prompt");
+      return;
+    }
+
     setScanning(true);
     try {
-      // Scanning logic will be implemented later
-      toast.info("LLM scanning will be implemented in the next phase");
+      if (selectedProvider === "openai") {
+        const { data, error } = await supabase.functions.invoke('llm-scan', {
+          body: { 
+            prompt,
+            model: selectedModel || "gpt-4o-mini"
+          }
+        });
+
+        if (error) throw error;
+        setResult(data.result);
+        toast.success("LLM scan completed");
+      } else {
+        toast.info("Support for this provider will be implemented soon");
+      }
     } catch (error) {
-      toast.error("Error during scan");
+      console.error('LLM scan error:', error);
+      toast.error(`Error during scan: ${error.message}`);
     } finally {
       setScanning(false);
     }
@@ -116,36 +131,17 @@ const LLMScanner = () => {
             </div>
           )}
 
-          <Accordion type="single" collapsible>
-            <AccordionItem value="config">
-              <AccordionTrigger>Configuration</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-4">
-                  {selectedProvider !== "custom" ? (
-                    <div className="space-y-2">
-                      <Label>API Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="Enter your API key"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label>Custom Endpoint URL</Label>
-                      <Input
-                        type="url"
-                        placeholder="https://your-custom-endpoint.com"
-                        value={customEndpoint}
-                        onChange={(e) => setCustomEndpoint(e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+          {selectedProvider === "custom" && (
+            <div className="space-y-2">
+              <Label>Custom Endpoint URL</Label>
+              <Input
+                type="url"
+                placeholder="https://your-custom-endpoint.com"
+                value={customEndpoint}
+                onChange={(e) => setCustomEndpoint(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Prompt</Label>
@@ -164,6 +160,13 @@ const LLMScanner = () => {
           >
             {scanning ? "Scanning..." : "Start LLM Scan"}
           </Button>
+
+          {result && (
+            <Card className="p-4 mt-4">
+              <h3 className="font-semibold mb-2">Scan Results</h3>
+              <div className="whitespace-pre-wrap text-sm">{result}</div>
+            </Card>
+          )}
         </div>
       </Card>
     </div>
