@@ -18,6 +18,7 @@ const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [customEndpoint, setCustomEndpoint] = useState<string>("");
+  const [customHeaders, setCustomHeaders] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<string>("");
@@ -43,14 +44,40 @@ const LLMScanner = () => {
       return;
     }
 
-    if (selectedProvider === "custom" && !customEndpoint) {
-      toast.error("Please enter a custom endpoint URL");
-      return;
-    }
+    if (selectedProvider === "custom") {
+      if (!customEndpoint) {
+        toast.error("Please enter a custom endpoint URL");
+        return;
+      }
 
-    if (!prompt) {
-      toast.error("Please enter a prompt");
-      return;
+      try {
+        setScanning(true);
+        const headers = customHeaders ? JSON.parse(customHeaders) : {};
+        
+        const response = await fetch(customEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...headers,
+          },
+          body: JSON.stringify({ prompt }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setResult(typeof data === "string" ? data : JSON.stringify(data, null, 2));
+        toast.success("Custom endpoint scan completed");
+        return;
+      } catch (error) {
+        console.error("Custom endpoint error:", error);
+        toast.error(`Error with custom endpoint: ${error.message}`);
+        return;
+      } finally {
+        setScanning(false);
+      }
     }
 
     setScanning(true);
@@ -71,9 +98,6 @@ const LLMScanner = () => {
             model: selectedModel || "gemini-pro"
           }
         }));
-      } else {
-        toast.info("Support for this provider will be implemented soon");
-        return;
       }
 
       if (error) throw error;
@@ -135,15 +159,26 @@ const LLMScanner = () => {
           )}
 
           {selectedProvider === "custom" && (
-            <div className="space-y-2">
-              <Label>Custom Endpoint URL</Label>
-              <Input
-                type="url"
-                placeholder="https://your-custom-endpoint.com"
-                value={customEndpoint}
-                onChange={(e) => setCustomEndpoint(e.target.value)}
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label>Custom Endpoint URL</Label>
+                <Input
+                  type="url"
+                  placeholder="https://your-custom-endpoint.com"
+                  value={customEndpoint}
+                  onChange={(e) => setCustomEndpoint(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Custom Headers (Optional JSON)</Label>
+                <Textarea
+                  placeholder='{"Authorization": "Bearer your-token"}'
+                  value={customHeaders}
+                  onChange={(e) => setCustomHeaders(e.target.value)}
+                  className="font-mono text-sm"
+                />
+              </div>
+            </>
           )}
 
           <div className="space-y-2">
