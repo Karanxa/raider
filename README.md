@@ -1,71 +1,162 @@
-# Welcome to your GPT Engineer project
+# Domain Reconnaissance Tool
 
-## Project info
+A comprehensive web application for domain reconnaissance, LLM scanning, and security analysis.
 
-**URL**: https://run.gptengineer.app/projects/cf39d0bf-8ea5-4eb8-a345-c370229d0a33/improve
+## Features
 
-## How can I edit this code?
+- Domain scanning and analysis
+- LLM-powered security scanning
+- Real-time dashboard
+- Nuclei integration for vulnerability scanning
+- Scheduled scans
+- Mobile-responsive design
 
-There are several ways of editing your application.
+## Prerequisites
 
-**Use GPT Engineer**
+- Node.js 20 or later
+- npm or yarn package manager
+- A Supabase account for backend services
 
-Simply visit the GPT Engineer project at [GPT Engineer](https://gptengineer.app/projects/cf39d0bf-8ea5-4eb8-a345-c370229d0a33/improve) and start prompting.
+## Installation
 
-Changes made via gptengineer.app will be committed automatically to this repo.
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd domain-reconnaissance
+```
 
-**Use your preferred IDE**
+2. Install dependencies:
+```bash
+npm install
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in the GPT Engineer UI.
+3. Set up Supabase:
+   - Create a new Supabase project at [https://supabase.com](https://supabase.com)
+   - Copy your project URL and anon key from Project Settings -> API
+   - Create a `.env` file in the root directory with the following variables:
+   ```
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+4. Set up the database:
+   - Go to the SQL editor in your Supabase dashboard
+   - Run the following SQL commands to create the necessary tables:
 
-Follow these steps:
+   ```sql
+   -- Create profiles table
+   create table profiles (
+     id uuid references auth.users not null primary key,
+     email text not null,
+     created_at timestamp with time zone default now()
+   );
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+   -- Create nuclei_scan_results table
+   create table nuclei_scan_results (
+     id uuid default uuid_generate_v4() primary key,
+     domain text not null,
+     url text not null,
+     scan_timestamp timestamp with time zone default now(),
+     template_id text,
+     severity text,
+     finding_name text,
+     finding_description text,
+     matched_at text,
+     user_id uuid references auth.users,
+     created_at timestamp with time zone default now()
+   );
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+   -- Create llm_scan_results table
+   create table llm_scan_results (
+     id uuid default uuid_generate_v4() primary key,
+     user_id uuid references auth.users not null,
+     prompt text not null,
+     result text not null,
+     provider text not null,
+     model text,
+     scan_type text not null,
+     batch_id uuid,
+     created_at timestamp with time zone default now(),
+     batch_name text
+   );
 
-# Step 3: Install the necessary dependencies.
-npm i
+   -- Create scheduled_llm_scans table
+   create table scheduled_llm_scans (
+     id uuid default uuid_generate_v4() primary key,
+     user_id uuid references auth.users not null,
+     prompt text not null,
+     provider text not null,
+     model text,
+     custom_endpoint text,
+     curl_command text,
+     prompt_placeholder text,
+     custom_headers text,
+     api_key text,
+     schedule text not null,
+     is_recurring boolean default false,
+     next_run timestamp with time zone,
+     last_run timestamp with time zone,
+     created_at timestamp with time zone default now(),
+     active boolean default true
+   );
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+   -- Create trigger for new user profiles
+   create or replace function handle_new_user()
+   returns trigger as $$
+   begin
+     insert into public.profiles (id, email)
+     values (new.id, new.email);
+     return new;
+   end;
+   $$ language plpgsql security definer;
+
+   create trigger on_auth_user_created
+     after insert on auth.users
+     for each row execute function handle_new_user();
+   ```
+
+5. Configure Edge Functions:
+   - In your Supabase dashboard, go to Edge Functions and set up the following secrets:
+     - `OPENAI_API_KEY`: Your OpenAI API key for LLM scanning
+     - `NUCLEI_API_KEY`: Your Nuclei API key (if using Nuclei integration)
+     - `NUCLEI_API_URL`: Your Nuclei API endpoint
+
+6. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Docker Support
 
-**Use GitHub Codespaces**
+To run the application using Docker:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Build the image
+docker build -t domain-recon .
 
-## What technologies are used for this project?
+# Run the container
+docker run -p 5173:5173 domain-recon
+```
 
-This project is built with .
+## Environment Variables
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Create a `.env` file in the root directory with the following variables:
 
-## How can I deploy this project?
+```
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-All GPT Engineer projects can be deployed directly via the GPT Engineer app.
+## Contributing
 
-Simply visit your project at [GPT Engineer](https://gptengineer.app/projects/cf39d0bf-8ea5-4eb8-a345-c370229d0a33/improve) and click on Share -> Publish.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## I want to use a custom domain - is that possible?
+## License
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.gptengineer.app/tips-tricks/custom-domain/)
+This project is licensed under the MIT License - see the LICENSE file for details.
