@@ -23,6 +23,7 @@ interface ScanResult {
   created_at: string;
   batch_name: string | null;
   user_id: string;
+  user_email?: string;
 }
 
 const LLMResultsDashboard = () => {
@@ -42,9 +43,21 @@ const LLMResultsDashboard = () => {
         query = query.eq('scan_type', 'batch');
       }
 
-      const { data, error } = await query;
+      const { data: scanResults, error } = await query;
       if (error) throw error;
-      return data as ScanResult[];
+
+      // Fetch user emails for each result
+      const resultsWithUsers = await Promise.all(
+        scanResults.map(async (result) => {
+          const { data: userData } = await supabase.auth.admin.getUserById(result.user_id);
+          return {
+            ...result,
+            user_email: userData?.user?.email || 'Unknown User'
+          };
+        })
+      );
+
+      return resultsWithUsers as ScanResult[];
     },
   });
 
@@ -86,6 +99,9 @@ const LLMResultsDashboard = () => {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {new Date(result.created_at).toLocaleString()}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Run by: {result.user_email}
                 </div>
               </div>
               <div className="text-right">
