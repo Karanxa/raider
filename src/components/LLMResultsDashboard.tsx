@@ -24,9 +24,6 @@ interface ScanResult {
   batch_name: string | null;
   user_id: string;
   user_email: string | null;
-  profiles: {
-    email: string;
-  } | null;
 }
 
 const LLMResultsDashboard = () => {
@@ -37,12 +34,7 @@ const LLMResultsDashboard = () => {
     queryFn: async () => {
       let query = supabase
         .from('llm_scan_results')
-        .select(`
-          *,
-          profiles!llm_scan_results_user_id_fkey (
-            email
-          )
-        `)
+        .select('*, profiles(email)')
         .order('created_at', { ascending: false });
 
       if (filterType === "manual") {
