@@ -33,7 +33,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-4 sm:py-8">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Domain Reconnaissance</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Simrata</h1>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <Button variant="outline" onClick={handleLogout}>
