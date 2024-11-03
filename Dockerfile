@@ -21,5 +21,5 @@ ENV VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 # Expose port 5173 (Vite's default port)
 EXPOSE 5173
 
-# Start the development server with host set to 0.0.0.0
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start the development server with host set to 0.0.0.0 and with --strictPort
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--strictPort"]
