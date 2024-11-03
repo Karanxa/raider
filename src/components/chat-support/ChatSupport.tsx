@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
@@ -20,24 +20,29 @@ export const ChatSupport = () => {
   ]);
   const [currentMessage, setCurrentMessage] = useState('');
 
-  const { isLoading, mutateAsync: sendMessage } = useQuery({
-    queryKey: ['chat-support', currentMessage],
-    queryFn: async () => {
-      if (!currentMessage.trim()) return null;
+  const { mutate: sendMessage, isLoading } = useMutation({
+    mutationFn: async (message: string) => {
+      if (!message.trim()) return null;
       
-      try {
-        const { data, error } = await supabase.functions.invoke('chat-support', {
-          body: { message: currentMessage }
-        });
-        
-        if (error) throw error;
-        return data.response;
-      } catch (err) {
-        console.error('Error in chat support:', err);
-        return "I apologize, but I'm having trouble processing your request right now. Please try again later.";
+      const { data, error } = await supabase.functions.invoke('chat-support', {
+        body: { message }
+      });
+      
+      if (error) throw error;
+      return data.response;
+    },
+    onSuccess: (response) => {
+      if (response) {
+        setMessages(prev => [...prev, { role: 'assistant', content: response }]);
       }
     },
-    enabled: false
+    onError: (error) => {
+      console.error('Error in chat support:', error);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "I apologize, but I'm having trouble processing your request right now. Please try again later." 
+      }]);
+    }
   });
 
   const handleSend = async () => {
@@ -46,11 +51,7 @@ export const ChatSupport = () => {
     const userMessage = { role: 'user' as const, content: currentMessage };
     setMessages(prev => [...prev, userMessage]);
     setCurrentMessage('');
-
-    const response = await sendMessage();
-    if (response) {
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-    }
+    sendMessage(currentMessage);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
