@@ -8,6 +8,7 @@ import Papa from 'papaparse';
 import { FilterBar } from "./llm-results/FilterBar";
 import { ResultCard } from "./llm-results/ResultCard";
 import { ScanResult } from "./llm-results/types";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const LLMResultsDashboard = () => {
   const [filterType, setFilterType] = useState<string>("all");
@@ -88,7 +89,7 @@ const LLMResultsDashboard = () => {
 
   if (error) {
     return (
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="text-center text-red-500">
           Failed to load results. Please try again.
         </div>
@@ -98,7 +99,7 @@ const LLMResultsDashboard = () => {
 
   if (isLoading) {
     return (
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="text-center">Loading results...</div>
       </Card>
     );
@@ -106,7 +107,7 @@ const LLMResultsDashboard = () => {
 
   if (!results || results.length === 0) {
     return (
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="text-center text-gray-500">
           {batchId 
             ? "No results found for this batch. The scan might still be in progress."
@@ -119,10 +120,10 @@ const LLMResultsDashboard = () => {
   const uniqueLabels = [...new Set(results.map(r => r.label).filter(Boolean))];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-left">
+          <h2 className="text-xl sm:text-2xl font-bold">
             {batchId ? "Batch Scan Results" : "LLM Scan Results"}
           </h2>
           {batchId && (
@@ -141,15 +142,17 @@ const LLMResultsDashboard = () => {
         />
       </div>
 
-      <div className="grid gap-4">
-        {results.map((result) => (
-          <ResultCard
-            key={result.id}
-            result={result}
-            onLabelAdd={handleAddLabel}
-          />
-        ))}
-      </div>
+      <ScrollArea className="h-[calc(100vh-12rem)]">
+        <div className="space-y-4">
+          {results.map((result) => (
+            <ResultCard
+              key={result.id}
+              result={result}
+              onLabelAdd={handleAddLabel}
+            />
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

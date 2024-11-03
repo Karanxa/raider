@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Filter } from "lucide-react";
 import { FilterProps } from "./types";
 
 export const FilterBar = ({ 
@@ -19,25 +19,40 @@ export const FilterBar = ({
   onExport 
 }: FilterProps & { onExport: () => void }) => {
   return (
-    <div className="flex gap-4">
-      <div className="w-[200px]">
-        <Label className="text-left">Filter by Type</Label>
+    <div className="flex flex-col sm:flex-row gap-4">
+      <div className="w-full sm:w-[200px]">
+        <Label className="text-sm font-medium">Filter by Type</Label>
         <Select value={filterType} onValueChange={onFilterTypeChange}>
-          <SelectTrigger>
+          <SelectTrigger className="mt-1.5">
             <SelectValue placeholder="Select filter type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Results</SelectItem>
-            <SelectItem value="manual">Manual Prompts</SelectItem>
-            <SelectItem value="batch">Batch Scans</SelectItem>
+            <SelectItem value="all">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                All Results
+              </div>
+            </SelectItem>
+            <SelectItem value="manual">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Manual Prompts
+              </div>
+            </SelectItem>
+            <SelectItem value="batch">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Batch Scans
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
       {uniqueLabels.length > 0 && (
-        <div className="w-[200px]">
-          <Label className="text-left">Filter by Label</Label>
+        <div className="w-full sm:w-[200px]">
+          <Label className="text-sm font-medium">Filter by Label</Label>
           <Select value={filterLabel} onValueChange={onFilterLabelChange}>
-            <SelectTrigger>
+            <SelectTrigger className="mt-1.5">
               <SelectValue placeholder="Select label" />
             </SelectTrigger>
             <SelectContent>
@@ -49,8 +64,12 @@ export const FilterBar = ({
           </Select>
         </div>
       )}
-      <Button onClick={onExport} className="mt-auto">
-        <Download className="w-4 h-4 mr-2" />
+      <Button 
+        onClick={onExport} 
+        className="sm:mt-auto flex items-center gap-2"
+        variant="secondary"
+      >
+        <Download className="w-4 h-4" />
         Export Results
       </Button>
     </div>
