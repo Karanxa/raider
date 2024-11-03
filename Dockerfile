@@ -4,20 +4,22 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Install dependencies first (for better caching)
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
 # Copy project files
 COPY . .
 
-# Build the application
-RUN npm run build
+# Create .env file from example if it doesn't exist
+RUN touch .env
+
+# Set default environment variables (these can be overridden at runtime)
+ENV VITE_SUPABASE_URL=https://facextdabmrqllgdzkms.supabase.co
+ENV VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY2V4dGRhYm1ycWxsZ2R6a21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA2MjcyMjMsImV4cCI6MjA0NjIwMzIyM30.GouDaqFh1hacbylYiHDHtsjSwKYX6lCIl0chwX2y0gI
 
 # Expose port 5173 (Vite's default port)
 EXPOSE 5173
 
-# Start the application
-CMD ["npm", "run", "dev", "--", "--host"]
+# Start the development server with host set to 0.0.0.0
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
