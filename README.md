@@ -20,15 +20,15 @@ A comprehensive web application for domain reconnaissance, LLM scanning, and sec
 ## Installation
 
 1. Clone the repository:
-```bash
-git clone <your-repo-url>
-cd domain-reconnaissance
-```
+   ```bash
+   git clone <your-repo-url>
+   cd domain-reconnaissance
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. Set up Supabase:
    - Create a new Supabase project at [https://supabase.com](https://supabase.com)
@@ -122,9 +122,9 @@ npm install
      - `NUCLEI_API_URL`: Your Nuclei API endpoint
 
 6. Start the development server:
-```bash
-npm run dev
-```
+   ```bash
+   npm run dev
+   ```
 
 The application will be available at `http://localhost:5173`
 
