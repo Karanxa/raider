@@ -3,9 +3,11 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/hooks/useTheme";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Check if user is already logged in
@@ -32,19 +34,28 @@ const Login = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-6">Welcome to Domain Explorer</h1>
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="max-w-md w-full p-8 bg-card rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold text-center mb-6 text-foreground">Welcome to Simrata</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{ 
             theme: ThemeSupa,
-            style: {
-              button: { background: 'rgb(59, 130, 246)', color: 'white' },
-              anchor: { color: 'rgb(59, 130, 246)' }
+            variables: {
+              default: {
+                colors: {
+                  brand: 'rgb(59, 130, 246)',
+                  brandAccent: 'rgb(37, 99, 235)',
+                }
+              }
+            },
+            className: {
+              container: 'auth-container',
+              button: 'auth-button',
+              anchor: 'auth-anchor'
             }
           }}
-          theme="default"
+          theme={theme === 'dark' ? 'dark' : 'default'}
           providers={[]}
         />
       </div>
