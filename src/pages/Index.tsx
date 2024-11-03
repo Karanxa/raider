@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState("web");
 
   const handleLogout = async () => {
     try {
@@ -40,94 +41,68 @@ const Index = () => {
           </div>
         </div>
         
-        <Tabs defaultValue="recon" className="w-full">
-          <div className="mb-6 overflow-x-auto">
-            <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 gap-1 flex-wrap sm:flex-nowrap">
-              <TabsTrigger 
-                value="recon" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Domain Recon
-              </TabsTrigger>
-              <TabsTrigger 
-                value="recon-results" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Recon Results
-              </TabsTrigger>
-              <TabsTrigger 
-                value="nuclei" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Nuclei Scanner
-              </TabsTrigger>
-              <TabsTrigger 
-                value="nuclei-results" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Nuclei Results
-              </TabsTrigger>
-              <TabsTrigger 
-                value="llm" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                LLM Scanner
-              </TabsTrigger>
-              <TabsTrigger 
-                value="llm-results" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                LLM Results
-              </TabsTrigger>
-              <TabsTrigger 
-                value="datasets" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Datasets
-              </TabsTrigger>
-              <TabsTrigger 
-                value="prompt-augmentation" 
-                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Prompt Augmentation
-              </TabsTrigger>
+        <div className="mb-6">
+          <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="web">Web Security</TabsTrigger>
+              <TabsTrigger value="genai">GenAI Tools</TabsTrigger>
             </TabsList>
-          </div>
-          
-          <div className="mt-4">
-            <TabsContent value="recon" className="m-0">
-              <DomainRecon />
-            </TabsContent>
+          </Tabs>
+        </div>
+
+        {activeCategory === "web" ? (
+          <Tabs defaultValue="recon" className="w-full">
+            <div className="mb-6 overflow-x-auto">
+              <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 gap-1 flex-wrap sm:flex-nowrap">
+                <TabsTrigger value="recon">Domain Recon</TabsTrigger>
+                <TabsTrigger value="recon-results">Recon Results</TabsTrigger>
+                <TabsTrigger value="nuclei">Nuclei Scanner</TabsTrigger>
+                <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
+              </TabsList>
+            </div>
             
-            <TabsContent value="recon-results" className="m-0">
-              <ReconResults />
-            </TabsContent>
-
-            <TabsContent value="nuclei" className="m-0">
-              <NucleiScanner />
-            </TabsContent>
-
-            <TabsContent value="nuclei-results" className="m-0">
-              <NucleiResults domain={null} />
-            </TabsContent>
-
-            <TabsContent value="llm" className="m-0">
-              <LLMScanner />
-            </TabsContent>
-
-            <TabsContent value="llm-results" className="m-0">
-              <LLMResultsDashboard />
-            </TabsContent>
-
-            <TabsContent value="datasets" className="m-0">
-              <Datasets />
-            </TabsContent>
-
-            <TabsContent value="prompt-augmentation" className="m-0">
-              <PromptAugmentation />
-            </TabsContent>
-          </div>
-        </Tabs>
+            <div className="mt-4">
+              <TabsContent value="recon">
+                <DomainRecon />
+              </TabsContent>
+              <TabsContent value="recon-results">
+                <ReconResults />
+              </TabsContent>
+              <TabsContent value="nuclei">
+                <NucleiScanner />
+              </TabsContent>
+              <TabsContent value="nuclei-results">
+                <NucleiResults domain={null} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        ) : (
+          <Tabs defaultValue="llm" className="w-full">
+            <div className="mb-6 overflow-x-auto">
+              <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 gap-1 flex-wrap sm:flex-nowrap">
+                <TabsTrigger value="llm">LLM Scanner</TabsTrigger>
+                <TabsTrigger value="llm-results">LLM Results</TabsTrigger>
+                <TabsTrigger value="datasets">Datasets</TabsTrigger>
+                <TabsTrigger value="prompt-augmentation">Prompt Augmentation</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <div className="mt-4">
+              <TabsContent value="llm">
+                <LLMScanner />
+              </TabsContent>
+              <TabsContent value="llm-results">
+                <LLMResultsDashboard />
+              </TabsContent>
+              <TabsContent value="datasets">
+                <Datasets />
+              </TabsContent>
+              <TabsContent value="prompt-augmentation">
+                <PromptAugmentation />
+              </TabsContent>
+            </div>
+          </Tabs>
+        )}
       </div>
     </div>
   );
