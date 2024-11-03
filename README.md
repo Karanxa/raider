@@ -1,6 +1,6 @@
-# Domain Reconnaissance Tool
+# Simrata
 
-A comprehensive web application for domain reconnaissance, LLM scanning, and security analysis.
+A comprehensive web application for security analysis and scanning.
 
 ## Features
 
@@ -22,7 +22,7 @@ A comprehensive web application for domain reconnaissance, LLM scanning, and sec
 1. Clone the repository:
    ```bash
    git clone <your-repo-url>
-   cd domain-reconnaissance
+   cd simrata
    ```
 
 2. Install dependencies:
@@ -134,10 +134,10 @@ To run the application using Docker:
 
 ```bash
 # Build the image
-docker build -t domain-recon .
+docker build -t simrata .
 
 # Run the container
-docker run -p 5173:5173 domain-recon
+docker run -p 5173:5173 simrata
 ```
 
 ## Environment Variables
