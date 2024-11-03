@@ -36,7 +36,7 @@ const LLMResultsDashboard = () => {
         .from('llm_scan_results')
         .select(`
           *,
-          user:user_id(
+          profiles!llm_scan_results_user_id_fkey (
             email
           )
         `)
@@ -53,7 +53,7 @@ const LLMResultsDashboard = () => {
 
       return data.map(result => ({
         ...result,
-        user_email: result.user?.email || null
+        user_email: result.profiles?.email || null
       })) as ScanResult[];
     },
   });
