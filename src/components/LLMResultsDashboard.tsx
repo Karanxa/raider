@@ -1,43 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import Papa from 'papaparse';
-
-interface ScanResult {
-  id: string;
-  prompt: string;
-  result: string;
-  provider: string;
-  model: string | null;
-  scan_type: 'manual' | 'batch';
-  batch_id: string | null;
-  created_at: string;
-  batch_name: string | null;
-  label: string | null;
-}
+import { FilterBar } from "./llm-results/FilterBar";
+import { ResultCard } from "./llm-results/ResultCard";
+import { ScanResult } from "./llm-results/types";
 
 const LLMResultsDashboard = () => {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterLabel, setFilterLabel] = useState<string>("");
-  const [newLabel, setNewLabel] = useState<string>("");
-  const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
   const location = useLocation();
-  const navigate = useNavigate();
   const batchId = location.state?.batchId;
 
   const { data: results, isLoading, error } = useQuery({
@@ -97,13 +72,11 @@ const LLMResultsDashboard = () => {
     toast.success("Results exported successfully");
   };
 
-  const handleAddLabel = async () => {
-    if (!selectedResultId || !newLabel.trim()) return;
-
+  const handleAddLabel = async (resultId: string, label: string) => {
     const { error } = await supabase
       .from('llm_scan_results')
-      .update({ label: newLabel.trim() })
-      .eq('id', selectedResultId);
+      .update({ label })
+      .eq('id', resultId);
 
     if (error) {
       toast.error("Failed to add label: " + error.message);
@@ -111,8 +84,6 @@ const LLMResultsDashboard = () => {
     }
 
     toast.success("Label added successfully");
-    setNewLabel("");
-    setSelectedResultId(null);
   };
 
   if (error) {
@@ -160,104 +131,23 @@ const LLMResultsDashboard = () => {
             </div>
           )}
         </div>
-        <div className="flex gap-4">
-          {!batchId && (
-            <div className="w-[200px]">
-              <Label className="text-left">Filter by Type</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select filter type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Results</SelectItem>
-                  <SelectItem value="manual">Manual Prompts</SelectItem>
-                  <SelectItem value="batch">Batch Scans</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {uniqueLabels.length > 0 && (
-            <div className="w-[200px]">
-              <Label className="text-left">Filter by Label</Label>
-              <Select value={filterLabel} onValueChange={setFilterLabel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select label" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Labels</SelectItem>
-                  {uniqueLabels.map(label => (
-                    <SelectItem key={label} value={label}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <Button onClick={handleExport} className="mt-auto">
-            <Download className="w-4 h-4 mr-2" />
-            Export Results
-          </Button>
-        </div>
+        <FilterBar
+          filterType={filterType}
+          filterLabel={filterLabel}
+          onFilterTypeChange={setFilterType}
+          onFilterLabelChange={setFilterLabel}
+          uniqueLabels={uniqueLabels}
+          onExport={handleExport}
+        />
       </div>
 
       <div className="grid gap-4">
-        {results?.map((result) => (
-          <Card key={result.id} className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="space-y-1 text-left">
-                <div className="flex items-center gap-2">
-                  <Badge variant={result.scan_type === 'manual' ? 'default' : 'secondary'}>
-                    {result.scan_type === 'manual' ? 'Manual Prompt' : 'Batch Scan'}
-                  </Badge>
-                  {result.batch_name && (
-                    <Badge variant="outline">{result.batch_name}</Badge>
-                  )}
-                  {result.label && (
-                    <Badge variant="outline" className="bg-primary/10">
-                      {result.label}
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {new Date(result.created_at).toLocaleString()}
-                </div>
-              </div>
-              <div className="text-right">
-                <Badge variant="outline">{result.provider}</Badge>
-                {result.model && (
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {result.model}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <Label className="text-left">Prompt</Label>
-                <div className="mt-1 text-sm bg-muted p-3 rounded-md text-left">
-                  {result.prompt}
-                </div>
-              </div>
-              <div>
-                <Label className="text-left">Result</Label>
-                <div className="mt-1 text-sm bg-muted p-3 rounded-md whitespace-pre-wrap text-left">
-                  {result.result}
-                </div>
-              </div>
-              {!result.label && (
-                <div className="flex gap-2 mt-4">
-                  <Input
-                    placeholder="Add a label"
-                    value={selectedResultId === result.id ? newLabel : ''}
-                    onChange={(e) => {
-                      setNewLabel(e.target.value);
-                      setSelectedResultId(result.id);
-                    }}
-                  />
-                  <Button onClick={handleAddLabel}>Add Label</Button>
-                </div>
-              )}
-            </div>
-          </Card>
+        {results.map((result) => (
+          <ResultCard
+            key={result.id}
+            result={result}
+            onLabelAdd={handleAddLabel}
+          />
         ))}
       </div>
     </div>

@@ -54,6 +54,7 @@ export type Database = {
           batch_name: string | null
           created_at: string | null
           id: string
+          label: string | null
           model: string | null
           prompt: string
           provider: string
@@ -66,6 +67,7 @@ export type Database = {
           batch_name?: string | null
           created_at?: string | null
           id?: string
+          label?: string | null
           model?: string | null
           prompt: string
           provider: string
@@ -78,6 +80,7 @@ export type Database = {
           batch_name?: string | null
           created_at?: string | null
           id?: string
+          label?: string | null
           model?: string | null
           prompt?: string
           provider?: string
