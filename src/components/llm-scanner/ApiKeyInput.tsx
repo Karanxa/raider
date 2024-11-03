@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 interface ApiKeyInputProps {
   provider: string;
@@ -8,26 +9,14 @@ interface ApiKeyInputProps {
 }
 
 export const ApiKeyInput = ({ provider, onApiKeyChange }: ApiKeyInputProps) => {
-  const [apiKey, setApiKey] = useState<string>("");
+  const { getApiKey } = useApiKeys();
 
   useEffect(() => {
-    const savedKey = localStorage.getItem(`${provider}_api_key`);
+    const savedKey = getApiKey(provider);
     if (savedKey) {
-      setApiKey(savedKey);
       onApiKeyChange(savedKey);
-    } else {
-      setApiKey("");
-      onApiKeyChange("");
     }
   }, [provider]);
-
-  const handleKeyChange = (newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem(`${provider}_api_key`, newKey);
-    onApiKeyChange(newKey);
-  };
-
-  if (!provider || provider === "") return null;
 
   return (
     <div className="space-y-2">
@@ -35,11 +24,11 @@ export const ApiKeyInput = ({ provider, onApiKeyChange }: ApiKeyInputProps) => {
       <Input
         type="password"
         placeholder={`Enter your ${provider} API key`}
-        value={apiKey}
-        onChange={(e) => handleKeyChange(e.target.value)}
+        onChange={(e) => onApiKeyChange(e.target.value)}
+        defaultValue={getApiKey(provider) || ""}
       />
       <p className="text-sm text-muted-foreground">
-        Your API key is stored locally in your browser
+        You can manage your API keys in the Settings page or override them here
       </p>
     </div>
   );

@@ -11,6 +11,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ChatSupport } from "@/components/chat-support/ChatSupport";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
+import Settings from "@/pages/Settings";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,16 @@ const App: React.FC = () => {
                             <ProtectedRoute>
                               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <Index />
+                              </div>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/settings"
+                          element={
+                            <ProtectedRoute>
+                              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <Settings />
                               </div>
                             </ProtectedRoute>
                           }
