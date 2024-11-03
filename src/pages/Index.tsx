@@ -31,9 +31,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Domain Reconnaissance Dashboard</h1>
+      <div className="container mx-auto py-4 sm:py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8 gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Domain Reconnaissance</h1>
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <Button variant="outline" onClick={handleLogout}>
@@ -42,29 +42,53 @@ const Index = () => {
           </div>
         </div>
         
-        <Tabs defaultValue="input" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="input">Domain Input</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="llm">LLM Scanner</TabsTrigger>
-            <TabsTrigger value="results">Results</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="dashboard" className="w-full">
+          <div className="mb-6 overflow-x-auto">
+            <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 gap-1 flex-wrap sm:flex-nowrap">
+              <TabsTrigger 
+                value="dashboard" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger 
+                value="input" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Domain Input
+              </TabsTrigger>
+              <TabsTrigger 
+                value="llm" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                LLM Scanner
+              </TabsTrigger>
+              <TabsTrigger 
+                value="results" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Results
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
-          <TabsContent value="input">
-            <DomainInput onSubmit={handleDomainSubmit} />
-          </TabsContent>
-          
-          <TabsContent value="dashboard">
-            <Dashboard domains={domains} />
-          </TabsContent>
+          <div className="mt-4">
+            <TabsContent value="dashboard" className="m-0">
+              <Dashboard domains={domains} />
+            </TabsContent>
+            
+            <TabsContent value="input" className="m-0">
+              <DomainInput onSubmit={handleDomainSubmit} />
+            </TabsContent>
 
-          <TabsContent value="llm">
-            <LLMScanner />
-          </TabsContent>
+            <TabsContent value="llm" className="m-0">
+              <LLMScanner />
+            </TabsContent>
 
-          <TabsContent value="results">
-            <LLMResultsDashboard />
-          </TabsContent>
+            <TabsContent value="results" className="m-0">
+              <LLMResultsDashboard />
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
     </div>
