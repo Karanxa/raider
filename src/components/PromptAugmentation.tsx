@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,16 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useSession } from '@supabase/auth-helpers-react';
 import Papa from 'papaparse';
-import { Download, Upload } from 'lucide-react';
 import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { FileUpload } from './prompt-augmentation/FileUpload';
+import { ResultsPreview } from './prompt-augmentation/ResultsPreview';
 
 const PromptAugmentation = () => {
   const [prompts, setPrompts] = useState<string>("");
@@ -27,36 +22,6 @@ const PromptAugmentation = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCsvMode, setIsCsvMode] = useState(false);
   const session = useSession();
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsProcessing(true);
-    Papa.parse(file, {
-      complete: (results) => {
-        const promptList = results.data
-          .map((row: any) => row.prompts)
-          .filter((prompt: any) => prompt && typeof prompt === "string");
-
-        if (promptList.length === 0) {
-          toast.error("No valid prompts found in CSV file");
-          setIsProcessing(false);
-          return;
-        }
-
-        setPrompts(promptList.join('\n'));
-        setIsCsvMode(true);
-        setIsProcessing(false);
-        toast.success(`Loaded ${promptList.length} prompts from CSV`);
-      },
-      header: true,
-      error: (error) => {
-        toast.error(`Error parsing CSV: ${error.message}`);
-        setIsProcessing(false);
-      },
-    });
-  };
 
   const handleAugment = async () => {
     if (!session?.user?.id) {
@@ -74,7 +39,9 @@ const PromptAugmentation = () => {
       return;
     }
 
-    const promptList = prompts.split('\n').map(prompt => prompt.trim()).filter(Boolean);
+    const promptList = isCsvMode 
+      ? prompts.split('\n').map(prompt => prompt.trim()).filter(Boolean)
+      : [prompts.trim()];
     
     if (promptList.length === 0 || !keyword) {
       toast.error("Please provide prompts and a keyword");
@@ -130,6 +97,11 @@ const PromptAugmentation = () => {
     document.body.removeChild(link);
   };
 
+  const handleFileUpload = (promptList: string[]) => {
+    setPrompts(promptList.join('\n'));
+    setIsCsvMode(true);
+  };
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -162,30 +134,10 @@ const PromptAugmentation = () => {
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <Input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="csv-upload"
-              disabled={isProcessing}
-            />
-            <Button
-              variant="outline"
-              onClick={() => document.getElementById("csv-upload")?.click()}
-              disabled={isProcessing}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload CSV
-            </Button>
-            {isCsvMode && augmentedPrompts.length > 0 && (
-              <Button onClick={exportToCsv} disabled={isProcessing}>
-                <Download className="w-4 h-4 mr-2" />
-                Export Augmented Prompts
-              </Button>
-            )}
-          </div>
+          <FileUpload 
+            onFileUpload={handleFileUpload}
+            isProcessing={isProcessing}
+          />
           
           <Textarea
             placeholder="Enter prompts, one per line..."
@@ -219,23 +171,11 @@ const PromptAugmentation = () => {
         </Card>
       )}
 
-      {isCsvMode && augmentedPrompts.length > 0 && (
-        <Card className="p-4">
-          <h3 className="font-semibold mb-4">Preview of Augmented Prompts:</h3>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto">
-            {augmentedPrompts.slice(0, 5).map((item, index) => (
-              <div key={index} className="space-y-2 pb-4 border-b last:border-0">
-                <p className="text-sm text-muted-foreground">Original: {item.original}</p>
-                <p className="text-sm">Augmented: {item.augmented}</p>
-              </div>
-            ))}
-            {augmentedPrompts.length > 5 && (
-              <p className="text-sm text-muted-foreground">
-                ... and {augmentedPrompts.length - 5} more prompts. Export to CSV to see all.
-              </p>
-            )}
-          </div>
-        </Card>
+      {isCsvMode && (
+        <ResultsPreview 
+          augmentedPrompts={augmentedPrompts}
+          onExport={exportToCsv}
+        />
       )}
     </div>
   );
