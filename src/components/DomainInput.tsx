@@ -20,7 +20,6 @@ const DomainInput = ({ onSubmit }: DomainInputProps) => {
   };
 
   const mockEnumeration = async (domain: string) => {
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
     
     return {
@@ -79,7 +78,7 @@ const DomainInput = ({ onSubmit }: DomainInputProps) => {
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+        <div className="space-y-2 text-left">
           <h2 className="text-xl font-semibold">Enter Root Domain</h2>
           <p className="text-sm text-gray-500">
             Enter a domain name (e.g., example.com) to start reconnaissance

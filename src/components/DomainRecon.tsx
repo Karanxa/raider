@@ -70,7 +70,7 @@ const DomainRecon = () => {
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+        <div className="space-y-2 text-left">
           <h2 className="text-xl font-semibold">Domain Reconnaissance</h2>
           <p className="text-sm text-gray-500">
             Enter a domain name to start reconnaissance and vulnerability scanning
