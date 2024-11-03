@@ -11,6 +11,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from "react-router-dom";
 
 interface ScanResult {
   id: string;
@@ -26,9 +27,11 @@ interface ScanResult {
 
 const LLMResultsDashboard = () => {
   const [filterType, setFilterType] = useState<string>("all");
+  const location = useLocation();
+  const batchId = location.state?.batchId;
 
   const { data: results, isLoading } = useQuery({
-    queryKey: ["llm-results", filterType],
+    queryKey: ["llm-results", filterType, batchId],
     queryFn: async () => {
       let query = supabase
         .from('llm_scan_results')
@@ -39,6 +42,10 @@ const LLMResultsDashboard = () => {
         query = query.eq('scan_type', 'manual');
       } else if (filterType === "batch") {
         query = query.eq('scan_type', 'batch');
+      }
+
+      if (batchId) {
+        query = query.eq('batch_id', batchId);
       }
 
       const { data, error } = await query;
@@ -54,20 +61,24 @@ const LLMResultsDashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-left">LLM Scan Results</h2>
-        <div className="w-[200px]">
-          <Label className="text-left">Filter by Type</Label>
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select filter type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Results</SelectItem>
-              <SelectItem value="manual">Manual Prompts</SelectItem>
-              <SelectItem value="batch">Batch Scans</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <h2 className="text-2xl font-bold text-left">
+          {batchId ? "Batch Scan Results" : "LLM Scan Results"}
+        </h2>
+        {!batchId && (
+          <div className="w-[200px]">
+            <Label className="text-left">Filter by Type</Label>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select filter type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Results</SelectItem>
+                <SelectItem value="manual">Manual Prompts</SelectItem>
+                <SelectItem value="batch">Batch Scans</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4">

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { ProviderSelect } from "./llm-scanner/ProviderSelect";
 import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
 import { PromptInput } from "./llm-scanner/PromptInput";
@@ -12,6 +12,8 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -31,7 +33,7 @@ const LLMScanner = () => {
 
   const handleViewResults = () => {
     if (batchId) {
-      navigate('/results');
+      navigate('/results', { state: { batchId } });
     }
   };
 
