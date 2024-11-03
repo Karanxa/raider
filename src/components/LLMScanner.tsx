@@ -1,18 +1,11 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ProviderSelect, providers } from "./llm-scanner/ProviderSelect";
+import { CustomEndpoint } from "./llm-scanner/CustomEndpoint";
+import { PromptInput } from "./llm-scanner/PromptInput";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -22,23 +15,10 @@ const LLMScanner = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<string>("");
+  const [prompts, setPrompts] = useState<string[]>([]);
+  const [currentPromptIndex, setCurrentPromptIndex] = useState<number>(0);
 
-  const providers = {
-    openai: {
-      name: "OpenAI",
-      models: ["gpt-4o-mini", "gpt-4o"],
-    },
-    gemini: {
-      name: "Google Gemini",
-      models: ["gemini-pro", "gemini-pro-vision"],
-    },
-    custom: {
-      name: "Custom Endpoint",
-      models: [],
-    },
-  };
-
-  const handleScan = async () => {
+  const handleScan = async (promptToScan: string) => {
     if (!selectedProvider) {
       toast.error("Please select a provider");
       return;
@@ -51,7 +31,6 @@ const LLMScanner = () => {
       }
 
       try {
-        setScanning(true);
         const headers = customHeaders ? JSON.parse(customHeaders) : {};
         
         const response = await fetch(customEndpoint, {
@@ -60,7 +39,7 @@ const LLMScanner = () => {
             "Content-Type": "application/json",
             ...headers,
           },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt: promptToScan }),
         });
 
         if (!response.ok) {
@@ -68,41 +47,58 @@ const LLMScanner = () => {
         }
 
         const data = await response.json();
-        setResult(typeof data === "string" ? data : JSON.stringify(data, null, 2));
-        toast.success("Custom endpoint scan completed");
-        return;
+        return typeof data === "string" ? data : JSON.stringify(data, null, 2);
       } catch (error) {
         console.error("Custom endpoint error:", error);
-        toast.error(`Error with custom endpoint: ${error.message}`);
-        return;
-      } finally {
-        setScanning(false);
+        throw new Error(`Error with custom endpoint: ${error.message}`);
       }
+    }
+
+    let data, error;
+
+    if (selectedProvider === "openai") {
+      ({ data, error } = await supabase.functions.invoke('llm-scan', {
+        body: { 
+          prompt: promptToScan,
+          model: selectedModel || "gpt-4o-mini"
+        }
+      }));
+    } else if (selectedProvider === "gemini") {
+      ({ data, error } = await supabase.functions.invoke('gemini-scan', {
+        body: { 
+          prompt: promptToScan,
+          model: selectedModel || "gemini-pro"
+        }
+      }));
+    }
+
+    if (error) throw error;
+    return data.result;
+  };
+
+  const processPrompts = async () => {
+    if (prompts.length === 0 && !prompt) {
+      toast.error("Please enter a prompt or upload a CSV file");
+      return;
     }
 
     setScanning(true);
     try {
-      let data, error;
-
-      if (selectedProvider === "openai") {
-        ({ data, error } = await supabase.functions.invoke('llm-scan', {
-          body: { 
-            prompt,
-            model: selectedModel || "gpt-4o-mini"
-          }
-        }));
-      } else if (selectedProvider === "gemini") {
-        ({ data, error } = await supabase.functions.invoke('gemini-scan', {
-          body: { 
-            prompt,
-            model: selectedModel || "gemini-pro"
-          }
-        }));
+      if (prompts.length > 0) {
+        let allResults = "";
+        for (let i = 0; i < prompts.length; i++) {
+          setCurrentPromptIndex(i);
+          const result = await handleScan(prompts[i]);
+          allResults += `Prompt ${i + 1}: ${prompts[i]}\nResult: ${result}\n\n`;
+        }
+        setResult(allResults);
+        setCurrentPromptIndex(0);
+        toast.success("Batch processing completed");
+      } else {
+        const result = await handleScan(prompt);
+        setResult(result);
+        toast.success("Scan completed");
       }
-
-      if (error) throw error;
-      setResult(data.result);
-      toast.success("LLM scan completed");
     } catch (error) {
       console.error('LLM scan error:', error);
       toast.error(`Error during scan: ${error.message}`);
@@ -115,88 +111,40 @@ const LLMScanner = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Select Provider</Label>
-            <Select
-              value={selectedProvider}
-              onValueChange={(value) => {
-                setSelectedProvider(value);
-                setSelectedModel("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a provider" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(providers).map(([key, provider]) => (
-                  <SelectItem key={key} value={key}>
-                    {provider.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {selectedProvider && selectedProvider !== "custom" && (
-            <div className="space-y-2">
-              <Label>Select Model</Label>
-              <Select
-                value={selectedModel}
-                onValueChange={setSelectedModel}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {providers[selectedProvider].models.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <ProviderSelect
+            selectedProvider={selectedProvider}
+            selectedModel={selectedModel}
+            onProviderChange={setSelectedProvider}
+            onModelChange={setSelectedModel}
+          />
 
           {selectedProvider === "custom" && (
-            <>
-              <div className="space-y-2">
-                <Label>Custom Endpoint URL</Label>
-                <Input
-                  type="url"
-                  placeholder="https://your-custom-endpoint.com"
-                  value={customEndpoint}
-                  onChange={(e) => setCustomEndpoint(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Custom Headers (Optional JSON)</Label>
-                <Textarea
-                  placeholder='{"Authorization": "Bearer your-token"}'
-                  value={customHeaders}
-                  onChange={(e) => setCustomHeaders(e.target.value)}
-                  className="font-mono text-sm"
-                />
-              </div>
-            </>
+            <CustomEndpoint
+              customEndpoint={customEndpoint}
+              customHeaders={customHeaders}
+              onEndpointChange={setCustomEndpoint}
+              onHeadersChange={setCustomHeaders}
+            />
           )}
 
-          <div className="space-y-2">
-            <Label>Prompt</Label>
-            <Textarea
-              placeholder="Enter your prompt for scanning"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
+          <PromptInput
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            onPromptsFromCSV={setPrompts}
+          />
 
           <Button
-            onClick={handleScan}
+            onClick={processPrompts}
             disabled={scanning}
             className="w-full"
           >
-            {scanning ? "Scanning..." : "Start LLM Scan"}
+            {scanning ? (
+              prompts.length > 0 
+                ? `Processing prompt ${currentPromptIndex + 1} of ${prompts.length}...` 
+                : "Scanning..."
+            ) : (
+              "Start LLM Scan"
+            )}
           </Button>
 
           {result && (
