@@ -26,10 +26,6 @@ interface ScanResult {
   user_email: string | null;
 }
 
-interface UserData {
-  email: string;
-}
-
 const LLMResultsDashboard = () => {
   const [filterType, setFilterType] = useState<string>("all");
 
@@ -38,7 +34,12 @@ const LLMResultsDashboard = () => {
     queryFn: async () => {
       let query = supabase
         .from('llm_scan_results')
-        .select('*, auth.users!inner(email)')
+        .select(`
+          *,
+          user:user_id(
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (filterType === "manual") {
@@ -52,7 +53,7 @@ const LLMResultsDashboard = () => {
 
       return data.map(result => ({
         ...result,
-        user_email: (result.users as UserData)?.email || null
+        user_email: result.user?.email || null
       })) as ScanResult[];
     },
   });
