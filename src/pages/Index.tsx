@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import DomainRecon from "@/components/DomainRecon";
 import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
@@ -13,6 +11,8 @@ import NucleiResults from "@/components/NucleiResults";
 import Datasets from "@/components/Datasets";
 import PromptAugmentation from "@/components/PromptAugmentation";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ const Index = () => {
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="web">Web Security</TabsTrigger>
-              <TabsTrigger value="genai">GenAI Tools</TabsTrigger>
+              <TabsTrigger value="genai">GenAI Security</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -60,7 +60,6 @@ const Index = () => {
                 <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
               </TabsList>
             </div>
-            
             <div className="mt-4">
               <TabsContent value="recon">
                 <DomainRecon />
@@ -86,7 +85,6 @@ const Index = () => {
                 <TabsTrigger value="prompt-augmentation">Prompt Augmentation</TabsTrigger>
               </TabsList>
             </div>
-            
             <div className="mt-4">
               <TabsContent value="llm">
                 <LLMScanner />
