@@ -10,6 +10,7 @@ import LLMScanner from "@/components/LLMScanner";
 import LLMResultsDashboard from "@/components/LLMResultsDashboard";
 import NucleiScanner from "@/components/NucleiScanner";
 import NucleiResults from "@/components/NucleiResults";
+import Datasets from "@/components/Datasets";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
@@ -77,6 +78,12 @@ const Index = () => {
               >
                 LLM Results
               </TabsTrigger>
+              <TabsTrigger 
+                value="datasets" 
+                className="flex-1 sm:flex-none px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Datasets
+              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -103,6 +110,10 @@ const Index = () => {
 
             <TabsContent value="llm-results" className="m-0">
               <LLMResultsDashboard />
+            </TabsContent>
+
+            <TabsContent value="datasets" className="m-0">
+              <Datasets />
             </TabsContent>
           </div>
         </Tabs>
