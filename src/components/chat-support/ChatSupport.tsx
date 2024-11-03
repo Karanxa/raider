@@ -20,7 +20,7 @@ export const ChatSupport = () => {
   ]);
   const [currentMessage, setCurrentMessage] = useState('');
 
-  const { mutate: sendMessage, isLoading } = useMutation({
+  const { mutate: sendMessage, isPending } = useMutation({
     mutationFn: async (message: string) => {
       if (!message.trim()) return null;
       
@@ -46,7 +46,7 @@ export const ChatSupport = () => {
   });
 
   const handleSend = async () => {
-    if (!currentMessage.trim() || isLoading) return;
+    if (!currentMessage.trim() || isPending) return;
 
     const userMessage = { role: 'user' as const, content: currentMessage };
     setMessages(prev => [...prev, userMessage]);
@@ -128,14 +128,14 @@ export const ChatSupport = () => {
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                disabled={isLoading}
+                disabled={isPending}
               />
               <Button
                 onClick={handleSend}
-                disabled={isLoading || !currentMessage.trim()}
+                disabled={isPending || !currentMessage.trim()}
                 size="icon"
               >
-                {isLoading ? (
+                {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />
