@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ProviderSelect, providers } from "./llm-scanner/ProviderSelect";
-import { CustomEndpoint } from "./llm-scanner/CustomEndpoint";
+import { ProviderSelect } from "./llm-scanner/ProviderSelect";
+import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
 import { PromptInput } from "./llm-scanner/PromptInput";
+import { ApiKeyInput } from "./llm-scanner/ApiKeyInput";
 import { useSession } from '@supabase/auth-helpers-react';
 
 const LLMScanner = () => {
@@ -15,6 +14,8 @@ const LLMScanner = () => {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [customEndpoint, setCustomEndpoint] = useState<string>("");
   const [customHeaders, setCustomHeaders] = useState<string>("");
+  const [curlCommand, setCurlCommand] = useState<string>("");
+  const [promptPlaceholder, setPromptPlaceholder] = useState<string>("{{PROMPT}}");
   const [prompt, setPrompt] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<string>("");
@@ -22,20 +23,6 @@ const LLMScanner = () => {
   const [currentPromptIndex, setCurrentPromptIndex] = useState<number>(0);
   const [apiKey, setApiKey] = useState<string>("");
   const session = useSession();
-
-  // Load API key from localStorage on component mount
-  useEffect(() => {
-    const savedApiKey = localStorage.getItem('openai_api_key');
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
-  }, []);
-
-  // Save API key to localStorage whenever it changes
-  const handleApiKeyChange = (newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem('openai_api_key', newKey);
-  };
 
   const handleScan = async (promptToScan: string) => {
     if (!selectedProvider) {
@@ -49,22 +36,50 @@ const LLMScanner = () => {
     }
 
     if (selectedProvider === "custom") {
-      if (!customEndpoint) {
-        toast.error("Please enter a custom endpoint URL");
+      if (!customEndpoint && !curlCommand) {
+        toast.error("Please enter either a custom endpoint URL or a cURL command");
         return;
       }
 
       try {
-        const headers = customHeaders ? JSON.parse(customHeaders) : {};
-        
-        const response = await fetch(customEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...headers,
-          },
-          body: JSON.stringify({ prompt: promptToScan }),
-        });
+        let response;
+        if (curlCommand) {
+          // Parse and execute curl command
+          const headers: Record<string, string> = {};
+          const curlWithPrompt = curlCommand.replace(
+            promptPlaceholder,
+            promptToScan
+          );
+          
+          // Extract headers and body from curl command
+          const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g) || [];
+          headerMatches.forEach(match => {
+            const [key, value] = match.slice(4, -1).split(': ');
+            headers[key] = value;
+          });
+
+          const bodyMatch = curlWithPrompt.match(/-d '([^']+)'/) || curlWithPrompt.match(/-d "([^"]+)"/);
+          const body = bodyMatch ? bodyMatch[1] : '';
+
+          response = await fetch(customEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...headers,
+            },
+            body,
+          });
+        } else {
+          const headers = customHeaders ? JSON.parse(customHeaders) : {};
+          response = await fetch(customEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...headers,
+            },
+            body: JSON.stringify({ prompt: promptToScan }),
+          });
+        }
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -84,8 +99,8 @@ const LLMScanner = () => {
 
         return result;
       } catch (error) {
-        console.error("Custom endpoint error:", error);
-        throw new Error(`Error with custom endpoint: ${error.message}`);
+        console.error("Custom provider error:", error);
+        throw new Error(`Error with custom provider: ${error.message}`);
       }
     }
 
@@ -111,7 +126,7 @@ const LLMScanner = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.statusText}`);
+        throw new Error(`API error: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -129,7 +144,7 @@ const LLMScanner = () => {
 
       return generatedText;
     } catch (error) {
-      console.error('OpenAI API error:', error);
+      console.error('API error:', error);
       throw error;
     }
   };
@@ -170,19 +185,6 @@ const LLMScanner = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>OpenAI API Key</Label>
-            <Input
-              type="password"
-              placeholder="Enter your OpenAI API key"
-              value={apiKey}
-              onChange={(e) => handleApiKeyChange(e.target.value)}
-            />
-            <p className="text-sm text-muted-foreground">
-              Your API key is stored locally in your browser
-            </p>
-          </div>
-
           <ProviderSelect
             selectedProvider={selectedProvider}
             selectedModel={selectedModel}
@@ -190,12 +192,23 @@ const LLMScanner = () => {
             onModelChange={setSelectedModel}
           />
 
+          {selectedProvider && (
+            <ApiKeyInput
+              provider={selectedProvider}
+              onApiKeyChange={setApiKey}
+            />
+          )}
+
           {selectedProvider === "custom" && (
-            <CustomEndpoint
+            <CustomProviderSettings
               customEndpoint={customEndpoint}
               customHeaders={customHeaders}
+              curlCommand={curlCommand}
+              promptPlaceholder={promptPlaceholder}
               onEndpointChange={setCustomEndpoint}
               onHeadersChange={setCustomHeaders}
+              onCurlCommandChange={setCurlCommand}
+              onPromptPlaceholderChange={setPromptPlaceholder}
             />
           )}
 
