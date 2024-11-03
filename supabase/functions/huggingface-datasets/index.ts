@@ -13,13 +13,20 @@ serve(async (req) => {
   }
 
   try {
-    const { apiKey } = await req.json();
+    const { apiKey, category } = await req.json();
     
     if (!apiKey) {
       throw new Error('API key is required');
     }
 
-    const response = await fetch(`${HUGGINGFACE_API}?search=adversarial`, {
+    if (!category) {
+      throw new Error('Category is required');
+    }
+
+    // Convert category to search terms
+    const searchTerms = category.toLowerCase().split(' ').join('+');
+    
+    const response = await fetch(`${HUGGINGFACE_API}?search=${searchTerms}+adversarial`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
       },

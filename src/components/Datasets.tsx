@@ -8,10 +8,12 @@ import { ApiKeyInput } from "./datasets/ApiKeyInput";
 import { DatasetCard } from "./datasets/DatasetCard";
 import { useDatasetExport } from "./datasets/useDatasetExport";
 import { Dataset } from "./datasets/types";
+import { CategorySelect } from "./datasets/CategorySelect";
 
 const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const { exportData } = useDatasetExport();
 
   useEffect(() => {
@@ -22,18 +24,21 @@ const Datasets = () => {
   }, []);
 
   const { data: datasets, isLoading, error, refetch } = useQuery({
-    queryKey: ["adversarial-datasets", apiKey],
+    queryKey: ["adversarial-datasets", apiKey, selectedCategory],
     queryFn: async () => {
       if (!apiKey) {
         throw new Error("Please enter your HuggingFace API key");
       }
+      if (!selectedCategory) {
+        throw new Error("Please select a category");
+      }
       const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
-        body: { apiKey }
+        body: { apiKey, category: selectedCategory }
       });
       if (error) throw error;
       return data.data as Dataset[];
     },
-    enabled: !!apiKey,
+    enabled: !!apiKey && !!selectedCategory,
   });
 
   const handleApiKeyChange = (newKey: string) => {
@@ -54,48 +59,53 @@ const Datasets = () => {
         onRefresh={refetch}
       />
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Adversarial Datasets</h2>
-        <div className="relative w-[300px]">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search datasets..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
+      {apiKey && (
+        <CategorySelect
+          value={selectedCategory}
+          onValueChange={setSelectedCategory}
+        />
+      )}
 
-      {!apiKey ? (
-        <Card className="p-6">
-          <div className="text-center text-muted-foreground">
-            Please enter your HuggingFace API key to view datasets
+      {selectedCategory && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Adversarial Datasets - {selectedCategory}</h2>
+            <div className="relative w-[300px]">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search datasets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
-        </Card>
-      ) : isLoading ? (
-        <Card className="p-6">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2">Loading datasets...</span>
-          </div>
-        </Card>
-      ) : error ? (
-        <Card className="p-6">
-          <div className="text-center text-red-500">
-            Failed to load datasets. Please check your API key and try again.
-          </div>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredDatasets.map((dataset) => (
-            <DatasetCard
-              key={dataset.id}
-              dataset={dataset}
-              onExport={exportData}
-            />
-          ))}
-        </div>
+
+          {isLoading ? (
+            <Card className="p-6">
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading datasets...</span>
+              </div>
+            </Card>
+          ) : error ? (
+            <Card className="p-6">
+              <div className="text-center text-red-500">
+                Failed to load datasets. Please check your API key and try again.
+              </div>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredDatasets.map((dataset) => (
+                <DatasetCard
+                  key={dataset.id}
+                  dataset={dataset}
+                  onExport={exportData}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
