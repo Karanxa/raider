@@ -69,13 +69,19 @@ const Datasets = () => {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
+    setSearchTerm(""); // Reset search when category changes
     refetch();
   };
 
-  const filteredDatasets = datasets?.filter(dataset => 
-    dataset?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dataset?.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) ?? [];
+  const filteredDatasets = datasets?.filter(dataset => {
+    const searchLower = searchTerm.toLowerCase().trim();
+    if (!searchLower) return true;
+    
+    return (
+      dataset?.name?.toLowerCase().includes(searchLower) ||
+      dataset?.description?.toLowerCase().includes(searchLower)
+    );
+  }) ?? [];
 
   if (error) {
     toast.error(error.message || "Failed to load datasets. Please check your API key and try again.");
@@ -103,6 +109,7 @@ const Datasets = () => {
             } else {
               setCustomKeyword("");
             }
+            setSearchTerm(""); // Reset search when switching modes
           }}
         />
       )}
@@ -118,7 +125,7 @@ const Datasets = () => {
             <div className="relative w-[300px]">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search datasets..."
+                placeholder="Search in results..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -148,10 +155,13 @@ const Datasets = () => {
                   onExport={exportData}
                 />
               ))}
-              {filteredDatasets.length === 0 && !isLoading && (
+              {filteredDatasets.length === 0 && (
                 <Card className="p-6 col-span-full">
                   <div className="text-center text-muted-foreground">
-                    No datasets found for {useCustomKeyword ? 'these keywords' : 'this category'}.
+                    {searchTerm 
+                      ? `No datasets found matching "${searchTerm}"`
+                      : `No datasets found for ${useCustomKeyword ? 'these keywords' : 'this category'}.`
+                    }
                   </div>
                 </Card>
               )}
