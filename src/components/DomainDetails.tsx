@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { Domain } from "@/types/domain";
 import { ArrowLeft } from "lucide-react";
+import NucleiResults from "./NucleiResults";
 
 interface DomainDetailsProps {
   domain: Domain;
@@ -83,6 +84,13 @@ const DomainDetails = ({ domain, onBack }: DomainDetailsProps) => {
                   </div>
                 ))}
               </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="nuclei">
+            <AccordionTrigger>Security Scan Results</AccordionTrigger>
+            <AccordionContent>
+              <NucleiResults domain={domain.rootDomain} />
             </AccordionContent>
           </AccordionItem>
         </Accordion>
