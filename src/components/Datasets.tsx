@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Download, Search, Loader2 } from "lucide-react";
 import Papa from 'papaparse';
@@ -19,15 +20,34 @@ interface Dataset {
 
 const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [apiKey, setApiKey] = useState("");
 
-  const { data: datasets, isLoading, error } = useQuery({
-    queryKey: ["adversarial-datasets"],
+  useEffect(() => {
+    const savedKey = localStorage.getItem('huggingface_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
+  }, []);
+
+  const { data: datasets, isLoading, error, refetch } = useQuery({
+    queryKey: ["adversarial-datasets", apiKey],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('huggingface-datasets');
+      if (!apiKey) {
+        throw new Error("Please enter your HuggingFace API key");
+      }
+      const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
+        body: { apiKey }
+      });
       if (error) throw error;
       return data.data as Dataset[];
     },
+    enabled: !!apiKey,
   });
+
+  const handleApiKeyChange = (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem('huggingface_api_key', newKey);
+  };
 
   const filteredDatasets = datasets?.filter(dataset => 
     dataset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,18 +101,30 @@ const Datasets = () => {
     }
   };
 
-  if (error) {
-    return (
-      <Card className="p-6">
-        <div className="text-center text-red-500">
-          Failed to load datasets. Please try again.
-        </div>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>HuggingFace API Key</Label>
+            <Input
+              type="password"
+              placeholder="Enter your HuggingFace API key"
+              value={apiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+            />
+            <p className="text-sm text-muted-foreground">
+              Your API key is stored locally in your browser
+            </p>
+          </div>
+          {apiKey && (
+            <Button onClick={() => refetch()}>
+              Refresh Datasets
+            </Button>
+          )}
+        </div>
+      </Card>
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Adversarial Datasets</h2>
         <div className="relative w-[300px]">
@@ -106,11 +138,23 @@ const Datasets = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {!apiKey ? (
+        <Card className="p-6">
+          <div className="text-center text-muted-foreground">
+            Please enter your HuggingFace API key to view datasets
+          </div>
+        </Card>
+      ) : isLoading ? (
         <Card className="p-6">
           <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span className="ml-2">Loading datasets...</span>
+          </div>
+        </Card>
+      ) : error ? (
+        <Card className="p-6">
+          <div className="text-center text-red-500">
+            Failed to load datasets. Please check your API key and try again.
           </div>
         </Card>
       ) : (

@@ -13,9 +13,15 @@ serve(async (req) => {
   }
 
   try {
+    const { apiKey } = await req.json();
+    
+    if (!apiKey) {
+      throw new Error('API key is required');
+    }
+
     const response = await fetch(`${HUGGINGFACE_API}?search=adversarial`, {
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
     });
 
