@@ -34,7 +34,12 @@ const LLMResultsDashboard = () => {
     queryFn: async () => {
       let query = supabase
         .from('llm_scan_results')
-        .select('*')
+        .select(`
+          *,
+          profiles:user_id (
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (filterType === "manual") {
@@ -46,18 +51,10 @@ const LLMResultsDashboard = () => {
       const { data: scanResults, error } = await query;
       if (error) throw error;
 
-      // Fetch user emails for each result
-      const resultsWithUsers = await Promise.all(
-        scanResults.map(async (result) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(result.user_id);
-          return {
-            ...result,
-            user_email: userData?.user?.email || 'Unknown User'
-          };
-        })
-      );
-
-      return resultsWithUsers as ScanResult[];
+      return scanResults.map(result => ({
+        ...result,
+        user_email: result.profiles?.email || 'Unknown User'
+      })) as ScanResult[];
     },
   });
 
