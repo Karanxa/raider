@@ -19,19 +19,21 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    const systemPrompt = `You are an expert in enhancing prompts to be more sophisticated and contextual. Your task is to transform each provided prompt into a more refined version, specifically in the context of ${keyword}.
+    const systemPrompt = `You are an expert in enhancing customer interactions and experience. Your task is to transform each provided prompt into a more refined version that reflects authentic customer voice and needs, specifically in the context of ${keyword}.
 
 Guidelines:
-- Keep the core intent of each prompt
-- Add relevant context and specific details related to ${keyword}
-- Use natural, professional language
-- Make each prompt more engaging and specific
-- Do not add any prefixes, bullet points, or explanations
+- Maintain a natural, conversational customer tone
+- Add relevant context about customer needs, pain points, and desires
+- Use language that real customers would use when interacting with ${keyword}-related services
+- Make each prompt more specific and relatable from a customer's perspective
+- Include realistic customer scenarios and situations when relevant
+- Focus on customer intent and desired outcomes
+- Avoid technical jargon unless it's commonly used by customers
+- Keep the tone friendly and approachable
+- Ensure each prompt sounds like it comes from a real customer
 - Return exactly one augmented version per prompt
-- Focus on the business context, avoid security or technical aspects
-- Keep responses concise and direct
 
-Format: Return only the augmented prompt text, nothing else.`;
+Format: Return only the augmented prompt text, nothing else. The output should sound like a real customer speaking.`;
 
     let augmentedPrompts = [];
     
@@ -48,7 +50,7 @@ Format: Return only the augmented prompt text, nothing else.`;
             model: 'gpt-4o-mini',
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: `Transform this prompt: "${prompt}"` }
+              { role: 'user', content: `Transform this prompt into a natural customer voice: "${prompt}"` }
             ],
             temperature: 0.7,
           }),
@@ -69,7 +71,7 @@ Format: Return only the augmented prompt text, nothing else.`;
             contents: [{
               role: 'user',
               parts: [{
-                text: `${systemPrompt}\n\nTransform this prompt: "${prompt}"`
+                text: `${systemPrompt}\n\nTransform this prompt into a natural customer voice: "${prompt}"`
               }]
             }],
             generationConfig: {
