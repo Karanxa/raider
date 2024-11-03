@@ -24,19 +24,37 @@ function App() {
         <TooltipProvider>
           <QueryClientProvider client={queryClient}>
             <SessionContextProvider supabaseClient={supabase}>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-              <Toaster />
-              <SonnerToaster />
+              <div className="min-h-screen bg-background transition-colors duration-300">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+                  <Routes>
+                    <Route 
+                      path="/login" 
+                      element={
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          <Login />
+                        </div>
+                      } 
+                    />
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <Index />
+                          </div>
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                  <Toaster />
+                  <SonnerToaster 
+                    position="top-right"
+                    expand={true}
+                    richColors
+                    closeButton
+                  />
+                </div>
+              </div>
             </SessionContextProvider>
           </QueryClientProvider>
         </TooltipProvider>
