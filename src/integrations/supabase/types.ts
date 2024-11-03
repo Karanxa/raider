@@ -9,7 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      nuclei_scan_results: {
+        Row: {
+          created_at: string | null
+          domain: string
+          finding_description: string | null
+          finding_name: string | null
+          id: string
+          matched_at: string | null
+          scan_timestamp: string | null
+          severity: string | null
+          template_id: string | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain: string
+          finding_description?: string | null
+          finding_name?: string | null
+          id?: string
+          matched_at?: string | null
+          scan_timestamp?: string | null
+          severity?: string | null
+          template_id?: string | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain?: string
+          finding_description?: string | null
+          finding_name?: string | null
+          id?: string
+          matched_at?: string | null
+          scan_timestamp?: string | null
+          severity?: string | null
+          template_id?: string | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

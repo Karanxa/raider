@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Domain } from "@/types/domain";
 import DomainDetails from "./DomainDetails";
 import { supabase } from "@/integrations/supabase/client";
+import { useSession } from '@supabase/auth-helpers-react';
 
 interface DashboardProps {
   domains: Domain[];
@@ -13,14 +14,23 @@ interface DashboardProps {
 const Dashboard = ({ domains }: DashboardProps) => {
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
   const [scanning, setScanning] = useState(false);
+  const session = useSession();
 
   const runNucleiScan = async (domain: Domain) => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to run scans');
+      return;
+    }
+
     setScanning(true);
     try {
       const allDomains = [domain.rootDomain, ...domain.subdomains];
       
       const { data, error } = await supabase.functions.invoke('nuclei-scan', {
-        body: { domains: allDomains }
+        body: { 
+          domains: allDomains,
+          userId: session.user.id
+        }
       });
 
       if (error) throw error;

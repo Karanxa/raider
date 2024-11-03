@@ -6,39 +6,61 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const NUCLEI_API_URL = Deno.env.get('NUCLEI_API_URL');
+const NUCLEI_API_KEY = Deno.env.get('NUCLEI_API_KEY');
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { domains } = await req.json()
-    const urls = domains.map((domain: string) => 
-      domain.startsWith('http') ? domain : `http://${domain}`
-    )
+    const { domains, userId } = await req.json()
+    console.log('Received scan request for domains:', domains)
 
     // Initialize Supabase client
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Mock Nuclei scan results for now (you'll need to implement actual Nuclei scanning)
-    const scanResults = urls.map((url: string) => ({
-      url,
-      domain: url.replace(/^https?:\/\//, ''),
-      template_id: 'mock-template',
-      severity: 'low',
-      finding_name: 'Mock Finding',
-      finding_description: 'This is a mock finding for testing',
-      matched_at: url,
-      scan_timestamp: new Date().toISOString()
-    }))
+    // Convert domains to URLs if they don't start with http
+    const urls = domains.map((domain: string) => 
+      domain.startsWith('http') ? domain : `http://${domain}`
+    )
+
+    // Send scan request to Nuclei server
+    const scanResponse = await fetch(NUCLEI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${NUCLEI_API_KEY}`,
+      },
+      body: JSON.stringify({ urls }),
+    })
+
+    if (!scanResponse.ok) {
+      throw new Error(`Nuclei scan failed: ${scanResponse.statusText}`)
+    }
+
+    const scanResults = await scanResponse.json()
+    console.log('Received scan results:', scanResults)
 
     // Store results in database
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabaseAdmin
       .from('nuclei_scan_results')
-      .insert(scanResults)
+      .insert(
+        scanResults.map((result: any) => ({
+          domain: result.domain,
+          url: result.url,
+          template_id: result.template_id,
+          severity: result.severity,
+          finding_name: result.name,
+          finding_description: result.description,
+          matched_at: result.matched_at,
+          user_id: userId,
+        }))
+      )
 
     if (error) throw error
 
@@ -49,10 +71,11 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Error in nuclei-scan function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
