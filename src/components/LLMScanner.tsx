@@ -11,19 +11,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
   const [customEndpoint, setCustomEndpoint] = useState<string>("");
   const [prompt, setPrompt] = useState<string>("");
   const [scanning, setScanning] = useState(false);
@@ -62,20 +55,30 @@ const LLMScanner = () => {
 
     setScanning(true);
     try {
+      let data, error;
+
       if (selectedProvider === "openai") {
-        const { data, error } = await supabase.functions.invoke('llm-scan', {
+        ({ data, error } = await supabase.functions.invoke('llm-scan', {
           body: { 
             prompt,
             model: selectedModel || "gpt-4o-mini"
           }
-        });
-
-        if (error) throw error;
-        setResult(data.result);
-        toast.success("LLM scan completed");
+        }));
+      } else if (selectedProvider === "gemini") {
+        ({ data, error } = await supabase.functions.invoke('gemini-scan', {
+          body: { 
+            prompt,
+            model: selectedModel || "gemini-pro"
+          }
+        }));
       } else {
         toast.info("Support for this provider will be implemented soon");
+        return;
       }
+
+      if (error) throw error;
+      setResult(data.result);
+      toast.success("LLM scan completed");
     } catch (error) {
       console.error('LLM scan error:', error);
       toast.error(`Error during scan: ${error.message}`);
