@@ -23,24 +23,10 @@ serve(async (req) => {
       throw new Error('Category is required');
     }
 
-    // Map categories to actual HuggingFace search terms
-    const searchMapping = {
-      "Jail Breaking": "jailbreak llm prompt",
-      "Prompt Injection": "prompt injection attack",
-      "Encoding Based": "encoding adversarial prompt",
-      "Unsafe Prompts": "unsafe harmful prompt",
-      "Uncensored Prompts": "uncensored prompt",
-      "Language Based Adversial Prompts": "language adversarial prompt",
-      "Glitch Tokens": "glitch token prompt",
-      "LLM evasion": "llm evasion bypass",
-      "Leaking System Prompts": "system prompt leak",
-      "Insecure Output Handling": "insecure output prompt"
-    };
+    // Use the category directly as search keywords
+    const searchTerm = category.toLowerCase();
+    console.log(`Performing generic search on HuggingFace for: ${searchTerm}`);
 
-    const searchTerm = searchMapping[category] || category.toLowerCase();
-    console.log(`Searching HuggingFace for: ${searchTerm}`);
-
-    // Use the exact search term without additional modifications
     const response = await fetch(`${HUGGINGFACE_API}?search=${encodeURIComponent(searchTerm)}&full=true&limit=50`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -53,7 +39,7 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Filter and transform the results to match what we'd see on HuggingFace
+    // Transform the results to match our frontend expectations
     const filteredData = data
       .filter((dataset: any) => dataset.id && dataset.description)
       .map((dataset: any) => ({
@@ -65,7 +51,7 @@ serve(async (req) => {
       }))
       .sort((a: any, b: any) => (b.downloads || 0) - (a.downloads || 0));
     
-    console.log(`Found ${filteredData.length} datasets for category: ${category}`);
+    console.log(`Found ${filteredData.length} datasets for search term: ${searchTerm}`);
     
     return new Response(
       JSON.stringify({ data: filteredData }),
