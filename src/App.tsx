@@ -25,7 +25,7 @@ function App() {
           <QueryClientProvider client={queryClient}>
             <SessionContextProvider supabaseClient={supabase}>
               <div className="min-h-screen bg-background transition-colors duration-300">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+                <div className="container mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
                   <Routes>
                     <Route 
                       path="/login" 
@@ -52,6 +52,7 @@ function App() {
                     expand={true}
                     richColors
                     closeButton
+                    className="sm:max-w-[420px] max-w-[90vw]"
                   />
                 </div>
               </div>
