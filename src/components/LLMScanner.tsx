@@ -26,6 +26,7 @@ const LLMScanner = () => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
   const [qps, setQps] = useState<number>(10);
+  const [scanLabel, setScanLabel] = useState<string>("");
   const session = useSession();
   const navigate = useNavigate();
 
@@ -84,6 +85,19 @@ const LLMScanner = () => {
             onPromptsFromCSV={setPrompts}
           />
 
+          <div className="space-y-2">
+            <Label>Scan Label (Optional)</Label>
+            <Input
+              type="text"
+              value={scanLabel}
+              onChange={(e) => setScanLabel(e.target.value)}
+              placeholder="Enter a label for this scan"
+            />
+            <p className="text-sm text-muted-foreground">
+              If provided, all prompts in this scan will be tagged with this label
+            </p>
+          </div>
+
           {prompts.length > 0 && (
             <div className="space-y-2">
               <Label>Queries Per Second (QPS)</Label>
@@ -111,7 +125,8 @@ const LLMScanner = () => {
               promptPlaceholder,
               customHeaders,
               selectedModel,
-              qps
+              qps,
+              scanLabel
             )}
             disabled={scanning}
             className="w-full"

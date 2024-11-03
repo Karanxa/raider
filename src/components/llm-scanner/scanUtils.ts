@@ -9,7 +9,10 @@ export const handleSingleScan = async (
   promptPlaceholder: string,
   customHeaders: string,
   selectedModel: string,
-  userId: string
+  userId: string,
+  scanType: 'manual' | 'batch',
+  batchId?: string | null,
+  label?: string
 ) => {
   if (selectedProvider === "custom") {
     return await handleCustomProviderScan(
@@ -19,7 +22,9 @@ export const handleSingleScan = async (
       promptPlaceholder,
       customHeaders,
       userId,
-      'manual'
+      scanType,
+      batchId,
+      label
     );
   }
 
@@ -29,7 +34,9 @@ export const handleSingleScan = async (
     apiKey,
     selectedModel,
     userId,
-    'manual'
+    scanType,
+    batchId,
+    label
   );
 };
 
@@ -40,7 +47,9 @@ const handleCustomProviderScan = async (
   promptPlaceholder: string,
   customHeaders: string,
   userId: string,
-  scanType: 'manual' | 'batch'
+  scanType: 'manual' | 'batch',
+  batchId?: string | null,
+  label?: string
 ) => {
   try {
     let response;
@@ -95,6 +104,8 @@ const handleCustomProviderScan = async (
       provider: 'custom',
       scan_type: scanType,
       user_id: userId,
+      batch_id: batchId || null,
+      label: label || null,
     });
 
     return result;
@@ -110,7 +121,9 @@ const handleStandardProviderScan = async (
   apiKey: string,
   model: string,
   userId: string,
-  scanType: 'manual' | 'batch'
+  scanType: 'manual' | 'batch',
+  batchId?: string | null,
+  label?: string
 ) => {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -141,6 +154,8 @@ const handleStandardProviderScan = async (
     model,
     scan_type: scanType,
     user_id: userId,
+    batch_id: batchId || null,
+    label: label || null,
   });
 
   return generatedText;

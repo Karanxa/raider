@@ -1,18 +1,19 @@
 import { useState } from "react";
+import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import { handleSingleScan } from "./scanUtils";
-import { handleBatchScan } from "./batchUtils";
 
-export const useScanLogic = (session: any) => {
+export const useScanLogic = (session: Session | null) => {
   const [scanning, setScanning] = useState(false);
-  const [result, setResult] = useState<string>("");
-  const [currentPromptIndex, setCurrentPromptIndex] = useState<number>(0);
+  const [result, setResult] = useState<string | null>(null);
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
   const [batchId, setBatchId] = useState<string | null>(null);
 
   const processPrompts = async (
     prompts: string[],
-    prompt: string,
+    singlePrompt: string,
     selectedProvider: string,
     apiKey: string,
     customEndpoint: string,
@@ -20,10 +21,11 @@ export const useScanLogic = (session: any) => {
     promptPlaceholder: string,
     customHeaders: string,
     selectedModel: string,
-    qps: number = 10
+    qps: number,
+    label?: string
   ) => {
-    if (prompts.length === 0 && !prompt) {
-      toast.error("Please enter a prompt or upload a CSV file");
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to perform scans");
       return;
     }
 
@@ -32,18 +34,48 @@ export const useScanLogic = (session: any) => {
       return;
     }
 
-    if (!session?.user?.id) {
-      toast.error("You must be logged in to run scans");
+    if (prompts.length === 0 && !singlePrompt) {
+      toast.error("Please enter a prompt or upload a CSV file");
       return;
     }
 
     setScanning(true);
-    setBatchId(null);
-    
+    setResult(null);
+    setCurrentPromptIndex(0);
+
     try {
       if (prompts.length > 0) {
-        const { batchId: newBatchId } = await handleBatchScan(
-          prompts,
+        const newBatchId = uuidv4();
+        setBatchId(newBatchId);
+        
+        for (let i = 0; i < prompts.length; i++) {
+          setCurrentPromptIndex(i);
+          
+          const result = await handleSingleScan(
+            prompts[i],
+            selectedProvider,
+            apiKey,
+            customEndpoint,
+            curlCommand,
+            promptPlaceholder,
+            customHeaders,
+            selectedModel,
+            session.user.id,
+            'batch',
+            newBatchId,
+            label
+          );
+
+          if (i < prompts.length - 1) {
+            // Wait for the specified QPS delay
+            await new Promise(resolve => setTimeout(resolve, 1000 / qps));
+          }
+        }
+        
+        toast.success("Batch scan completed successfully");
+      } else {
+        const result = await handleSingleScan(
+          singlePrompt,
           selectedProvider,
           apiKey,
           customEndpoint,
@@ -52,32 +84,18 @@ export const useScanLogic = (session: any) => {
           customHeaders,
           selectedModel,
           session.user.id,
-          setCurrentPromptIndex,
-          qps
-        );
-        setBatchId(newBatchId);
-        toast.success("Batch processing completed");
-      } else {
-        const result = await handleSingleScan(
-          prompt,
-          selectedProvider,
-          apiKey,
-          customEndpoint,
-          curlCommand,
-          promptPlaceholder,
-          customHeaders,
-          selectedModel,
-          session.user.id
+          'manual',
+          null,
+          label
         );
         setResult(result);
-        toast.success("Scan completed");
+        toast.success("Scan completed successfully");
       }
     } catch (error) {
-      console.error('LLM scan error:', error);
-      toast.error(`Error during scan: ${error.message}`);
+      console.error("Scan error:", error);
+      toast.error(error.message || "An error occurred during the scan");
     } finally {
       setScanning(false);
-      setCurrentPromptIndex(0);
     }
   };
 
@@ -86,6 +104,6 @@ export const useScanLogic = (session: any) => {
     result,
     currentPromptIndex,
     processPrompts,
-    batchId
+    batchId,
   };
 };
