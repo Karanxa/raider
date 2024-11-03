@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DomainInput from "@/components/DomainInput";
 import Dashboard from "@/components/Dashboard";
+import LLMScanner from "@/components/LLMScanner";
 import { Domain } from "@/types/domain";
 
 const Index = () => {
@@ -37,9 +38,10 @@ const Index = () => {
         </div>
         
         <Tabs defaultValue="input" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="input">Domain Input</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="llm">LLM Scanner</TabsTrigger>
           </TabsList>
           
           <TabsContent value="input">
@@ -48,6 +50,10 @@ const Index = () => {
           
           <TabsContent value="dashboard">
             <Dashboard domains={domains} />
+          </TabsContent>
+
+          <TabsContent value="llm">
+            <LLMScanner />
           </TabsContent>
         </Tabs>
       </div>
