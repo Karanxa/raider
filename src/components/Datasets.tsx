@@ -41,17 +41,25 @@ const Datasets = () => {
         );
       }
       
-      const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
-        body: { 
-          apiKey, 
-          category: searchQuery
-        }
-      });
-      
-      if (error) throw error;
-      return data.data as Dataset[];
+      try {
+        const { data, error } = await supabase.functions.invoke('huggingface-datasets', {
+          body: { 
+            apiKey, 
+            category: searchQuery
+          }
+        });
+        
+        if (error) throw error;
+        if (!data?.data) throw new Error("No data received from API");
+        
+        return data.data as Dataset[];
+      } catch (err) {
+        console.error("Error fetching datasets:", err);
+        throw new Error("Failed to fetch datasets. Please check your API key and try again.");
+      }
     },
     enabled: Boolean(apiKey && (useCustomKeyword ? customKeyword : selectedCategory)),
+    retry: false
   });
 
   const handleApiKeyChange = (newKey: string) => {
@@ -70,7 +78,7 @@ const Datasets = () => {
   ) ?? [];
 
   if (error) {
-    toast.error("Failed to load datasets. Please check your API key and try again.");
+    toast.error(error.message || "Failed to load datasets. Please check your API key and try again.");
   }
 
   return (
@@ -128,7 +136,7 @@ const Datasets = () => {
           ) : error ? (
             <Card className="p-6">
               <div className="text-center text-red-500">
-                Failed to load datasets. Please check your API key and try again.
+                {error.message || "Failed to load datasets. Please check your API key and try again."}
               </div>
             </Card>
           ) : (
