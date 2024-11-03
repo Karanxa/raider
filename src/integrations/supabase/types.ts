@@ -108,6 +108,63 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_llm_scans: {
+        Row: {
+          active: boolean | null
+          api_key: string | null
+          created_at: string | null
+          curl_command: string | null
+          custom_endpoint: string | null
+          custom_headers: string | null
+          id: string
+          is_recurring: boolean | null
+          last_run: string | null
+          model: string | null
+          next_run: string | null
+          prompt: string
+          prompt_placeholder: string | null
+          provider: string
+          schedule: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          api_key?: string | null
+          created_at?: string | null
+          curl_command?: string | null
+          custom_endpoint?: string | null
+          custom_headers?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          last_run?: string | null
+          model?: string | null
+          next_run?: string | null
+          prompt: string
+          prompt_placeholder?: string | null
+          provider: string
+          schedule: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          api_key?: string | null
+          created_at?: string | null
+          curl_command?: string | null
+          custom_endpoint?: string | null
+          custom_headers?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          last_run?: string | null
+          model?: string | null
+          next_run?: string | null
+          prompt?: string
+          prompt_placeholder?: string | null
+          provider?: string
+          schedule?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -5,6 +5,7 @@ import { ProviderSelect } from "./llm-scanner/ProviderSelect";
 import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
 import { PromptInput } from "./llm-scanner/PromptInput";
 import { ApiKeyInput } from "./llm-scanner/ApiKeyInput";
+import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
 import { useSession } from '@supabase/auth-helpers-react';
 import { useScanLogic } from "./llm-scanner/useScanLogic";
 
@@ -50,7 +51,7 @@ const LLMScanner = () => {
               onHeadersChange={setCustomHeaders}
               onCurlCommandChange={setCurlCommand}
               onPromptPlaceholderChange={setPromptPlaceholder}
-              requiresApiKey={!curlCommand} // Only require API key if not using cURL
+              requiresApiKey={!curlCommand}
             />
           )}
 
@@ -90,6 +91,17 @@ const LLMScanner = () => {
               <div className="whitespace-pre-wrap text-sm">{result}</div>
             </Card>
           )}
+
+          <ScheduleScanner
+            prompt={prompt}
+            provider={selectedProvider}
+            model={selectedModel}
+            customEndpoint={customEndpoint}
+            curlCommand={curlCommand}
+            promptPlaceholder={promptPlaceholder}
+            customHeaders={customHeaders}
+            apiKey={apiKey}
+          />
         </div>
       </Card>
     </div>
