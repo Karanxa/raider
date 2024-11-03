@@ -19,26 +19,24 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    const systemPrompt = `You are an expert in enhancing customer interactions and experience. Your task is to transform each provided prompt into a more refined version that reflects authentic customer voice and needs, specifically in the context of ${keyword}.
+    const systemPrompt = `You are an expert in helping generate authentic customer voice prompts. Your task is to help us write prompts that sound like they're coming directly from real customers in the ${keyword} context.
 
 Guidelines:
-- Maintain a natural, conversational customer tone
-- Add relevant context about customer needs, pain points, and desires
-- Use language that real customers would use when interacting with ${keyword}-related services
-- Make each prompt more specific and relatable from a customer's perspective
-- Include realistic customer scenarios and situations when relevant
-- Focus on customer intent and desired outcomes
-- Avoid technical jargon unless it's commonly used by customers
-- Keep the tone friendly and approachable
-- Ensure each prompt sounds like it comes from a real customer
-- Return exactly one augmented version per prompt
+- Write as if you are a real customer expressing their needs, questions, or concerns
+- Use first-person perspective ("I need", "I'm looking for", "Can you help me with")
+- Include realistic customer emotions, frustrations, and desires
+- Reference common situations that customers in ${keyword} context face
+- Keep the language casual and conversational, like how real people talk
+- Avoid any business or technical jargon unless it's commonly used by customers
+- Make it personal and relatable
+- Include specific details that a real customer would mention
+- Focus on what the customer wants to achieve or solve
 
-Format: Return only the augmented prompt text, nothing else. The output should sound like a real customer speaking.`;
+Format: Return only the transformed prompt in first-person customer voice, without any explanations or additional text.`;
 
     let augmentedPrompts = [];
     
     if (provider === 'openai') {
-      // Process each prompt individually to maintain 1:1 mapping
       augmentedPrompts = await Promise.all(prompts.map(async (prompt: string) => {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -50,7 +48,7 @@ Format: Return only the augmented prompt text, nothing else. The output should s
             model: 'gpt-4o-mini',
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: `Transform this prompt into a natural customer voice: "${prompt}"` }
+              { role: 'user', content: `Help me transform this into a natural customer voice: "${prompt}"` }
             ],
             temperature: 0.7,
           }),
@@ -60,7 +58,6 @@ Format: Return only the augmented prompt text, nothing else. The output should s
         return data.choices[0].message.content.trim();
       }));
     } else if (provider === 'gemini') {
-      // Process each prompt individually with Gemini
       augmentedPrompts = await Promise.all(prompts.map(async (prompt: string) => {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
           method: 'POST',
@@ -71,7 +68,7 @@ Format: Return only the augmented prompt text, nothing else. The output should s
             contents: [{
               role: 'user',
               parts: [{
-                text: `${systemPrompt}\n\nTransform this prompt into a natural customer voice: "${prompt}"`
+                text: `${systemPrompt}\n\nHelp me transform this into a natural customer voice: "${prompt}"`
               }]
             }],
             generationConfig: {
@@ -87,7 +84,6 @@ Format: Return only the augmented prompt text, nothing else. The output should s
       throw new Error('Invalid provider specified');
     }
 
-    // Save to database
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
