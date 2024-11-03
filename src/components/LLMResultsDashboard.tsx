@@ -22,8 +22,6 @@ interface ScanResult {
   batch_id: string | null;
   created_at: string;
   batch_name: string | null;
-  user_id: string;
-  user_email: string | null;
 }
 
 const LLMResultsDashboard = () => {
@@ -34,7 +32,7 @@ const LLMResultsDashboard = () => {
     queryFn: async () => {
       let query = supabase
         .from('llm_scan_results')
-        .select('*, profiles(email)')
+        .select()
         .order('created_at', { ascending: false });
 
       if (filterType === "manual") {
@@ -45,11 +43,7 @@ const LLMResultsDashboard = () => {
 
       const { data, error } = await query;
       if (error) throw error;
-
-      return data.map(result => ({
-        ...result,
-        user_email: result.profiles?.email || null
-      })) as ScanResult[];
+      return data as ScanResult[];
     },
   });
 
@@ -91,9 +85,6 @@ const LLMResultsDashboard = () => {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {new Date(result.created_at).toLocaleString()}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Run by: {result.user_email || 'Unknown User'}
                 </div>
               </div>
               <div className="text-right">

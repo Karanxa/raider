@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { ProviderSelect, providers } from "./llm-scanner/ProviderSelect";
@@ -18,7 +20,22 @@ const LLMScanner = () => {
   const [result, setResult] = useState<string>("");
   const [prompts, setPrompts] = useState<string[]>([]);
   const [currentPromptIndex, setCurrentPromptIndex] = useState<number>(0);
+  const [apiKey, setApiKey] = useState<string>("");
   const session = useSession();
+
+  // Load API key from localStorage on component mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('openai_api_key');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
+
+  // Save API key to localStorage whenever it changes
+  const handleApiKeyChange = (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem('openai_api_key', newKey);
+  };
 
   const handleScan = async (promptToScan: string) => {
     if (!selectedProvider) {
@@ -72,37 +89,49 @@ const LLMScanner = () => {
       }
     }
 
-    let data, error;
-
-    if (selectedProvider === "openai") {
-      ({ data, error } = await supabase.functions.invoke('llm-scan', {
-        body: { 
-          prompt: promptToScan,
-          model: selectedModel || "gpt-4o-mini"
-        }
-      }));
-    } else if (selectedProvider === "gemini") {
-      ({ data, error } = await supabase.functions.invoke('gemini-scan', {
-        body: { 
-          prompt: promptToScan,
-          model: selectedModel || "gemini-pro"
-        }
-      }));
+    if (!apiKey) {
+      toast.error("Please enter your API key");
+      return;
     }
 
-    if (error) throw error;
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: selectedModel || "gpt-4o-mini",
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant that generates content based on user prompts.' },
+            { role: 'user', content: promptToScan }
+          ],
+        }),
+      });
 
-    await supabase.from('llm_scan_results').insert({
-      prompt: promptToScan,
-      result: data.result,
-      provider: selectedProvider,
-      model: selectedModel,
-      scan_type: prompts.length > 0 ? 'batch' : 'manual',
-      batch_id: prompts.length > 0 ? crypto.randomUUID() : null,
-      user_id: session.user.id,
-    });
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.statusText}`);
+      }
 
-    return data.result;
+      const data = await response.json();
+      const generatedText = data.choices[0].message.content;
+
+      await supabase.from('llm_scan_results').insert({
+        prompt: promptToScan,
+        result: generatedText,
+        provider: selectedProvider,
+        model: selectedModel,
+        scan_type: prompts.length > 0 ? 'batch' : 'manual',
+        batch_id: prompts.length > 0 ? crypto.randomUUID() : null,
+        user_id: session.user.id,
+      });
+
+      return generatedText;
+    } catch (error) {
+      console.error('OpenAI API error:', error);
+      throw error;
+    }
   };
 
   const processPrompts = async () => {
@@ -141,6 +170,19 @@ const LLMScanner = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>OpenAI API Key</Label>
+            <Input
+              type="password"
+              placeholder="Enter your OpenAI API key"
+              value={apiKey}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+            />
+            <p className="text-sm text-muted-foreground">
+              Your API key is stored locally in your browser
+            </p>
+          </div>
+
           <ProviderSelect
             selectedProvider={selectedProvider}
             selectedModel={selectedModel}
