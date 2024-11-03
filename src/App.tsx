@@ -1,13 +1,14 @@
-import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "@/hooks/useTheme";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { createClient } from '@supabase/supabase-js';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { TooltipProvider } from "@/components/ui/tooltip"; // Add this import
+import { TooltipProvider } from "@/components/ui/tooltip";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Index from "@/pages/Index";
+import Login from "@/pages/Login";
 import "./App.css";
-import Routes from "./Routes";
 
 const queryClient = new QueryClient();
 const supabase = createClient(
@@ -18,17 +19,25 @@ const supabase = createClient(
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <TooltipProvider> {/* Add this provider */}
-          <QueryClientProvider client={queryClient}>
-            <SessionContextProvider supabaseClient={supabase}>
-              <Routes />
-              <Toaster />
-              <SonnerToaster />
-            </SessionContextProvider>
-          </QueryClientProvider>
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <QueryClientProvider client={queryClient}>
+          <SessionContextProvider supabaseClient={supabase}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+            <Toaster />
+            <SonnerToaster />
+          </SessionContextProvider>
+        </QueryClientProvider>
+      </TooltipProvider>
     </BrowserRouter>
   );
 }
