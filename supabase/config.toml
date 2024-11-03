@@ -1,1 +1,4 @@
 project_id = "facextdabmrqllgdzkms"
+
+[functions.nuclei-scan]
+verify_jwt = true

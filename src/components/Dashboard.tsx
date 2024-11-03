@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Domain } from "@/types/domain";
 import DomainDetails from "./DomainDetails";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardProps {
   domains: Domain[];
@@ -9,6 +12,27 @@ interface DashboardProps {
 
 const Dashboard = ({ domains }: DashboardProps) => {
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  const runNucleiScan = async (domain: Domain) => {
+    setScanning(true);
+    try {
+      const allDomains = [domain.rootDomain, ...domain.subdomains];
+      
+      const { data, error } = await supabase.functions.invoke('nuclei-scan', {
+        body: { domains: allDomains }
+      });
+
+      if (error) throw error;
+      
+      toast.success(`Nuclei scan completed for ${domain.rootDomain}`);
+    } catch (error) {
+      console.error('Nuclei scan error:', error);
+      toast.error(`Failed to run Nuclei scan: ${error.message}`);
+    } finally {
+      setScanning(false);
+    }
+  };
 
   if (domains.length === 0) {
     return (
@@ -30,7 +54,6 @@ const Dashboard = ({ domains }: DashboardProps) => {
         <Card
           key={domain.rootDomain + domain.timestamp}
           className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => setSelectedDomain(domain)}
         >
           <h3 className="text-lg font-semibold mb-2">{domain.rootDomain}</h3>
           <div className="space-y-2 text-sm text-gray-500">
@@ -40,6 +63,21 @@ const Dashboard = ({ domains }: DashboardProps) => {
             <p className="text-xs">
               Scanned: {new Date(domain.timestamp).toLocaleString()}
             </p>
+          </div>
+          <div className="mt-4 space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setSelectedDomain(domain)}
+            >
+              View Details
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => runNucleiScan(domain)}
+              disabled={scanning}
+            >
+              {scanning ? 'Running Nuclei...' : 'Run Nuclei Scan'}
+            </Button>
           </div>
         </Card>
       ))}
