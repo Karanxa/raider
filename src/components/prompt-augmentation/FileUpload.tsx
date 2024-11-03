@@ -15,13 +15,13 @@ export const FileUpload = ({ onFileUpload, isProcessing }: FileUploadProps) => {
 
     Papa.parse(file, {
       complete: (results) => {
-        // Extract prompts from the 'prompts' column, preserving newlines within cells
+        // Extract prompts from the 'prompts' column
         const promptList = results.data
-          .map((row: any) => row.prompts)
-          .filter((prompt: any) => prompt && typeof prompt === "string");
+          .filter((row: any) => row.prompts) // Filter out rows without prompts
+          .map((row: any) => row.prompts.toString()); // Convert to string to handle any data type
 
         if (promptList.length === 0) {
-          toast.error("No valid prompts found in CSV file");
+          toast.error("No valid prompts found in CSV file. Make sure you have a 'prompts' column.");
           return;
         }
 
@@ -30,9 +30,7 @@ export const FileUpload = ({ onFileUpload, isProcessing }: FileUploadProps) => {
       },
       header: true,
       skipEmptyLines: true,
-      // This ensures newlines within quoted fields are preserved
-      newline: "\n",
-      quoteChar: '"',
+      transformHeader: (header: string) => header.toLowerCase().trim(),
     });
   };
 
@@ -54,6 +52,9 @@ export const FileUpload = ({ onFileUpload, isProcessing }: FileUploadProps) => {
         <Upload className="w-4 h-4 mr-2" />
         Upload CSV
       </Button>
+      <p className="text-sm text-muted-foreground mt-2">
+        Upload a CSV file with a 'prompts' column
+      </p>
     </div>
   );
 };

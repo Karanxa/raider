@@ -28,11 +28,12 @@ export const PromptInput = ({
     Papa.parse(file, {
       complete: (results) => {
         const prompts = results.data
-          .map((row: any) => row.prompts)
-          .filter((prompt: any) => prompt && typeof prompt === "string");
+          .filter((row: any) => row.prompts)
+          .map((row: any) => row.prompts.toString());
 
         if (prompts.length === 0) {
-          toast.error("No valid prompts found in CSV file");
+          toast.error("No valid prompts found in CSV file. Make sure you have a 'prompts' column.");
+          setIsUploading(false);
           return;
         }
 
@@ -41,10 +42,8 @@ export const PromptInput = ({
         setIsUploading(false);
       },
       header: true,
-      error: (error) => {
-        toast.error(`Error parsing CSV: ${error.message}`);
-        setIsUploading(false);
-      },
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.toLowerCase().trim(),
     });
   };
 
