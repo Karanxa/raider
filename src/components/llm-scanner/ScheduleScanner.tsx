@@ -62,7 +62,7 @@ export const ScheduleScanner = ({
         api_key: apiKey,
         schedule,
         is_recurring: isRecurring,
-        next_run: new Date(),
+        next_run: new Date().toISOString(), // Convert Date to ISO string
       });
 
       if (error) throw error;
