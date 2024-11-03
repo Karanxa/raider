@@ -23,7 +23,9 @@ interface ScanResult {
   created_at: string;
   batch_name: string | null;
   user_id: string;
-  user_email?: string;
+  profiles: {
+    email: string;
+  } | null;
 }
 
 const LLMResultsDashboard = () => {
@@ -36,9 +38,7 @@ const LLMResultsDashboard = () => {
         .from('llm_scan_results')
         .select(`
           *,
-          profiles:user_id (
-            email
-          )
+          profiles:profiles!llm_scan_results_user_id_fkey(email)
         `)
         .order('created_at', { ascending: false });
 
@@ -48,13 +48,10 @@ const LLMResultsDashboard = () => {
         query = query.eq('scan_type', 'batch');
       }
 
-      const { data: scanResults, error } = await query;
+      const { data, error } = await query;
       if (error) throw error;
 
-      return scanResults.map(result => ({
-        ...result,
-        user_email: result.profiles?.email || 'Unknown User'
-      })) as ScanResult[];
+      return data as ScanResult[];
     },
   });
 
@@ -98,7 +95,7 @@ const LLMResultsDashboard = () => {
                   {new Date(result.created_at).toLocaleString()}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Run by: {result.user_email}
+                  Run by: {result.profiles?.email || 'Unknown User'}
                 </div>
               </div>
               <div className="text-right">
