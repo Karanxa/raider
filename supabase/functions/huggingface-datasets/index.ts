@@ -23,10 +23,38 @@ serve(async (req) => {
       throw new Error('Category is required');
     }
 
-    // Convert category to search terms
-    const searchTerms = category.toLowerCase().split(' ').join('+');
+    // Create a more targeted search query based on the category
+    let searchQuery;
+    const baseCategory = category.toLowerCase();
     
-    const response = await fetch(`${HUGGINGFACE_API}?search=${searchTerms}+adversarial`, {
+    if (baseCategory.includes('jail breaking')) {
+      searchQuery = 'jailbreak+llm+prompt';
+    } else if (baseCategory.includes('prompt injection')) {
+      searchQuery = 'prompt+injection+attack';
+    } else if (baseCategory.includes('encoding')) {
+      searchQuery = 'encoding+adversarial+llm';
+    } else if (baseCategory.includes('unsafe')) {
+      searchQuery = 'unsafe+prompt+harmful';
+    } else if (baseCategory.includes('uncensored')) {
+      searchQuery = 'uncensored+prompt+bypass';
+    } else if (baseCategory.includes('language based')) {
+      searchQuery = 'language+adversarial+attack';
+    } else if (baseCategory.includes('glitch')) {
+      searchQuery = 'glitch+token+prompt';
+    } else if (baseCategory.includes('llm evasion')) {
+      searchQuery = 'llm+evasion+technique';
+    } else if (baseCategory.includes('leaking')) {
+      searchQuery = 'system+prompt+leak';
+    } else if (baseCategory.includes('insecure')) {
+      searchQuery = 'insecure+output+prompt';
+    } else {
+      searchQuery = baseCategory.split(' ').join('+');
+    }
+    
+    // Add common terms to improve results
+    const finalQuery = `${searchQuery}+dataset+llm`;
+    
+    const response = await fetch(`${HUGGINGFACE_API}?search=${finalQuery}&full=true&limit=100`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
       },
@@ -38,8 +66,15 @@ serve(async (req) => {
 
     const data = await response.json();
     
+    // Filter out datasets with no downloads or likes to ensure quality
+    const filteredData = data.filter((dataset: any) => 
+      (dataset.downloads > 0 || dataset.likes > 0) && 
+      dataset.id && 
+      dataset.description
+    );
+    
     return new Response(
-      JSON.stringify({ data }),
+      JSON.stringify({ data: filteredData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
