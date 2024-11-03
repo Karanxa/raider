@@ -8,6 +8,7 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ChatSupport } from "@/components/chat-support/ChatSupport";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import "./App.css";
@@ -49,6 +50,7 @@ const App: React.FC = () => {
                           }
                         />
                       </Routes>
+                      <ChatSupport />
                       <Toaster />
                       <SonnerToaster 
                         position="top-right"
