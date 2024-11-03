@@ -19,72 +19,68 @@ serve(async (req) => {
       throw new Error('User ID is required');
     }
 
-    const systemPrompt = `You are an expert in enhancing conversational interactions. Your task is to transform the provided prompts into more sophisticated variations, specifically in the context of ${keyword}.
+    const systemPrompt = `You are an expert in enhancing prompts to be more sophisticated and contextual. Your task is to transform each provided prompt into a more refined version, specifically in the context of ${keyword}.
 
-Focus on creating variations that:
-- Use natural, conversational language
-- Incorporate specific ${keyword}-related terminology and scenarios
-- Include realistic user personas and situations
-- Maintain a professional and authentic tone
-- Test different interaction patterns and user behaviors
+Guidelines:
+- Keep the core intent of each prompt
+- Add relevant context and specific details related to ${keyword}
+- Use natural, professional language
+- Make each prompt more engaging and specific
+- Do not add any prefixes, bullet points, or explanations
+- Return exactly one augmented version per prompt
+- Focus on the business context, avoid security or technical aspects
+- Keep responses concise and direct
 
-Important Guidelines:
-- Each variation should be self-contained and clear
-- Focus on the core intent of the original prompt
-- Avoid any meta-commentary or explanations
-- Keep the output concise and direct
-- Ensure the response maintains the original prompt's purpose while being more sophisticated
+Format: Return only the augmented prompt text, nothing else.`;
 
-Format your response as a direct prompt without any prefixes, suffixes, or explanations.`;
-
-    let augmentedPrompts;
+    let augmentedPrompts = [];
     
     if (provider === 'openai') {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Transform this prompt into a more sophisticated version, maintaining its core purpose but making it more specific to ${keyword} context:\n\n${prompts.join('\n')}` }
-          ],
-          temperature: 0.7,
-        }),
-      });
-
-      const data = await response.json();
-      augmentedPrompts = data.choices[0].message.content
-        .split('\n')
-        .filter(line => line.trim())
-        .map(prompt => prompt.replace(/^[-*\d.)\s]+/, '').trim()); // Remove any bullet points or numbering
-    } else if (provider === 'gemini') {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [{
-              text: `${systemPrompt}\n\nTransform this prompt into a more sophisticated version, maintaining its core purpose but making it more specific to ${keyword} context:\n\n${prompts.join('\n')}`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
+      // Process each prompt individually to maintain 1:1 mapping
+      augmentedPrompts = await Promise.all(prompts.map(async (prompt: string) => {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      });
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Transform this prompt: "${prompt}"` }
+            ],
+            temperature: 0.7,
+          }),
+        });
 
-      const data = await response.json();
-      augmentedPrompts = data.candidates[0].content.parts[0].text
-        .split('\n')
-        .filter(line => line.trim())
-        .map(prompt => prompt.replace(/^[-*\d.)\s]+/, '').trim()); // Remove any bullet points or numbering
+        const data = await response.json();
+        return data.choices[0].message.content.trim();
+      }));
+    } else if (provider === 'gemini') {
+      // Process each prompt individually with Gemini
+      augmentedPrompts = await Promise.all(prompts.map(async (prompt: string) => {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              role: 'user',
+              parts: [{
+                text: `${systemPrompt}\n\nTransform this prompt: "${prompt}"`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+            },
+          }),
+        });
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text.trim();
+      }));
     } else {
       throw new Error('Invalid provider specified');
     }
