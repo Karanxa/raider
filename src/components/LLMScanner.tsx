@@ -51,12 +51,17 @@ const LLMScanner = () => {
             promptToScan
           );
           
-          // Extract headers and body from curl command
-          const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g) || [];
-          headerMatches.forEach(match => {
-            const [key, value] = match.slice(4, -1).split(': ');
-            headers[key] = value;
-          });
+          // Extract headers from curl command
+          const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g);
+          if (headerMatches) {
+            headerMatches.forEach(match => {
+              const headerContent = match.slice(4, -1);
+              const [key, value] = headerContent.split(': ');
+              if (key && value) {
+                headers[key] = value;
+              }
+            });
+          }
 
           const bodyMatch = curlWithPrompt.match(/-d '([^']+)'/) || curlWithPrompt.match(/-d "([^"]+)"/);
           const body = bodyMatch ? bodyMatch[1] : '';
