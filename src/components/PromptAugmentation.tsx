@@ -8,10 +8,20 @@ import { useSession } from '@supabase/auth-helpers-react';
 import Papa from 'papaparse';
 import { Download, Upload } from 'lucide-react';
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const PromptAugmentation = () => {
   const [prompts, setPrompts] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
+  const [provider, setProvider] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
   const [augmentedPrompt, setAugmentedPrompt] = useState<string>("");
   const [augmentedPrompts, setAugmentedPrompts] = useState<Array<{ original: string; augmented: string }>>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,19 +64,31 @@ const PromptAugmentation = () => {
       return;
     }
 
+    if (!provider) {
+      toast.error("Please select an AI provider");
+      return;
+    }
+
+    if (!apiKey) {
+      toast.error("Please enter your API key");
+      return;
+    }
+
     const promptList = prompts.split('\n').map(prompt => prompt.trim()).filter(Boolean);
     
     if (promptList.length === 0 || !keyword) {
-      toast.error("Please provide prompts and a keyword.");
+      toast.error("Please provide prompts and a keyword");
       return;
     }
 
     setIsProcessing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('augment-prompts', {
+      const { data, error } = await supabase.functions.invoke('ai-augment-prompts', {
         body: { 
-          prompts: promptList, 
+          prompts: promptList,
           keyword,
+          provider,
+          apiKey,
           userId: session.user.id 
         }
       });
@@ -85,7 +107,7 @@ const PromptAugmentation = () => {
       toast.success("Prompts augmented successfully!");
     } catch (error) {
       console.error("Error augmenting prompts:", error);
-      toast.error("Failed to augment prompts.");
+      toast.error("Failed to augment prompts");
     } finally {
       setIsProcessing(false);
     }
@@ -110,55 +132,85 @@ const PromptAugmentation = () => {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Input
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="csv-upload"
-            disabled={isProcessing}
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Select AI Provider</Label>
+            <Select value={provider} onValueChange={setProvider}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="gemini">Google Gemini</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {provider && (
+            <div className="space-y-2">
+              <Label>{provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key</Label>
+              <Input
+                type="password"
+                placeholder={`Enter your ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API key`}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Your API key is used only for this request and is not stored
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="csv-upload"
+              disabled={isProcessing}
+            />
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById("csv-upload")?.click()}
+              disabled={isProcessing}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload CSV
+            </Button>
+            {isCsvMode && augmentedPrompts.length > 0 && (
+              <Button onClick={exportToCsv} disabled={isProcessing}>
+                <Download className="w-4 h-4 mr-2" />
+                Export Augmented Prompts
+              </Button>
+            )}
+          </div>
+          
+          <Textarea
+            placeholder="Enter prompts, one per line..."
+            value={prompts}
+            onChange={(e) => {
+              setPrompts(e.target.value);
+              setIsCsvMode(e.target.value.includes('\n'));
+            }}
+            className="min-h-[100px]"
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("csv-upload")?.click()}
+          
+          <Input
+            placeholder="Enter keyword for augmentation (e.g., ecommerce, banking)"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          
+          <Button 
+            onClick={handleAugment} 
             disabled={isProcessing}
           >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload CSV
+            {isProcessing ? "Processing..." : "Augment Prompts"}
           </Button>
-          {isCsvMode && augmentedPrompts.length > 0 && (
-            <Button onClick={exportToCsv} disabled={isProcessing}>
-              <Download className="w-4 h-4 mr-2" />
-              Export Augmented Prompts
-            </Button>
-          )}
         </div>
-        
-        <Textarea
-          placeholder="Enter prompts, one per line..."
-          value={prompts}
-          onChange={(e) => {
-            setPrompts(e.target.value);
-            setIsCsvMode(e.target.value.includes('\n'));
-          }}
-          className="min-h-[100px]"
-        />
-        
-        <Input
-          placeholder="Enter keyword for augmentation"
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
-        
-        <Button 
-          onClick={handleAugment} 
-          disabled={isProcessing}
-        >
-          {isProcessing ? "Processing..." : "Augment Prompts"}
-        </Button>
-      </div>
+      </Card>
 
       {!isCsvMode && augmentedPrompt && (
         <Card className="p-4">
