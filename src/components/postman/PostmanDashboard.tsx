@@ -15,6 +15,8 @@ const PostmanDashboard = () => {
   const [organization, setOrganization] = useState("");
   const [isCrawling, setIsCrawling] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [searchPatternIndex, setSearchPatternIndex] = useState(0);
+  const totalPatterns = 5; // Match the number of patterns in the edge function
 
   const { data: collections, isLoading, refetch } = useQuery({
     queryKey: ['postman-collections'],
@@ -37,33 +39,48 @@ const PostmanDashboard = () => {
 
     setIsCrawling(true);
     setProgress(0);
+    setSearchPatternIndex(0);
 
     try {
-      const { error } = await supabase.functions.invoke('crawl-postman-collections', {
+      const { error, data } = await supabase.functions.invoke('crawl-postman-collections', {
         body: { organization: organization.trim() }
       });
       
       if (error) throw error;
 
-      // Simulate progress updates (since we can't get real-time progress from the edge function)
+      // Simulate progress for each search pattern
       const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
+        setSearchPatternIndex(prev => {
+          const newIndex = prev + 1;
+          if (newIndex >= totalPatterns) {
             clearInterval(interval);
             setIsCrawling(false);
-            refetch(); // Refresh the collections list
-            return 100;
+            refetch();
+            return prev;
           }
-          return prev + 10;
+          return newIndex;
         });
-      }, 1000);
+        
+        setProgress(prev => {
+          const newProgress = ((searchPatternIndex + 1) / totalPatterns) * 100;
+          return Math.min(newProgress, 100);
+        });
+      }, 2000);
 
-      toast.success("Crawler started successfully");
+      toast.success(`Found ${data?.collectionsCount || 0} collections`);
     } catch (error) {
       setIsCrawling(false);
       toast.error("Failed to start crawler");
     }
   };
+
+  const searchPatterns = [
+    "Searching main organization page...",
+    "Checking public collections...",
+    "Scanning API documentation...",
+    "Looking for workspaces...",
+    "Finalizing collection discovery..."
+  ];
 
   return (
     <div className="space-y-6">
@@ -92,8 +109,8 @@ const PostmanDashboard = () => {
       {isCrawling && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Crawling in progress...</span>
-            <span>{progress}%</span>
+            <span>{searchPatterns[searchPatternIndex]}</span>
+            <span>{Math.round(progress)}%</span>
           </div>
           <Progress value={progress} className="w-full" />
         </div>

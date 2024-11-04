@@ -25,27 +25,90 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // In a real implementation, this would use the organization parameter
-    // to search Postman's discovery service or web crawling
-    const mockCollections = [{
-      collection_url: `https://www.postman.com/collections/${organization}-api-${Date.now()}`,
-      collection_name: `${organization.charAt(0).toUpperCase() + organization.slice(1)} API Collection`,
-      organization: organization,
-      description: `Public API collection for ${organization}`,
-      last_updated: new Date().toISOString(),
-    }];
+    // Search patterns to try
+    const searchPatterns = [
+      `https://www.postman.com/search?q=${organization}`,
+      `https://www.postman.com/${organization}`,
+      `https://www.postman.com/search?q=${organization}+api`,
+      `https://www.postman.com/search?q=${organization}+collection`,
+      `https://www.postman.com/search?q=${organization}+public`,
+    ];
 
-    // Store the discovered collections
-    const { error } = await supabaseClient
-      .from("postman_collections")
-      .insert(mockCollections);
+    const collections: any[] = [];
+    console.log(`Starting crawl for organization: ${organization}`);
 
-    if (error) throw error;
+    for (const pattern of searchPatterns) {
+      try {
+        console.log(`Searching pattern: ${pattern}`);
+        const response = await fetch(pattern);
+        const html = await response.text();
+
+        // Extract collection URLs using regex patterns
+        const collectionUrlPattern = /https:\/\/www\.postman\.com\/[^"'\s]+\/collection\/[^"'\s]+/g;
+        const matches = html.match(collectionUrlPattern) || [];
+        
+        // Extract workspace URLs
+        const workspacePattern = /https:\/\/www\.postman\.com\/[^"'\s]+\/workspace\/[^"'\s]+/g;
+        const workspaceMatches = html.match(workspacePattern) || [];
+
+        // Process collection URLs
+        for (const url of matches) {
+          if (!collections.some(c => c.collection_url === url)) {
+            collections.push({
+              collection_url: url,
+              collection_name: url.split('/').pop()?.replace(/-/g, ' '),
+              organization: organization,
+              description: `Public API collection for ${organization}`,
+              last_updated: new Date().toISOString(),
+            });
+          }
+        }
+
+        // Process workspace URLs to find more collections
+        for (const workspaceUrl of workspaceMatches) {
+          try {
+            console.log(`Checking workspace: ${workspaceUrl}`);
+            const workspaceResponse = await fetch(workspaceUrl);
+            const workspaceHtml = await workspaceResponse.text();
+            const workspaceCollections = workspaceHtml.match(collectionUrlPattern) || [];
+
+            for (const url of workspaceCollections) {
+              if (!collections.some(c => c.collection_url === url)) {
+                collections.push({
+                  collection_url: url,
+                  collection_name: url.split('/').pop()?.replace(/-/g, ' '),
+                  organization: organization,
+                  description: `Found in ${organization} workspace`,
+                  last_updated: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error processing workspace ${workspaceUrl}:`, error);
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing pattern ${pattern}:`, error);
+      }
+    }
+
+    console.log(`Found ${collections.length} collections`);
+
+    if (collections.length > 0) {
+      const { error: insertError } = await supabaseClient
+        .from("postman_collections")
+        .upsert(collections, { 
+          onConflict: 'collection_url',
+          ignoreDuplicates: true 
+        });
+
+      if (insertError) throw insertError;
+    }
 
     return new Response(
       JSON.stringify({ 
-        message: "Collections crawled successfully",
-        organization
+        message: `Found ${collections.length} collections`,
+        collectionsCount: collections.length
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,6 +116,7 @@ serve(async (req: Request) => {
       }
     );
   } catch (error) {
+    console.error("Crawler error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
