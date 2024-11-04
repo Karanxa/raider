@@ -27,48 +27,101 @@ serve(async (req) => {
       );
     }
 
-    // Gather IP intelligence data
-    const [asnResponse, dnsResponse, geoResponse] = await Promise.all([
+    // Enhanced IP intelligence gathering
+    const [
+      asnResponse,
+      dnsResponse,
+      geoResponse,
+      reverseDnsResponse,
+      mxResponse,
+      nsResponse,
+      txtResponse,
+      aResponse,
+      aaaaResponse,
+      whoisResponse
+    ] = await Promise.all([
       fetch(`https://ipapi.co/${ipAddress}/json/`),
       fetch(`https://dns.google/resolve?name=${ipAddress}`),
-      fetch(`https://ipapi.co/${ipAddress}/json/`)
+      fetch(`https://ipwhois.app/json/${ipAddress}`), // More detailed geolocation
+      fetch(`https://dns.google/resolve?name=${ipAddress}&type=PTR`),
+      fetch(`https://dns.google/resolve?name=${ipAddress}&type=MX`),
+      fetch(`https://dns.google/resolve?name=${ipAddress}&type=NS`),
+      fetch(`https://dns.google/resolve?name=${ipAddress}&type=TXT`),
+      fetch(`https://dns.google/resolve?name=${ipAddress}&type=A`),
+      fetch(`https://dns.google/resolve?name=${ipAddress}&type=AAAA`),
+      fetch(`https://whois.whoisxmlapi.com/api/v1?apiKey=${Deno.env.get('WHOIS_API_KEY')}&domainName=${ipAddress}`)
     ]);
 
-    const [asnData, dnsData, geoData] = await Promise.all([
+    const [
+      asnData,
+      dnsData,
+      geoData,
+      reverseDnsData,
+      mxData,
+      nsData,
+      txtData,
+      aData,
+      aaaaData,
+      whoisData
+    ] = await Promise.all([
       asnResponse.json(),
       dnsResponse.json(),
-      geoResponse.json()
+      geoResponse.json(),
+      reverseDnsResponse.json(),
+      mxResponse.json(),
+      nsResponse.json(),
+      txtResponse.json(),
+      aResponse.json(),
+      aaaaResponse.json(),
+      whoisResponse.json()
     ]);
 
-    // Perform reverse DNS lookup
-    const reverseDns = await fetch(`https://dns.google/resolve?name=${ipAddress}&type=PTR`).then(r => r.json());
-
-    // Get MX records if available
-    const mxRecords = await fetch(`https://dns.google/resolve?name=${ipAddress}&type=MX`).then(r => r.json());
-
-    // Get nameservers
-    const nameservers = await fetch(`https://dns.google/resolve?name=${ipAddress}&type=NS`).then(r => r.json());
-
+    // Enhanced result object with more detailed information
     const result = {
       user_id: user.id,
       ip_address: ipAddress,
-      asn_info: asnData,
-      dns_records: dnsData,
-      geolocation: geoData,
-      reverse_dns: reverseDns.Answer?.[0]?.data || null,
-      mx_records: mxRecords.Answer || [],
-      nameservers: nameservers.Answer || [],
-      whois_data: null // WHOIS data requires additional setup and potentially paid APIs
+      asn_info: {
+        ...asnData,
+        asn: asnData.asn,
+        asn_org: asnData.org,
+        network: asnData.network,
+      },
+      dns_records: {
+        a_records: aData.Answer || [],
+        aaaa_records: aaaaData.Answer || [],
+        txt_records: txtData.Answer || [],
+        standard: dnsData.Answer || [],
+      },
+      geolocation: {
+        ...geoData,
+        latitude: geoData.latitude,
+        longitude: geoData.longitude,
+        city: geoData.city,
+        region: geoData.region,
+        country: geoData.country,
+        timezone: geoData.timezone,
+        isp: geoData.isp,
+      },
+      reverse_dns: reverseDnsData.Answer?.[0]?.data || null,
+      mx_records: mxData.Answer || [],
+      nameservers: nsData.Answer || [],
+      whois_data: whoisData,
+      scan_timestamp: new Date().toISOString()
     };
+
+    console.log('Gathered IP intelligence:', result);
 
     const { error: insertError } = await supabase
       .from('ip_intelligence_results')
       .insert([result]);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      throw insertError;
+    }
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, data: result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
