@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Bug, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import PayloadObfuscator from "./PayloadObfuscator";
 
 const XSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPayload, setSelectedPayload] = useState<string>("");
+  const [selectedPayloads, setSelectedPayloads] = useState<string[]>([]);
 
   const { data: payloads, isLoading } = useQuery({
     queryKey: ['xss-payloads'],
@@ -54,6 +57,39 @@ const XSSPayloads = () => {
     setSelectedPayload(payload === selectedPayload ? "" : payload);
   };
 
+  const handleCheckboxChange = (payload: string) => {
+    setSelectedPayloads(prev => {
+      if (prev.includes(payload)) {
+        return prev.filter(p => p !== payload);
+      } else {
+        return [...prev, payload];
+      }
+    });
+  };
+
+  const handleSelectAllInCategory = (category: string) => {
+    const categoryPayloads = payloads?.filter(p => 
+      category === "all" ? true : p.category.toLowerCase() === category.toLowerCase()
+    ).map(p => p.payload) || [];
+
+    setSelectedPayloads(prev => {
+      const allSelected = categoryPayloads.every(p => prev.includes(p));
+      if (allSelected) {
+        // Deselect all in category
+        return prev.filter(p => !categoryPayloads.includes(p));
+      } else {
+        // Select all in category
+        const newSelection = [...prev];
+        categoryPayloads.forEach(p => {
+          if (!newSelection.includes(p)) {
+            newSelection.push(p);
+          }
+        });
+        return newSelection;
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -81,15 +117,48 @@ const XSSPayloads = () => {
         </div>
       </div>
 
+      {selectedPayloads.length > 0 && (
+        <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
+          <span>{selectedPayloads.length} payloads selected</span>
+          <Button 
+            variant="outline" 
+            onClick={() => setSelectedPayloads([])}
+          >
+            Clear Selection
+          </Button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-center py-8">Loading payloads...</div>
       ) : (
         <ScrollArea className="h-[600px]">
           <div className="grid gap-4">
+            {selectedCategory !== "all" && (
+              <div className="flex items-center space-x-2 p-4 bg-muted rounded-lg">
+                <Checkbox
+                  id={`select-all-${selectedCategory}`}
+                  checked={filteredPayloads?.every(p => selectedPayloads.includes(p.payload))}
+                  onCheckedChange={() => handleSelectAllInCategory(selectedCategory)}
+                />
+                <label
+                  htmlFor={`select-all-${selectedCategory}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Select all in {selectedCategory}
+                </label>
+              </div>
+            )}
+            
             {filteredPayloads?.map((payload) => (
               <Card key={payload.id} className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedPayloads.includes(payload.payload)}
+                      onCheckedChange={() => handleCheckboxChange(payload.payload)}
+                      className="mt-1"
+                    />
                     {payload.category === 'WAF Bypass' ? (
                       <Shield className="h-5 w-5 text-yellow-500" />
                     ) : payload.category === 'CSP Bypass' ? (
