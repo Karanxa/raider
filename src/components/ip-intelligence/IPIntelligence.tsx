@@ -1,12 +1,28 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { toast } from "sonner";
-import { IPForm, FormSchema } from "./IPForm";
-import { ResultCards } from "./ResultCards";
+import { Loader2 } from "lucide-react";
+
+interface FormData {
+  ipAddress: string;
+}
 
 const IPIntelligence = () => {
   const [scanning, setScanning] = useState(false);
+  const form = useForm<FormData>();
 
   const { data: results, refetch } = useQuery({
     queryKey: ["ip-intelligence"],
@@ -23,7 +39,7 @@ const IPIntelligence = () => {
     enabled: false,
   });
 
-  const onSubmit = async (data: FormSchema) => {
+  const onSubmit = async (data: FormData) => {
     try {
       setScanning(true);
       const response = await supabase.functions.invoke("ip-intelligence", {
@@ -41,15 +57,113 @@ const IPIntelligence = () => {
     }
   };
 
-  const formatJson = (data: any) => {
-    if (!data) return "No data available";
-    return JSON.stringify(data, null, 2);
-  };
-
   return (
     <div className="space-y-6">
-      <IPForm onSubmit={onSubmit} scanning={scanning} />
-      {results && <ResultCards results={results} formatJson={formatJson} />}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="ipAddress"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>IP Address</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter IP address" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={scanning}>
+            {scanning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Scan IP
+          </Button>
+        </form>
+      </Form>
+
+      {results && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="space-y-2">
+                <dt className="font-medium">IP Address</dt>
+                <dd className="text-sm">{results.ip_address}</dd>
+                <dt className="font-medium">Reverse DNS</dt>
+                <dd className="text-sm">{results.reverse_dns || "N/A"}</dd>
+              </dl>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>ASN Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-sm whitespace-pre-wrap">
+                {JSON.stringify(results.asn_info, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>DNS Records</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-sm whitespace-pre-wrap">
+                {JSON.stringify(results.dns_records, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Geolocation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-sm whitespace-pre-wrap">
+                {JSON.stringify(results.geolocation, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>MX Records</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-sm whitespace-pre-wrap">
+                {JSON.stringify(results.mx_records, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Nameservers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-sm whitespace-pre-wrap">
+                {JSON.stringify(results.nameservers, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>WHOIS Data</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="text-sm whitespace-pre-wrap">
+                {JSON.stringify(results.whois_data, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
