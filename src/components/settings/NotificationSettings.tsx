@@ -19,19 +19,30 @@ interface NotificationSettings {
   slack_webhook_url?: string;
 }
 
+const defaultSettings: NotificationSettings = {
+  notification_type: 'email',
+  email_address: '',
+  slack_webhook_url: '',
+};
+
 export const NotificationSettings = () => {
   const session = useSession();
-  const [settings, setSettings] = useState<NotificationSettings | null>(null);
+  const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (session?.user?.id) {
       loadSettings();
+    } else {
+      setLoading(false);
     }
   }, [session?.user?.id]);
 
   const loadSettings = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -40,20 +51,15 @@ export const NotificationSettings = () => {
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      if (error) throw error;
-      
+      if (error) {
+        throw error;
+      }
+
       if (data) {
         setSettings({
           notification_type: data.notification_type as 'email' | 'slack',
-          email_address: data.email_address || undefined,
-          slack_webhook_url: data.slack_webhook_url || undefined,
-        });
-      } else {
-        // Initialize with default settings if none exist
-        setSettings({
-          notification_type: 'email',
-          email_address: '',
-          slack_webhook_url: '',
+          email_address: data.email_address || '',
+          slack_webhook_url: data.slack_webhook_url || '',
         });
       }
     } catch (error) {
@@ -65,7 +71,10 @@ export const NotificationSettings = () => {
   };
 
   const saveSettings = async () => {
-    if (!settings || !session?.user?.id) return;
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to save settings');
+      return;
+    }
 
     try {
       const { error } = await supabase
@@ -76,8 +85,9 @@ export const NotificationSettings = () => {
         });
 
       if (error) throw error;
+
       toast.success('Notification settings saved successfully');
-      await loadSettings(); // Reload settings after save
+      await loadSettings();
     } catch (error) {
       console.error('Error saving notification settings:', error);
       toast.error('Failed to save notification settings');
@@ -89,7 +99,7 @@ export const NotificationSettings = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
         <p className="text-sm text-muted-foreground mb-4">
@@ -101,9 +111,9 @@ export const NotificationSettings = () => {
         <div className="space-y-2">
           <Label>Notification Type</Label>
           <Select
-            value={settings?.notification_type || "email"}
+            value={settings.notification_type}
             onValueChange={(value: 'email' | 'slack') => {
-              setSettings(prev => ({ ...prev, notification_type: value } as NotificationSettings));
+              setSettings(prev => ({ ...prev, notification_type: value }));
             }}
           >
             <SelectTrigger>
@@ -116,7 +126,7 @@ export const NotificationSettings = () => {
           </Select>
         </div>
 
-        {settings?.notification_type === 'email' && (
+        {settings.notification_type === 'email' && (
           <div className="space-y-2">
             <Label>Email Address</Label>
             <Input
@@ -124,13 +134,13 @@ export const NotificationSettings = () => {
               placeholder="Enter your email address"
               value={settings.email_address || ''}
               onChange={(e) => {
-                setSettings(prev => ({ ...prev, email_address: e.target.value } as NotificationSettings));
+                setSettings(prev => ({ ...prev, email_address: e.target.value }));
               }}
             />
           </div>
         )}
 
-        {settings?.notification_type === 'slack' && (
+        {settings.notification_type === 'slack' && (
           <div className="space-y-2">
             <Label>Slack Webhook URL</Label>
             <Input
@@ -138,7 +148,7 @@ export const NotificationSettings = () => {
               placeholder="Enter your Slack webhook URL"
               value={settings.slack_webhook_url || ''}
               onChange={(e) => {
-                setSettings(prev => ({ ...prev, slack_webhook_url: e.target.value } as NotificationSettings));
+                setSettings(prev => ({ ...prev, slack_webhook_url: e.target.value }));
               }}
             />
           </div>
