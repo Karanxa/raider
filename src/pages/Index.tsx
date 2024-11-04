@@ -13,6 +13,7 @@ import Datasets from "@/components/Datasets";
 import PromptAugmentation from "@/components/PromptAugmentation";
 import BountyReporting from "@/components/bounty/BountyReporting";
 import PostmanDashboard from "@/components/postman/PostmanDashboard";
+import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGenerator";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ const Index = () => {
                   <TabsTrigger value="nuclei">Nuclei Scanner</TabsTrigger>
                   <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
                   <TabsTrigger value="postman">Postman Collections</TabsTrigger>
+                  <TabsTrigger value="turbo-intruder">Turbo Intruder</TabsTrigger>
                 </TabsList>
               </div>
               <ScrollBar orientation="horizontal" className="h-2.5" />
@@ -83,6 +85,9 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="postman">
                 <PostmanDashboard />
+              </TabsContent>
+              <TabsContent value="turbo-intruder">
+                <TurboIntruderGenerator />
               </TabsContent>
             </div>
           </Tabs>
