@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as zip from "https://deno.land/x/zip@v1.2.3/mod.ts";
+import { Buffer } from "https://deno.land/std@0.177.0/node/buffer.ts";
+import { AndroidBinaryXmlParser } from "https://deno.land/x/android_binary_xml@v0.1.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +21,8 @@ serve(async (req) => {
     );
 
     const { filePath } = await req.json();
+    
+    console.log('Starting APK analysis for:', filePath);
     
     // Download the APK file
     const { data: fileData, error: downloadError } = await supabase.storage
@@ -44,10 +48,19 @@ serve(async (req) => {
       const libraries = [];
       const assets = [];
       
+      console.log('Extracting APK contents...');
+
       for (const entry of entries) {
         if (entry.filename === "AndroidManifest.xml") {
           const content = await entry.getData();
-          manifestContent = content;
+          try {
+            const parser = new AndroidBinaryXmlParser(content);
+            manifestContent = await parser.parse();
+            console.log('Successfully parsed AndroidManifest.xml');
+          } catch (e) {
+            console.error('Error parsing manifest:', e);
+            manifestContent = { error: 'Failed to parse manifest' };
+          }
         } else if (entry.filename.endsWith(".dex")) {
           dexFiles.push(entry.filename);
         } else if (entry.filename.startsWith("lib/")) {
@@ -59,36 +72,37 @@ serve(async (req) => {
         }
       }
 
-      // Parse manifest content (simplified for example)
-      const manifest = {
-        package: "com.example.app", // In reality, parse from binary XML
-        versionCode: "1",
-        versionName: "1.0",
-        minSdkVersion: "21",
-        targetSdkVersion: "33",
-        permissions: ["android.permission.INTERNET"],
-        activities: ["MainActivity"],
-        services: [],
-        receivers: []
-      };
+      // Extract manifest details
+      const manifest = manifestContent?.manifest || {};
+      const packageInfo = manifest?.package || {};
+      const application = manifest?.application || {};
+      
+      // Extract permissions
+      const permissions = manifest?.uses_permission?.map((p: any) => p?.['@android:name']) || [];
+      
+      // Extract components
+      const activities = application?.activity?.map((a: any) => a?.['@android:name']) || [];
+      const services = application?.service?.map((s: any) => s?.['@android:name']) || [];
+      const receivers = application?.receiver?.map((r: any) => r?.['@android:name']) || [];
+
+      console.log('Updating database with extracted information...');
 
       // Update analysis record
       const { error: updateError } = await supabase
         .from('apk_analysis')
         .update({
           status: 'completed',
-          package_name: manifest.package,
-          version_name: manifest.versionName,
-          version_code: manifest.versionCode,
-          min_sdk_version: manifest.minSdkVersion,
-          target_sdk_version: manifest.targetSdkVersion,
-          permissions: manifest.permissions,
-          activities: manifest.activities,
-          services: manifest.services,
-          receivers: manifest.receivers,
+          package_name: packageInfo?.['@package'] || manifest?.['@package'],
+          version_name: packageInfo?.['@android:versionName'] || manifest?.['@android:versionName'],
+          version_code: packageInfo?.['@android:versionCode'] || manifest?.['@android:versionCode'],
+          min_sdk_version: manifest?.['uses-sdk']?.['@android:minSdkVersion'],
+          target_sdk_version: manifest?.['uses-sdk']?.['@android:targetSdkVersion'],
+          permissions,
+          activities,
+          services,
+          receivers,
           manifest_content: {
             raw: manifestContent,
-            parsed: manifest,
             resources,
             dexFiles,
             libraries,
@@ -98,6 +112,8 @@ serve(async (req) => {
         .eq('file_path', filePath);
 
       if (updateError) throw updateError;
+
+      console.log('APK analysis completed successfully');
 
       return new Response(
         JSON.stringify({ success: true }),
