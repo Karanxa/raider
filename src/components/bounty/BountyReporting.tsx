@@ -7,12 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { jsPDF } from "jspdf";
+import { Download } from "lucide-react";
 
 const BountyReporting = () => {
   const session = useSession();
   const [summary, setSummary] = useState("");
   const [severity, setSeverity] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedReport, setGeneratedReport] = useState(null);
 
   const generateStructuredReport = (summary: string) => {
     // Extract steps to reproduce
@@ -87,6 +90,70 @@ const BountyReporting = () => {
     };
   };
 
+  const exportReport = (format: 'doc' | 'pdf' | 'md') => {
+    if (!generatedReport) {
+      toast.error("Please generate a report first");
+      return;
+    }
+
+    const reportContent = `# Security Vulnerability Report
+
+## Title
+${generatedReport.title}
+
+## Description
+${generatedReport.description}
+
+## Steps to Reproduce
+${generatedReport.steps_to_reproduce}
+
+## Impact
+${generatedReport.impact}
+
+## Proof of Concept
+${generatedReport.proof_of_concept || 'No proof of concept provided'}
+
+## Recommendations
+${generatedReport.recommendations}
+
+## Severity
+${generatedReport.severity}
+`;
+
+    try {
+      switch (format) {
+        case 'doc':
+          const docBlob = new Blob([reportContent], { type: 'application/msword' });
+          const docUrl = URL.createObjectURL(docBlob);
+          const docLink = document.createElement('a');
+          docLink.href = docUrl;
+          docLink.download = 'vulnerability_report.doc';
+          docLink.click();
+          break;
+
+        case 'pdf':
+          const pdf = new jsPDF();
+          const splitText = pdf.splitTextToSize(reportContent, 180);
+          pdf.text(splitText, 15, 15);
+          pdf.save('vulnerability_report.pdf');
+          break;
+
+        case 'md':
+          const mdBlob = new Blob([reportContent], { type: 'text/markdown' });
+          const mdUrl = URL.createObjectURL(mdBlob);
+          const mdLink = document.createElement('a');
+          mdLink.href = mdUrl;
+          mdLink.download = 'vulnerability_report.md';
+          mdLink.click();
+          break;
+      }
+      toast.success(`Report exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(`Failed to export report as ${format.toUpperCase()}`);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user?.id) {
@@ -102,9 +169,9 @@ const BountyReporting = () => {
     setIsSubmitting(true);
     try {
       const structuredReport = generateStructuredReport(summary);
-      const title = summary.split(/[.!?]/)[0].trim(); // Use first sentence as title
+      const title = summary.split(/[.!?]/)[0].trim();
 
-      const { error } = await supabase.from("bounty_reports").insert({
+      const reportData = {
         user_id: session.user.id,
         title: title.length > 10 ? title : summary.substring(0, 100),
         description: structuredReport.description,
@@ -113,13 +180,14 @@ const BountyReporting = () => {
         proof_of_concept: structuredReport.proof_of_concept,
         recommendations: structuredReport.recommendations,
         severity,
-      });
+      };
+
+      const { error } = await supabase.from("bounty_reports").insert(reportData);
 
       if (error) throw error;
 
-      toast.success("Report submitted successfully!");
-      setSummary("");
-      setSeverity("");
+      setGeneratedReport({ ...reportData, title: reportData.title });
+      toast.success("Report generated successfully!");
     } catch (error) {
       console.error("Error submitting report:", error);
       toast.error("Failed to submit report");
@@ -167,14 +235,48 @@ const BountyReporting = () => {
             </Select>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full sm:w-auto min-w-[200px]" 
-            disabled={isSubmitting}
-            size="lg"
-          >
-            {isSubmitting ? "Generating Report..." : "Generate & Submit Report"}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button 
+              type="submit" 
+              className="w-full sm:w-auto min-w-[200px]" 
+              disabled={isSubmitting}
+              size="lg"
+            >
+              {isSubmitting ? "Generating Report..." : "Generate & Submit Report"}
+            </Button>
+
+            {generatedReport && (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => exportReport('doc')}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  DOC
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => exportReport('pdf')}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => exportReport('md')}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  MD
+                </Button>
+              </div>
+            )}
+          </div>
         </form>
       </Card>
     </div>

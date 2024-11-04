@@ -52,6 +52,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
+    "jspdf": "^2.5.2",
     "jszip": "^3.10.1",
     "lovable-tagger": "^1.0.19",
     "lucide-react": "^0.451.0",
