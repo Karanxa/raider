@@ -28,26 +28,19 @@ export const NotificationSettings = () => {
   useEffect(() => {
     if (session?.user?.id) {
       loadSettings();
-    } else {
-      setLoading(false);
     }
   }, [session?.user?.id]);
 
   const loadSettings = async () => {
-    if (!session?.user?.id) {
-      setLoading(false);
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
-        .eq('user_id', session.user.id)
+        .eq('user_id', session?.user?.id)
         .maybeSingle();
 
       if (error) throw error;
-
+      
       if (data) {
         setSettings({
           notification_type: data.notification_type as 'email' | 'slack',
@@ -88,15 +81,11 @@ export const NotificationSettings = () => {
         .from('notification_settings')
         .upsert({
           user_id: session.user.id,
-          notification_type: settings.notification_type,
-          email_address: settings.notification_type === 'email' ? settings.email_address : null,
-          slack_webhook_url: settings.notification_type === 'slack' ? settings.slack_webhook_url : null,
+          ...settings,
         });
 
       if (error) throw error;
-
       toast.success('Notification settings saved successfully');
-      await loadSettings();
     } catch (error: any) {
       console.error('Error saving notification settings:', error);
       toast.error(error.message || 'Failed to save notification settings');
