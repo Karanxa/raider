@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { generateAIReport } from "./report-generation/generateAIReport";
 import { generateStructuredReport } from "./report-generation/generateStructuredReport";
 import { ExportButtons } from "./report-export/ExportButtons";
 
@@ -31,25 +32,22 @@ const BountyReporting = () => {
 
     setIsSubmitting(true);
     try {
-      const structuredReport = generateStructuredReport(summary);
-      const title = summary.split(/[.!?]/)[0].trim();
-
-      const reportData = {
+      const report = await generateAIReport(summary, severity);
+      
+      const { error } = await supabase.from("bounty_reports").insert({
         user_id: session.user.id,
-        title: title.length > 10 ? title : summary.substring(0, 100),
-        description: structuredReport.description,
-        steps_to_reproduce: structuredReport.steps_to_reproduce,
-        impact: structuredReport.impact,
-        proof_of_concept: structuredReport.proof_of_concept,
-        recommendations: structuredReport.recommendations,
+        title: report.title,
+        description: report.description,
+        steps_to_reproduce: report.steps_to_reproduce,
+        impact: report.impact,
+        proof_of_concept: report.proof_of_concept,
+        recommendations: report.recommendations,
         severity,
-      };
-
-      const { error } = await supabase.from("bounty_reports").insert(reportData);
+      });
 
       if (error) throw error;
 
-      setGeneratedReport({ ...reportData, title: reportData.title });
+      setGeneratedReport(report);
       toast.success("Report generated successfully!");
     } catch (error) {
       console.error("Error submitting report:", error);
@@ -71,12 +69,12 @@ const BountyReporting = () => {
               id="summary"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder="Describe the vulnerability in detail. Include any steps to reproduce, potential impact, and supporting evidence. Our system will automatically structure your report."
+              placeholder="Describe the vulnerability in detail. Include any steps to reproduce, potential impact, and supporting evidence. Our AI will help structure your report."
               className="min-h-[200px] resize-y text-base p-4"
               required
             />
             <p className="text-sm text-muted-foreground mt-2">
-              Provide a comprehensive description. The system will automatically extract steps, impact, and evidence from your summary.
+              Provide a comprehensive description. Our AI will help structure and enhance your report.
             </p>
           </div>
 

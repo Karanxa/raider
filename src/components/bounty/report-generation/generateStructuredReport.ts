@@ -1,4 +1,4 @@
-export const generateStructuredReport = (summary: string) => {
+export const generateStructuredReport = (summary: string, severity: string) => {
   // Extract steps to reproduce
   let steps: string[] = [];
   
@@ -56,15 +56,17 @@ export const generateStructuredReport = (summary: string) => {
     }
   }
 
-  const recommendations = `Based on the identified ${severity || "potential"} severity vulnerability, 
+  const recommendations = `Based on the identified ${severity} severity vulnerability, 
     we recommend conducting a thorough security assessment of the affected components and implementing 
     appropriate security controls to mitigate the risk.`;
 
   return {
+    title: summary.split(/[.!?]/)[0].trim(),
     description: summary,
     steps_to_reproduce: steps.join("\n"),
     impact,
     proof_of_concept: proofOfConcept,
     recommendations,
+    severity,
   };
 };
