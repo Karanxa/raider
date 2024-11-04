@@ -30,10 +30,12 @@ const ConditionalChatSupport = () => {
 const App: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const key = event.key?.toLowerCase();
-      if (key === 'escape') {
-        // Handle escape key press
-        console.log('Escape key pressed');
+      if (event.key && typeof event.key === 'string') {
+        const key = event.key.toLowerCase();
+        if (key === 'escape') {
+          // Handle escape key press
+          console.log('Escape key pressed');
+        }
       }
     };
 
