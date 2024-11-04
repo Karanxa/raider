@@ -41,7 +41,7 @@ export const NotificationSettings = () => {
         .from('notification_settings')
         .select('*')
         .eq('user_id', session?.user?.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       
@@ -55,6 +55,7 @@ export const NotificationSettings = () => {
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
+      toast.error('Failed to load notification settings');
     } finally {
       setLoading(false);
     }
