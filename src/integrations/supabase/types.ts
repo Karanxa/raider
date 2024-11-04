@@ -486,6 +486,36 @@ export type Database = {
         }
         Relationships: []
       }
+      xss_payloads: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          payload: string
+          tags: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          payload: string
+          tags?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          payload?: string
+          tags?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

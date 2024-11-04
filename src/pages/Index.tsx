@@ -14,6 +14,7 @@ import PromptAugmentation from "@/components/PromptAugmentation";
 import BountyReporting from "@/components/bounty/BountyReporting";
 import PostmanDashboard from "@/components/postman/PostmanDashboard";
 import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGenerator";
+import XSSPayloads from "@/components/xss/XSSPayloads";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -71,6 +72,7 @@ const Index = () => {
                   <TabsTrigger value="postman">Postman Collections</TabsTrigger>
                   <TabsTrigger value="turbo-intruder">Turbo Intruder</TabsTrigger>
                   <TabsTrigger value="ip-intelligence">IP Intelligence</TabsTrigger>
+                  <TabsTrigger value="xss">XSS Payloads</TabsTrigger>
                 </TabsList>
               </div>
               <ScrollBar orientation="horizontal" className="h-2.5" />
@@ -96,6 +98,9 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="ip-intelligence">
                 <IPIntelligence />
+              </TabsContent>
+              <TabsContent value="xss">
+                <XSSPayloads />
               </TabsContent>
             </div>
           </Tabs>
