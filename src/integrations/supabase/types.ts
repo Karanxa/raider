@@ -120,6 +120,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ip_intelligence_results: {
+        Row: {
+          asn_info: Json | null
+          dns_records: Json | null
+          geolocation: Json | null
+          id: string
+          ip_address: string
+          mx_records: Json | null
+          nameservers: Json | null
+          reverse_dns: string | null
+          scan_timestamp: string | null
+          user_id: string | null
+          whois_data: Json | null
+        }
+        Insert: {
+          asn_info?: Json | null
+          dns_records?: Json | null
+          geolocation?: Json | null
+          id?: string
+          ip_address: string
+          mx_records?: Json | null
+          nameservers?: Json | null
+          reverse_dns?: string | null
+          scan_timestamp?: string | null
+          user_id?: string | null
+          whois_data?: Json | null
+        }
+        Update: {
+          asn_info?: Json | null
+          dns_records?: Json | null
+          geolocation?: Json | null
+          id?: string
+          ip_address?: string
+          mx_records?: Json | null
+          nameservers?: Json | null
+          reverse_dns?: string | null
+          scan_timestamp?: string | null
+          user_id?: string | null
+          whois_data?: Json | null
+        }
+        Relationships: []
+      }
       llm_scan_results: {
         Row: {
           batch_id: string | null

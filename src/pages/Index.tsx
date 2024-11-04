@@ -17,6 +17,7 @@ import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGen
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import IPIntelligence from "@/components/ip-intelligence/IPIntelligence";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -66,6 +67,7 @@ const Index = () => {
                   <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
                   <TabsTrigger value="postman">Postman Collections</TabsTrigger>
                   <TabsTrigger value="turbo-intruder">Turbo Intruder</TabsTrigger>
+                  <TabsTrigger value="ip-intelligence">IP Intelligence</TabsTrigger>
                 </TabsList>
               </div>
               <ScrollBar orientation="horizontal" className="h-2.5" />
@@ -88,6 +90,9 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="turbo-intruder">
                 <TurboIntruderGenerator />
+              </TabsContent>
+              <TabsContent value="ip-intelligence">
+                <IPIntelligence />
               </TabsContent>
             </div>
           </Tabs>
