@@ -19,7 +19,8 @@ export const exportReport = (format: ReportFormat, report: Report | null) => {
     return;
   }
 
-  const reportContent = `# Security Vulnerability Report
+  // Markdown formatted content
+  const markdownContent = `# Security Vulnerability Report
 
 ## Title
 ${report.title}
@@ -43,10 +44,34 @@ ${report.recommendations}
 ${report.severity}
 `;
 
+  // Plain text content for PDF
+  const plainContent = `Security Vulnerability Report
+
+Title
+${report.title}
+
+Description
+${report.description}
+
+Steps to Reproduce
+${report.steps_to_reproduce}
+
+Impact
+${report.impact}
+
+Proof of Concept
+${report.proof_of_concept || 'No proof of concept provided'}
+
+Recommendations
+${report.recommendations}
+
+Severity
+${report.severity}`;
+
   try {
     switch (format) {
       case 'doc':
-        const docBlob = new Blob([reportContent], { type: 'application/msword' });
+        const docBlob = new Blob([plainContent], { type: 'application/msword' });
         const docUrl = URL.createObjectURL(docBlob);
         const docLink = document.createElement('a');
         docLink.href = docUrl;
@@ -56,13 +81,13 @@ ${report.severity}
 
       case 'pdf':
         const pdf = new jsPDF();
-        const splitText = pdf.splitTextToSize(reportContent, 180);
+        const splitText = pdf.splitTextToSize(plainContent, 180);
         pdf.text(splitText, 15, 15);
         pdf.save('vulnerability_report.pdf');
         break;
 
       case 'md':
-        const mdBlob = new Blob([reportContent], { type: 'text/markdown' });
+        const mdBlob = new Blob([markdownContent], { type: 'text/markdown' });
         const mdUrl = URL.createObjectURL(mdBlob);
         const mdLink = document.createElement('a');
         mdLink.href = mdUrl;
