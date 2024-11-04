@@ -5,6 +5,7 @@ import { Globe, Database as DatabaseIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -12,7 +13,10 @@ type PostmanCollection = Database['public']['Tables']['postman_collections']['Ro
 
 const PostmanDashboard = () => {
   const [organization, setOrganization] = useState("");
-  const { data: collections, isLoading } = useQuery({
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const { data: collections, isLoading, refetch } = useQuery({
     queryKey: ['postman-collections'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -31,14 +35,32 @@ const PostmanDashboard = () => {
       return;
     }
 
+    setIsCrawling(true);
+    setProgress(0);
+
     try {
       const { error } = await supabase.functions.invoke('crawl-postman-collections', {
         body: { organization: organization.trim() }
       });
       
       if (error) throw error;
+
+      // Simulate progress updates (since we can't get real-time progress from the edge function)
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setIsCrawling(false);
+            refetch(); // Refresh the collections list
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 1000);
+
       toast.success("Crawler started successfully");
     } catch (error) {
+      setIsCrawling(false);
       toast.error("Failed to start crawler");
     }
   };
@@ -61,11 +83,21 @@ const PostmanDashboard = () => {
           onChange={(e) => setOrganization(e.target.value)}
           className="max-w-md"
         />
-        <Button onClick={handleCrawl}>
+        <Button onClick={handleCrawl} disabled={isCrawling}>
           <Search className="mr-2 h-4 w-4" />
-          Start Crawler
+          {isCrawling ? "Crawling..." : "Start Crawler"}
         </Button>
       </div>
+
+      {isCrawling && (
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm text-muted-foreground">
+            <span>Crawling in progress...</span>
+            <span>{progress}%</span>
+          </div>
+          <Progress value={progress} className="w-full" />
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-8">Loading collections...</div>
