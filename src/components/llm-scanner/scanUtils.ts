@@ -91,10 +91,6 @@ const handleCustomProviderScan = async (
       });
     }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
     const data = await response.json();
     const result = typeof data === "string" ? data : JSON.stringify(data, null, 2);
     
@@ -106,6 +102,8 @@ const handleCustomProviderScan = async (
       user_id: userId,
       batch_id: batchId || null,
       label: label || null,
+      response_status: response.status,
+      raw_response: data
     });
 
     return result;
@@ -140,10 +138,6 @@ const handleStandardProviderScan = async (
     }),
   });
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
-  }
-
   const data = await response.json();
   const generatedText = data.choices[0].message.content;
 
@@ -156,6 +150,8 @@ const handleStandardProviderScan = async (
     user_id: userId,
     batch_id: batchId || null,
     label: label || null,
+    response_status: response.status,
+    raw_response: data
   });
 
   return generatedText;

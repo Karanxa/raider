@@ -130,6 +130,8 @@ export type Database = {
           model: string | null
           prompt: string
           provider: string
+          raw_response: Json | null
+          response_status: number | null
           result: string
           scan_type: string
           user_id: string
@@ -143,6 +145,8 @@ export type Database = {
           model?: string | null
           prompt: string
           provider: string
+          raw_response?: Json | null
+          response_status?: number | null
           result: string
           scan_type: string
           user_id: string
@@ -156,6 +160,8 @@ export type Database = {
           model?: string | null
           prompt?: string
           provider?: string
+          raw_response?: Json | null
+          response_status?: number | null
           result?: string
           scan_type?: string
           user_id?: string

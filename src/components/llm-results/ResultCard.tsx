@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { ResultCardProps } from "./types";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RawResponseDialog } from "./RawResponseDialog";
 import { 
   Beaker, 
   Calendar, 
@@ -51,7 +52,7 @@ export const ResultCard = ({ result, onLabelAdd }: ResultCardProps) => {
             {new Date(result.created_at).toLocaleString()}
           </div>
         </div>
-        <div className="text-right flex flex-col items-end gap-1">
+        <div className="text-right flex flex-col items-end gap-2">
           <Badge variant="outline" className="flex items-center gap-1">
             <Beaker className="w-3 h-3" />
             {result.provider}
@@ -60,6 +61,12 @@ export const ResultCard = ({ result, onLabelAdd }: ResultCardProps) => {
             <div className="text-sm text-muted-foreground">
               {result.model}
             </div>
+          )}
+          {(result.raw_response || result.response_status) && (
+            <RawResponseDialog 
+              rawResponse={result.raw_response} 
+              responseStatus={result.response_status}
+            />
           )}
         </div>
       </div>

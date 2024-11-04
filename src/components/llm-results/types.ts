@@ -9,6 +9,8 @@ export interface ScanResult {
   created_at: string;
   batch_name: string | null;
   label: string | null;
+  response_status: number | null;
+  raw_response: any;
 }
 
 export interface FilterProps {
