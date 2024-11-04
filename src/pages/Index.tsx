@@ -12,6 +12,7 @@ import NucleiResults from "@/components/NucleiResults";
 import Datasets from "@/components/Datasets";
 import PromptAugmentation from "@/components/PromptAugmentation";
 import BountyReporting from "@/components/bounty/BountyReporting";
+import PostmanDashboard from "@/components/postman/PostmanDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -62,6 +63,7 @@ const Index = () => {
                   <TabsTrigger value="recon-results">Recon Results</TabsTrigger>
                   <TabsTrigger value="nuclei">Nuclei Scanner</TabsTrigger>
                   <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
+                  <TabsTrigger value="postman">Postman Collections</TabsTrigger>
                 </TabsList>
               </div>
               <ScrollBar orientation="horizontal" className="h-2.5" />
@@ -78,6 +80,9 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="nuclei-results">
                 <NucleiResults domain={null} />
+              </TabsContent>
+              <TabsContent value="postman">
+                <PostmanDashboard />
               </TabsContent>
             </div>
           </Tabs>

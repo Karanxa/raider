@@ -311,7 +311,7 @@ export type Database = {
           curl_command?: string | null
           custom_endpoint?: string | null
           custom_headers?: string | null
-          id?: string
+          id: string
           is_recurring?: boolean | null
           last_run?: string | null
           model?: string | null
@@ -341,6 +341,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      postman_collections: {
+        Row: {
+          id: string
+          user_id: string | null
+          collection_url: string
+          collection_name: string | null
+          organization: string | null
+          description: string | null
+          discovered_at: string | null
+          last_updated: string | null
+          metadata: Json | null
+          is_active: boolean | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          collection_url: string
+          collection_name?: string | null
+          organization?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          last_updated?: string | null
+          metadata?: Json | null
+          is_active?: boolean | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          collection_url?: string
+          collection_name?: string | null
+          organization?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          last_updated?: string | null
+          metadata?: Json | null
+          is_active?: boolean | null
+        }
       }
     }
     Views: {
