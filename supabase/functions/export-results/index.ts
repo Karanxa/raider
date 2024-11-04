@@ -21,6 +21,12 @@ serve(async (req) => {
       userId 
     } = await req.json();
 
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    console.log(`Processing export request of type ${exportType} for user ${userId}`);
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -31,16 +37,39 @@ serve(async (req) => {
       .from('integration_settings')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (settingsError) throw new Error('Failed to fetch integration settings');
+    if (settingsError) {
+      console.error('Settings fetch error:', settingsError);
+      throw new Error(`Failed to fetch integration settings: ${settingsError.message}`);
+    }
+
+    if (!settings) {
+      console.log('No integration settings found for user:', userId);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Integration settings not configured. Please configure your settings first.' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     switch (exportType) {
       case 'jira':
         if (!settings.jira_api_token || !settings.jira_email || !settings.jira_domain) {
-          throw new Error('Jira credentials not configured');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Jira credentials not configured. Please configure your Jira settings first.' 
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
 
+        console.log('Creating Jira ticket...');
         const jiraResponse = await fetch(`https://${settings.jira_domain}/rest/api/2/issue`, {
           method: 'POST',
           headers: {
@@ -60,23 +89,31 @@ serve(async (req) => {
         });
 
         if (!jiraResponse.ok) {
-          throw new Error('Failed to create Jira ticket');
+          const errorData = await jiraResponse.text();
+          console.error('Jira API error:', errorData);
+          throw new Error(`Failed to create Jira ticket: ${errorData}`);
         }
-        break;
+
+        const jiraData = await jiraResponse.json();
+        return new Response(
+          JSON.stringify({ success: true, data: jiraData }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
 
       case 'slack':
         if (!settings.slack_webhook_url) {
-          throw new Error('Slack webhook URL not configured');
+          return new Response(
+            JSON.stringify({ 
+              error: 'Slack webhook URL not configured. Please configure your Slack settings first.' 
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
         }
 
-        const csvContent = results.map(r => ({
-          prompt: r.prompt,
-          result: r.result,
-          provider: r.provider,
-          model: r.model || '',
-          created_at: new Date(r.created_at).toLocaleString(),
-        }));
-
+        console.log('Sending Slack notification...');
         const slackResponse = await fetch(settings.slack_webhook_url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -91,22 +128,29 @@ serve(async (req) => {
         });
 
         if (!slackResponse.ok) {
-          throw new Error('Failed to send Slack notification');
+          const errorData = await slackResponse.text();
+          console.error('Slack API error:', errorData);
+          throw new Error(`Failed to send Slack notification: ${errorData}`);
         }
-        break;
+
+        return new Response(
+          JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
 
       default:
         throw new Error('Invalid export type');
     }
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Export error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred during export' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
