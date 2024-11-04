@@ -56,9 +56,9 @@ export const FilterBar = ({
               <SelectValue placeholder="Select label" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Labels</SelectItem>
+              <SelectItem value="all_labels">All Labels</SelectItem>
               {uniqueLabels.map(label => (
-                <SelectItem key={label} value={label}>{label}</SelectItem>
+                <SelectItem key={label} value={label || "unlabeled"}>{label || "Unlabeled"}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const LLMResultsDashboard = () => {
   const [filterType, setFilterType] = useState<string>("all");
-  const [filterLabel, setFilterLabel] = useState<string>("");
+  const [filterLabel, setFilterLabel] = useState<string>("all_labels");
   const location = useLocation();
   const batchId = location.state?.batchId;
 
@@ -29,7 +29,7 @@ const LLMResultsDashboard = () => {
         query = query.eq('scan_type', 'batch');
       }
 
-      if (filterLabel) {
+      if (filterLabel && filterLabel !== "all_labels") {
         query = query.eq('label', filterLabel);
       }
 
