@@ -31,26 +31,34 @@ export const NotificationSettings = () => {
   }, [session?.user?.id]);
 
   const loadSettings = async () => {
+    if (!session?.user?.id) return;
+
     try {
       const { data, error } = await supabase
         .from('notification_settings')
         .select('*')
-        .eq('user_id', session?.user?.id)
+        .eq('user_id', session.user.id)
         .maybeSingle();
 
       if (error) throw error;
       
       if (data) {
-        const { notification_type, email_address, slack_webhook_url } = data;
         setSettings({
-          notification_type: notification_type as 'email' | 'slack',
-          email_address,
-          slack_webhook_url,
+          notification_type: data.notification_type as 'email' | 'slack',
+          email_address: data.email_address || undefined,
+          slack_webhook_url: data.slack_webhook_url || undefined,
+        });
+      } else {
+        // Initialize with default settings if none exist
+        setSettings({
+          notification_type: 'email',
+          email_address: '',
+          slack_webhook_url: '',
         });
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
-      toast('Failed to load notification settings');
+      toast.error('Failed to load notification settings');
     } finally {
       setLoading(false);
     }
@@ -68,14 +76,17 @@ export const NotificationSettings = () => {
         });
 
       if (error) throw error;
-      toast('Notification settings saved successfully');
+      toast.success('Notification settings saved successfully');
+      await loadSettings(); // Reload settings after save
     } catch (error) {
       console.error('Error saving notification settings:', error);
-      toast('Failed to save notification settings');
+      toast.error('Failed to save notification settings');
     }
   };
 
-  if (loading) return null;
+  if (loading) {
+    return <div className="p-4">Loading settings...</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -90,7 +101,7 @@ export const NotificationSettings = () => {
         <div className="space-y-2">
           <Label>Notification Type</Label>
           <Select
-            value={settings?.notification_type || ""}
+            value={settings?.notification_type || "email"}
             onValueChange={(value: 'email' | 'slack') => {
               setSettings(prev => ({ ...prev, notification_type: value } as NotificationSettings));
             }}
