@@ -11,18 +11,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { FileUpload } from './prompt-augmentation/FileUpload';
 import { ResultsPreview } from './prompt-augmentation/ResultsPreview';
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 const PromptAugmentation = () => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [promptText, setPromptText] = useState<string>("");
   const [keyword, setKeyword] = useState<string>("");
   const [provider, setProvider] = useState<string>("");
-  const [apiKey, setApiKey] = useState<string>("");
   const [augmentedPrompt, setAugmentedPrompt] = useState<string>("");
   const [augmentedPrompts, setAugmentedPrompts] = useState<Array<{ original: string; augmented: string }>>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCsvMode, setIsCsvMode] = useState(false);
   const session = useSession();
+  const { getApiKey } = useApiKeys();
 
   const handleAugment = async () => {
     if (!session?.user?.id) {
@@ -35,8 +36,9 @@ const PromptAugmentation = () => {
       return;
     }
 
-    if (!apiKey) {
-      toast.error("Please enter your API key");
+    const storedApiKey = getApiKey(provider);
+    if (!storedApiKey) {
+      toast.error(`Please add your ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API key in Settings`);
       return;
     }
 
@@ -58,7 +60,7 @@ const PromptAugmentation = () => {
           prompts: promptList,
           keyword,
           provider,
-          apiKey,
+          apiKey: storedApiKey,
           userId: session.user.id 
         }
       });
@@ -121,21 +123,6 @@ const PromptAugmentation = () => {
               </SelectContent>
             </Select>
           </div>
-
-          {provider && (
-            <div className="space-y-2">
-              <Label>{provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key</Label>
-              <Input
-                type="password"
-                placeholder={`Enter your ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API key`}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Your API key is used only for this request and is not stored
-              </p>
-            </div>
-          )}
 
           <FileUpload 
             onFileUpload={handleFileUpload}

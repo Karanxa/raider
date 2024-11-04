@@ -11,14 +11,15 @@ import { toast } from "sonner";
 import { generateAIReport } from "./report-generation/generateAIReport";
 import { generateStructuredReport } from "./report-generation/generateStructuredReport";
 import { ExportButtons } from "./report-export/ExportButtons";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 const BountyReporting = () => {
   const session = useSession();
   const [summary, setSummary] = useState("");
   const [severity, setSeverity] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<any>(null);
+  const { getApiKey } = useApiKeys();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,14 +33,15 @@ const BountyReporting = () => {
       return;
     }
 
-    if (!apiKey) {
-      toast.error("Please provide your OpenAI API key");
+    const storedApiKey = getApiKey("openai");
+    if (!storedApiKey) {
+      toast.error("Please add your OpenAI API key in Settings");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const report = await generateAIReport(summary, severity, apiKey);
+      const report = await generateAIReport(summary, severity, storedApiKey);
       
       const { error } = await supabase.from("bounty_reports").insert({
         user_id: session.user.id,
@@ -82,23 +84,6 @@ const BountyReporting = () => {
             />
             <p className="text-sm text-muted-foreground mt-2">
               Provide a comprehensive description. Our AI will help structure and enhance your report.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="apiKey" className="text-lg font-semibold">
-              OpenAI API Key *
-            </Label>
-            <Input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your OpenAI API key"
-              required
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              Your API key is used only for this request and is not stored
             </p>
           </div>
 
