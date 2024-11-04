@@ -13,10 +13,7 @@ type PostmanCollection = Database['public']['Tables']['postman_collections']['Ro
 
 const PostmanDashboard = () => {
   const [organization, setOrganization] = useState("");
-  const [isCrawling, setIsCrawling] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [searchPatternIndex, setSearchPatternIndex] = useState(0);
-  const totalPatterns = 5; // Match the number of patterns in the edge function
+  const [isScanning, setIsScanning] = useState(false);
 
   const { data: collections, isLoading, refetch } = useQuery({
     queryKey: ['postman-collections'],
@@ -31,56 +28,30 @@ const PostmanDashboard = () => {
     }
   });
 
-  const handleCrawl = async () => {
+  const handleScan = async () => {
     if (!organization.trim()) {
       toast.error("Please enter an organization or keyword to search");
       return;
     }
 
-    setIsCrawling(true);
-    setProgress(0);
-    setSearchPatternIndex(0);
+    setIsScanning(true);
+    toast.info("Starting porch-pirate scan...");
 
     try {
-      const { error, data } = await supabase.functions.invoke('crawl-postman-collections', {
+      const { error, data } = await supabase.functions.invoke('porch-pirate-scan', {
         body: { organization: organization.trim() }
       });
       
       if (error) throw error;
 
-      // Simulate progress for each search pattern
-      const interval = setInterval(() => {
-        setSearchPatternIndex(prev => {
-          const newIndex = prev + 1;
-          if (newIndex >= totalPatterns) {
-            clearInterval(interval);
-            setIsCrawling(false);
-            refetch();
-            return prev;
-          }
-          return newIndex;
-        });
-        
-        setProgress(prev => {
-          const newProgress = ((searchPatternIndex + 1) / totalPatterns) * 100;
-          return Math.min(newProgress, 100);
-        });
-      }, 2000);
-
-      toast.success(`Found ${data?.collectionsCount || 0} collections`);
+      toast.success(`Found ${data?.collectionsFound || 0} collections`);
+      refetch();
     } catch (error) {
-      setIsCrawling(false);
-      toast.error("Failed to start crawler");
+      toast.error("Failed to start scanner: " + error.message);
+    } finally {
+      setIsScanning(false);
     }
   };
-
-  const searchPatterns = [
-    "Searching main organization page...",
-    "Checking public collections...",
-    "Scanning API documentation...",
-    "Looking for workspaces...",
-    "Finalizing collection discovery..."
-  ];
 
   return (
     <div className="space-y-6">
@@ -88,7 +59,7 @@ const PostmanDashboard = () => {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Postman Collections</h2>
           <p className="text-muted-foreground">
-            Discover and monitor public Postman API collections
+            Discover public Postman API collections using porch-pirate
           </p>
         </div>
       </div>
@@ -100,21 +71,11 @@ const PostmanDashboard = () => {
           onChange={(e) => setOrganization(e.target.value)}
           className="max-w-md"
         />
-        <Button onClick={handleCrawl} disabled={isCrawling}>
+        <Button onClick={handleScan} disabled={isScanning}>
           <Search className="mr-2 h-4 w-4" />
-          {isCrawling ? "Crawling..." : "Start Crawler"}
+          {isScanning ? "Scanning..." : "Start Scanner"}
         </Button>
       </div>
-
-      {isCrawling && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{searchPatterns[searchPatternIndex]}</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} className="w-full" />
-        </div>
-      )}
 
       {isLoading ? (
         <div className="flex justify-center py-8">Loading collections...</div>
