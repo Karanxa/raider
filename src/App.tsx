@@ -27,6 +27,20 @@ const ConditionalChatSupport = () => {
 };
 
 const App: React.FC = () => {
+  // Add event listener for keyboard events with proper type checking
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key?.toLowerCase();
+      if (key === 'escape') {
+        // Handle escape key press
+        console.log('Escape key pressed');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <BrowserRouter>
       <ThemeProvider>
