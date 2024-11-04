@@ -52,6 +52,8 @@ export const ExportDialog = ({ results }: ExportDialogProps) => {
           batch_name: result.batch_name || '',
           label: result.label || '',
           created_at: new Date(result.created_at).toLocaleString(),
+          response_status: result.response_status || '',
+          raw_response: JSON.stringify(result.raw_response || ''),
         }));
 
         const csv = Papa.unparse(csvData);
