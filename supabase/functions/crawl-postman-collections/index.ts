@@ -13,31 +13,27 @@ serve(async (req: Request) => {
   }
 
   try {
+    const { organization } = await req.json();
+
+    if (!organization) {
+      throw new Error("Organization or keyword is required");
+    }
+
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // For now, we'll focus on specific organizations' collections
-    // This can be expanded later to include more sources
-    const targetOrgs = [
-      "postman",
-      "stripe",
-      "github",
-      "twitter",
-      "microsoft",
-    ];
-
-    // Simulate finding collections (in a real implementation, this would involve
-    // actual web crawling or API calls to Postman's discovery service)
-    const mockCollections = targetOrgs.map(org => ({
-      collection_url: `https://www.postman.com/collections/${org}-api-${Date.now()}`,
-      collection_name: `${org.charAt(0).toUpperCase() + org.slice(1)} API Collection`,
-      organization: org,
-      description: `Public API collection for ${org}`,
+    // In a real implementation, this would use the organization parameter
+    // to search Postman's discovery service or web crawling
+    const mockCollections = [{
+      collection_url: `https://www.postman.com/collections/${organization}-api-${Date.now()}`,
+      collection_name: `${organization.charAt(0).toUpperCase() + organization.slice(1)} API Collection`,
+      organization: organization,
+      description: `Public API collection for ${organization}`,
       last_updated: new Date().toISOString(),
-    }));
+    }];
 
     // Store the discovered collections
     const { error } = await supabaseClient
@@ -47,7 +43,10 @@ serve(async (req: Request) => {
     if (error) throw error;
 
     return new Response(
-      JSON.stringify({ message: "Collections crawled successfully" }),
+      JSON.stringify({ 
+        message: "Collections crawled successfully",
+        organization
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

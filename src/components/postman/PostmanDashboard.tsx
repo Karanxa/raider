@@ -4,11 +4,14 @@ import { Database } from "@/integrations/supabase/types";
 import { Globe, Database as DatabaseIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { toast } from "sonner";
 
 type PostmanCollection = Database['public']['Tables']['postman_collections']['Row'];
 
 const PostmanDashboard = () => {
+  const [organization, setOrganization] = useState("");
   const { data: collections, isLoading } = useQuery({
     queryKey: ['postman-collections'],
     queryFn: async () => {
@@ -23,13 +26,17 @@ const PostmanDashboard = () => {
   });
 
   const handleCrawl = async () => {
+    if (!organization.trim()) {
+      toast.error("Please enter an organization or keyword to search");
+      return;
+    }
+
     try {
-      const response = await fetch('/api/crawl-postman-collections', {
-        method: 'POST'
+      const { error } = await supabase.functions.invoke('crawl-postman-collections', {
+        body: { organization: organization.trim() }
       });
       
-      if (!response.ok) throw new Error('Failed to start crawler');
-      
+      if (error) throw error;
       toast.success("Crawler started successfully");
     } catch (error) {
       toast.error("Failed to start crawler");
@@ -45,6 +52,15 @@ const PostmanDashboard = () => {
             Discover and monitor public Postman API collections
           </p>
         </div>
+      </div>
+
+      <div className="flex gap-4 items-center">
+        <Input
+          placeholder="Enter organization name or keyword (e.g., stripe, payment)"
+          value={organization}
+          onChange={(e) => setOrganization(e.target.value)}
+          className="max-w-md"
+        />
         <Button onClick={handleCrawl}>
           <Search className="mr-2 h-4 w-4" />
           Start Crawler
