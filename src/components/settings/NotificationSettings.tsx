@@ -42,14 +42,14 @@ export const NotificationSettings = () => {
       if (data) {
         const { notification_type, email_address, slack_webhook_url } = data;
         setSettings({
-          notification_type,
+          notification_type: notification_type as 'email' | 'slack',
           email_address,
           slack_webhook_url,
         });
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
-      toast.error('Failed to load notification settings');
+      toast('Failed to load notification settings');
     } finally {
       setLoading(false);
     }
@@ -71,10 +71,10 @@ export const NotificationSettings = () => {
 
       if (error) throw error;
       setSettings(newSettings);
-      toast.success('Notification settings saved successfully');
+      toast('Notification settings saved successfully');
     } catch (error) {
       console.error('Error saving notification settings:', error);
-      toast.error('Failed to save notification settings');
+      toast('Failed to save notification settings');
     }
   };
 
