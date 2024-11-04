@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Terminal } from "lucide-react";
 import TurboIntruderForm, { TurboIntruderFormValues } from "./TurboIntruderForm";
 import ScriptDisplay from "./ScriptDisplay";
 
@@ -74,10 +73,6 @@ def handleResponse(req, interesting):
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-lg font-semibold">
-        <Terminal className="h-5 w-5" />
-      </div>
-      
       <TurboIntruderForm onSubmit={generateScript} />
       <ScriptDisplay script={generatedScript} />
     </div>
