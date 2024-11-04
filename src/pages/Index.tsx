@@ -11,6 +11,7 @@ import NucleiScanner from "@/components/NucleiScanner";
 import NucleiResults from "@/components/NucleiResults";
 import Datasets from "@/components/Datasets";
 import PromptAugmentation from "@/components/PromptAugmentation";
+import BountyReporting from "@/components/bounty/BountyReporting";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,9 +45,10 @@ const Index = () => {
         
         <div className="mb-4 sm:mb-6">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6">
               <TabsTrigger value="web" className="text-sm sm:text-base py-2">Web Security</TabsTrigger>
               <TabsTrigger value="genai" className="text-sm sm:text-base py-2">GenAI Security</TabsTrigger>
+              <TabsTrigger value="bounty" className="text-sm sm:text-base py-2">Bounty</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -56,30 +58,10 @@ const Index = () => {
             <ScrollArea className="w-full whitespace-nowrap rounded-md border">
               <div className="flex p-1">
                 <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
-                  <TabsTrigger 
-                    value="recon" 
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    Domain Recon
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="recon-results"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    Recon Results
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="nuclei"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    Nuclei Scanner
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="nuclei-results"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    Nuclei Results
-                  </TabsTrigger>
+                  <TabsTrigger value="recon">Domain Recon</TabsTrigger>
+                  <TabsTrigger value="recon-results">Recon Results</TabsTrigger>
+                  <TabsTrigger value="nuclei">Nuclei Scanner</TabsTrigger>
+                  <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
                 </TabsList>
               </div>
               <ScrollBar orientation="horizontal" className="h-2.5" />
@@ -99,35 +81,15 @@ const Index = () => {
               </TabsContent>
             </div>
           </Tabs>
-        ) : (
+        ) : activeCategory === "genai" ? (
           <Tabs defaultValue="llm" className="w-full">
             <ScrollArea className="w-full whitespace-nowrap rounded-md border">
               <div className="flex p-1">
                 <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
-                  <TabsTrigger 
-                    value="llm"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    LLM Scanner
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="llm-results"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    LLM Results
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="datasets"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    Datasets
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="prompt-augmentation"
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1 text-sm font-medium ring-offset-background transition-all hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-                  >
-                    Prompt Augmentation
-                  </TabsTrigger>
+                  <TabsTrigger value="llm">LLM Scanner</TabsTrigger>
+                  <TabsTrigger value="llm-results">LLM Results</TabsTrigger>
+                  <TabsTrigger value="datasets">Datasets</TabsTrigger>
+                  <TabsTrigger value="prompt-augmentation">Prompt Augmentation</TabsTrigger>
                 </TabsList>
               </div>
               <ScrollBar orientation="horizontal" className="h-2.5" />
@@ -144,6 +106,22 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="prompt-augmentation">
                 <PromptAugmentation />
+              </TabsContent>
+            </div>
+          </Tabs>
+        ) : (
+          <Tabs defaultValue="reporting" className="w-full">
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <div className="flex p-1">
+                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
+                  <TabsTrigger value="reporting">Reporting</TabsTrigger>
+                </TabsList>
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
+            <div className="mt-4">
+              <TabsContent value="reporting">
+                <BountyReporting />
               </TabsContent>
             </div>
           </Tabs>
