@@ -29,6 +29,7 @@ export const NotificationSettings = () => {
   const session = useSession();
   const [settings, setSettings] = useState<NotificationSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -51,9 +52,7 @@ export const NotificationSettings = () => {
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data) {
         setSettings({
@@ -76,21 +75,34 @@ export const NotificationSettings = () => {
       return;
     }
 
+    setSaving(true);
     try {
+      // Validate settings before saving
+      if (settings.notification_type === 'email' && !settings.email_address) {
+        throw new Error('Email address is required');
+      }
+      if (settings.notification_type === 'slack' && !settings.slack_webhook_url) {
+        throw new Error('Slack webhook URL is required');
+      }
+
       const { error } = await supabase
         .from('notification_settings')
         .upsert({
           user_id: session.user.id,
-          ...settings,
+          notification_type: settings.notification_type,
+          email_address: settings.notification_type === 'email' ? settings.email_address : null,
+          slack_webhook_url: settings.notification_type === 'slack' ? settings.slack_webhook_url : null,
         });
 
       if (error) throw error;
 
       toast.success('Notification settings saved successfully');
       await loadSettings();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving notification settings:', error);
-      toast.error('Failed to save notification settings');
+      toast.error(error.message || 'Failed to save notification settings');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -157,8 +169,9 @@ export const NotificationSettings = () => {
         <Button 
           onClick={saveSettings}
           className="w-full"
+          disabled={saving}
         >
-          Save Settings
+          {saving ? 'Saving...' : 'Save Settings'}
         </Button>
       </div>
     </div>
