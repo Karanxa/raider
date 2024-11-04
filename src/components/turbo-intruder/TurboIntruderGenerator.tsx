@@ -5,7 +5,7 @@ import ScriptDisplay from "./ScriptDisplay";
 
 const TurboIntruderGenerator = () => {
   const [generatedScript, setGeneratedScript] = useState<string>("");
-  
+
   const generateScript = (values: TurboIntruderFormValues) => {
     const script = `def queueRequests(target, wordlists):
     engine = RequestEngine(
@@ -45,7 +45,7 @@ def handleResponse(req, interesting):
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-lg font-semibold">
         <Terminal className="h-5 w-5" />
-        Generate Turbo Intruder Script
+        {/* Removed the "Generate Turbo Intruder Script" text */}
       </div>
       
       <TurboIntruderForm onSubmit={generateScript} />
