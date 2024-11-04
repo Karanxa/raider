@@ -56,8 +56,21 @@ serve(async (req) => {
           try {
             const parser = new AndroidManifestParser();
             const parsedManifest = await parser.parse(Buffer.from(content));
-            console.log('Parsed manifest:', JSON.stringify(parsedManifest, null, 2));
-            manifestContent = parsedManifest;
+            console.log('Raw parsed manifest:', parsedManifest);
+            
+            // Transform the manifest structure to match our needs
+            manifestContent = {
+              package: parsedManifest.package,
+              versionName: parsedManifest.versionName,
+              versionCode: parsedManifest.versionCode,
+              usesSdk: parsedManifest.usesSdk,
+              permissions: parsedManifest.usesPermissions?.map(p => p.name) || [],
+              activities: parsedManifest.application?.activities?.map(a => a.name) || [],
+              services: parsedManifest.application?.services?.map(s => s.name) || [],
+              receivers: parsedManifest.application?.receivers?.map(r => r.name) || []
+            };
+            
+            console.log('Transformed manifest:', JSON.stringify(manifestContent, null, 2));
           } catch (e) {
             console.error('Error parsing manifest:', e);
             manifestContent = { error: 'Failed to parse manifest' };
@@ -73,45 +86,24 @@ serve(async (req) => {
         }
       }
 
-      // Extract manifest details with proper null checks
-      const manifest = manifestContent || {};
-      
-      // Extract permissions and components with proper type handling
-      const permissions = Array.isArray(manifest.permissions) 
-        ? manifest.permissions.map(p => p.name || p.toString())
-        : [];
-        
-      const activities = Array.isArray(manifest.activities)
-        ? manifest.activities.map(a => a.name || a.toString())
-        : [];
-        
-      const services = Array.isArray(manifest.services)
-        ? manifest.services.map(s => s.name || s.toString())
-        : [];
-        
-      const receivers = Array.isArray(manifest.receivers)
-        ? manifest.receivers.map(r => r.name || r.toString())
-        : [];
-
       console.log('Updating database with extracted information...');
-      console.log('Manifest content:', JSON.stringify(manifest, null, 2));
 
       // Update analysis record with proper null checks
       const { error: updateError } = await supabase
         .from('apk_analysis')
         .update({
           status: 'completed',
-          package_name: manifest.package?.name || null,
-          version_name: manifest.versionName || null,
-          version_code: manifest.versionCode?.toString() || null,
-          min_sdk_version: manifest.usesSdk?.minSdkVersion?.toString() || null,
-          target_sdk_version: manifest.usesSdk?.targetSdkVersion?.toString() || null,
-          permissions,
-          activities,
-          services,
-          receivers,
+          package_name: manifestContent?.package || null,
+          version_name: manifestContent?.versionName || null,
+          version_code: manifestContent?.versionCode?.toString() || null,
+          min_sdk_version: manifestContent?.usesSdk?.minSdkVersion?.toString() || null,
+          target_sdk_version: manifestContent?.usesSdk?.targetSdkVersion?.toString() || null,
+          permissions: manifestContent?.permissions || [],
+          activities: manifestContent?.activities || [],
+          services: manifestContent?.services || [],
+          receivers: manifestContent?.receivers || [],
           manifest_content: {
-            raw: manifest,
+            raw: manifestContent,
             resources,
             dexFiles,
             libraries,
