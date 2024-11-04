@@ -90,6 +90,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          email_address: string | null
+          id: string
+          notification_type: string
+          slack_webhook_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_address?: string | null
+          id?: string
+          notification_type: string
+          slack_webhook_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_address?: string | null
+          id?: string
+          notification_type?: string
+          slack_webhook_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       nuclei_scan_results: {
         Row: {
           created_at: string | null
