@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as zip from "https://deno.land/x/zip@v1.2.3/mod.ts";
-import { Buffer } from "https://deno.land/std@0.177.0/node/buffer.ts";
-import { AndroidManifestParser } from "npm:android-manifest-parser";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import * as zip from "https://deno.land/x/zip@v1.2.5/mod.ts";
+import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
+import { AndroidManifestParser } from "https://esm.sh/android-manifest-parser@0.1.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,32 +21,29 @@ serve(async (req) => {
     );
 
     const { filePath } = await req.json();
-    
     console.log('Starting APK analysis for:', filePath);
     
-    // Download the APK file
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('apk_files')
       .download(filePath);
 
-    if (downloadError) throw downloadError;
+    if (downloadError) {
+      console.error('Download error:', downloadError);
+      throw downloadError;
+    }
 
-    // Convert to ArrayBuffer
     const arrayBuffer = await fileData.arrayBuffer();
-    
-    // Create a temporary directory for extraction
     const tempDir = await Deno.makeTempDir();
     
     try {
-      // Extract APK (it's a ZIP file)
       const reader = new zip.ZipReader(new Uint8Array(arrayBuffer));
       const entries = await reader.entries();
       
       let manifestContent = null;
-      const resources = [];
-      const dexFiles = [];
-      const libraries = [];
-      const assets = [];
+      const resources: string[] = [];
+      const dexFiles: string[] = [];
+      const libraries: string[] = [];
+      const assets: string[] = [];
       
       console.log('Extracting APK contents...');
 
@@ -109,7 +106,6 @@ serve(async (req) => {
 
       console.log('Updating database with extracted information...');
 
-      // Update analysis record with proper null checks
       const { error: updateError } = await supabase
         .from('apk_analysis')
         .update({
@@ -133,7 +129,10 @@ serve(async (req) => {
         })
         .eq('file_path', filePath);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
 
       console.log('APK analysis completed successfully');
 
@@ -142,8 +141,11 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } finally {
-      // Cleanup
-      await Deno.remove(tempDir, { recursive: true });
+      try {
+        await Deno.remove(tempDir, { recursive: true });
+      } catch (e) {
+        console.error('Error cleaning up temp directory:', e);
+      }
     }
   } catch (error) {
     console.error('Error:', error);
