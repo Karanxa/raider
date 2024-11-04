@@ -33,7 +33,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 gap-3">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Simrata</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Raider</h1>
           <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={handleLogout}>

@@ -10,7 +10,6 @@ const Login = () => {
   const { theme } = useTheme();
 
   useEffect(() => {
-    // Check if user is already logged in
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -36,7 +35,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="max-w-md w-full p-8 bg-card rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-6 text-foreground">Welcome to Simrata</h1>
+        <h1 className="text-2xl font-bold text-center mb-6 text-foreground">Welcome to Raider</h1>
         <Auth
           supabaseClient={supabase}
           appearance={{ 
@@ -48,15 +47,12 @@ const Login = () => {
                   brandAccent: 'rgb(37, 99, 235)',
                 }
               }
-            },
-            className: {
-              container: 'auth-container',
-              button: 'auth-button',
-              anchor: 'auth-anchor'
             }
           }}
           theme={theme === 'dark' ? 'dark' : 'default'}
           providers={[]}
+          view="sign_in"
+          showLinks={false}
         />
       </div>
     </div>
