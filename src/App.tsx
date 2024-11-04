@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Settings from "@/pages/Settings";
+import ApkDetails from "@/components/mobile/ApkDetails";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -68,6 +69,16 @@ const App: React.FC = () => {
                           <ProtectedRoute>
                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                               <Settings />
+                            </div>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/apk/:id"
+                        element={
+                          <ProtectedRoute>
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <ApkDetails />
                             </div>
                           </ProtectedRoute>
                         }

@@ -34,8 +34,7 @@ const ApkDashboard = () => {
       {apkList?.map((apk) => (
         <Card
           key={apk.id}
-          className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
-          onClick={() => navigate(`/apk/${apk.id}`)}
+          className="p-6 hover:shadow-lg transition-shadow"
         >
           <div className="flex items-start justify-between">
             <div>
@@ -52,7 +51,11 @@ const ApkDashboard = () => {
             <FileArchive className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="mt-4">
-            <Button variant="outline" className="w-full">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => navigate(`/apk/${apk.id}`)}
+            >
               View Analysis
             </Button>
           </div>
