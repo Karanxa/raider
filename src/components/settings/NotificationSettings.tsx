@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface NotificationSettings {
   notification_type: 'email' | 'slack';
@@ -55,22 +56,18 @@ export const NotificationSettings = () => {
     }
   };
 
-  const saveSettings = async (type: 'email' | 'slack', value: string) => {
-    try {
-      const newSettings: NotificationSettings = {
-        notification_type: type,
-        ...(type === 'email' ? { email_address: value } : { slack_webhook_url: value }),
-      };
+  const saveSettings = async () => {
+    if (!settings || !session?.user?.id) return;
 
+    try {
       const { error } = await supabase
         .from('notification_settings')
         .upsert({
-          user_id: session?.user?.id,
-          ...newSettings,
+          user_id: session.user.id,
+          ...settings,
         });
 
       if (error) throw error;
-      setSettings(newSettings);
       toast('Notification settings saved successfully');
     } catch (error) {
       console.error('Error saving notification settings:', error);
@@ -118,7 +115,6 @@ export const NotificationSettings = () => {
               onChange={(e) => {
                 setSettings(prev => ({ ...prev, email_address: e.target.value } as NotificationSettings));
               }}
-              onBlur={(e) => saveSettings('email', e.target.value)}
             />
           </div>
         )}
@@ -133,10 +129,16 @@ export const NotificationSettings = () => {
               onChange={(e) => {
                 setSettings(prev => ({ ...prev, slack_webhook_url: e.target.value } as NotificationSettings));
               }}
-              onBlur={(e) => saveSettings('slack', e.target.value)}
             />
           </div>
         )}
+
+        <Button 
+          onClick={saveSettings}
+          className="w-full"
+        >
+          Save Settings
+        </Button>
       </div>
     </div>
   );
