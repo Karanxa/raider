@@ -41,7 +41,7 @@ const XSSPayloads = () => {
   });
 
   const filteredPayloads = payloads?.filter(payload => {
-    const matchesCategory = selectedCategory === "all" || payload.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || payload.category.toLowerCase() === selectedCategory.toLowerCase();
     const matchesSearch = !searchTerm || 
       payload.payload.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payload.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,7 +51,7 @@ const XSSPayloads = () => {
   });
 
   const handlePayloadSelect = (payload: string) => {
-    setSelectedPayload(payload);
+    setSelectedPayload(payload === selectedPayload ? "" : payload);
   };
 
   return (
