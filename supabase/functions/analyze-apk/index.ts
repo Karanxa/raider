@@ -2,11 +2,59 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 import * as zip from "https://deno.land/x/zip@v1.2.5/mod.ts";
 import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
-import { AndroidManifestParser } from "https://esm.sh/android-manifest-parser@0.1.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Simple manifest parser function
+const parseManifest = (buffer: Uint8Array) => {
+  const content = new TextDecoder().decode(buffer);
+  const manifest: any = {};
+
+  // Extract package name
+  const packageMatch = content.match(/package="([^"]+)"/);
+  manifest.package = packageMatch ? packageMatch[1] : null;
+
+  // Extract version info
+  const versionNameMatch = content.match(/android:versionName="([^"]+)"/);
+  manifest.versionName = versionNameMatch ? versionNameMatch[1] : null;
+
+  const versionCodeMatch = content.match(/android:versionCode="([^"]+)"/);
+  manifest.versionCode = versionCodeMatch ? versionCodeMatch[1] : null;
+
+  // Extract SDK versions
+  const minSdkMatch = content.match(/android:minSdkVersion="([^"]+)"/);
+  const targetSdkMatch = content.match(/android:targetSdkVersion="([^"]+)"/);
+  manifest.usesSdk = {
+    minSdkVersion: minSdkMatch ? minSdkMatch[1] : null,
+    targetSdkVersion: targetSdkMatch ? targetSdkMatch[1] : null
+  };
+
+  // Extract permissions
+  const permissions = content.match(/uses-permission[^>]+android:name="([^"]+)"/g);
+  manifest.permissions = permissions 
+    ? permissions.map(p => p.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
+    : [];
+
+  // Extract components
+  const activities = content.match(/activity[^>]+android:name="([^"]+)"/g);
+  manifest.activities = activities 
+    ? activities.map(a => a.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
+    : [];
+
+  const services = content.match(/service[^>]+android:name="([^"]+)"/g);
+  manifest.services = services 
+    ? services.map(s => s.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
+    : [];
+
+  const receivers = content.match(/receiver[^>]+android:name="([^"]+)"/g);
+  manifest.receivers = receivers 
+    ? receivers.map(r => r.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
+    : [];
+
+  return manifest;
 };
 
 serve(async (req) => {
@@ -51,44 +99,8 @@ serve(async (req) => {
         if (entry.filename === "AndroidManifest.xml") {
           const content = await entry.getData();
           try {
-            const parser = new AndroidManifestParser();
-            const parsedManifest = await parser.parse(Buffer.from(content));
-            console.log('Raw parsed manifest:', parsedManifest);
-            
-            // Extract permissions with proper null checks
-            const permissions = parsedManifest.usesPermissions?.map(p => 
-              typeof p === 'string' ? p : p.name
-            ) || [];
-
-            // Extract components with proper null checks
-            const activities = parsedManifest.application?.activities?.map(a => 
-              typeof a === 'string' ? a : a.name
-            ) || [];
-
-            const services = parsedManifest.application?.services?.map(s => 
-              typeof s === 'string' ? s : s.name
-            ) || [];
-
-            const receivers = parsedManifest.application?.receivers?.map(r => 
-              typeof r === 'string' ? r : r.name
-            ) || [];
-
-            // Transform the manifest structure
-            manifestContent = {
-              package: parsedManifest.package || null,
-              versionName: parsedManifest.versionName || null,
-              versionCode: parsedManifest.versionCode || null,
-              usesSdk: {
-                minSdkVersion: parsedManifest.usesSdk?.minSdkVersion || null,
-                targetSdkVersion: parsedManifest.usesSdk?.targetSdkVersion || null
-              },
-              permissions,
-              activities,
-              services,
-              receivers
-            };
-            
-            console.log('Transformed manifest:', JSON.stringify(manifestContent, null, 2));
+            manifestContent = parseManifest(content);
+            console.log('Parsed manifest:', manifestContent);
           } catch (e) {
             console.error('Error parsing manifest:', e);
             manifestContent = { error: 'Failed to parse manifest' };
@@ -151,7 +163,10 @@ serve(async (req) => {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   }
 });
