@@ -51,7 +51,7 @@ export const useScanLogic = (session: Session | null) => {
         for (let i = 0; i < prompts.length; i++) {
           setCurrentPromptIndex(i);
           
-          const result = await handleSingleScan(
+          await handleSingleScan(
             prompts[i],
             selectedProvider,
             apiKey,
@@ -67,12 +67,9 @@ export const useScanLogic = (session: Session | null) => {
           );
 
           if (i < prompts.length - 1) {
-            // Wait for the specified QPS delay
             await new Promise(resolve => setTimeout(resolve, 1000 / qps));
           }
         }
-        
-        toast.success("Batch scan completed successfully");
       } else {
         const result = await handleSingleScan(
           singlePrompt,
@@ -89,11 +86,10 @@ export const useScanLogic = (session: Session | null) => {
           label
         );
         setResult(result);
-        toast.success("Scan completed successfully");
       }
     } catch (error) {
       console.error("Scan error:", error);
-      toast.error(error.message || "An error occurred during the scan");
+      throw error;
     } finally {
       setScanning(false);
     }

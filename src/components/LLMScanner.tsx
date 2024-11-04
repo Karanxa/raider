@@ -6,7 +6,6 @@ import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
 import { PromptInput } from "./llm-scanner/PromptInput";
 import { ApiKeyInput } from "./llm-scanner/ApiKeyInput";
 import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
-import { NotificationSettings } from "./llm-scanner/NotificationSettings";
 import { useSession } from '@supabase/auth-helpers-react';
 import { useScanLogic } from "./llm-scanner/useScanLogic";
 import { useNavigate } from "react-router-dom";
@@ -33,18 +32,6 @@ const LLMScanner = () => {
 
   const { scanning, result, currentPromptIndex, processPrompts, batchId } = useScanLogic(session);
 
-  const sendNotification = async (message: string) => {
-    if (!session?.user?.id) return;
-
-    try {
-      await supabase.functions.invoke('send-notification', {
-        body: { userId: session.user.id, message }
-      });
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  };
-
   const handleViewResults = () => {
     if (batchId) {
       navigate('/results', { state: { batchId } });
@@ -64,7 +51,6 @@ const LLMScanner = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
-          <NotificationSettings />
           <ProviderSelect
             selectedProvider={selectedProvider}
             selectedModel={selectedModel}
@@ -146,10 +132,8 @@ const LLMScanner = () => {
                 );
                 if (prompts.length > 0) {
                   toast.success("Batch scan completed successfully");
-                  await sendNotification("Your batch LLM scan has completed successfully!");
                 } else {
                   toast.success("Scan completed successfully");
-                  await sendNotification("Your LLM scan has completed successfully!");
                 }
               } catch (error) {
                 console.error(error);
