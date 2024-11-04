@@ -2,12 +2,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft, Shield, Package, FileCode } from "lucide-react";
+import { Loader2, ArrowLeft, Shield, Package, FileCode, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ApkOverview from "./ApkOverview";
 import ApkComponents from "./ApkComponents";
 import FileViewer from "./FileViewer";
+import SecurityAnalysis from "./SecurityAnalysis";
 
 const ApkDetails = () => {
   const { id } = useParams();
@@ -64,8 +65,12 @@ const ApkDetails = () => {
 
       <ApkOverview apk={apk} onDownload={handleDownload} />
 
-      <Tabs defaultValue="components">
+      <Tabs defaultValue="security">
         <TabsList>
+          <TabsTrigger value="security">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Security Analysis
+          </TabsTrigger>
           <TabsTrigger value="components">
             <Package className="h-4 w-4 mr-2" />
             Components
@@ -79,6 +84,10 @@ const ApkDetails = () => {
             Source Files
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="security">
+          <SecurityAnalysis apk={apk} />
+        </TabsContent>
 
         <TabsContent value="components">
           <ApkComponents apk={apk} />
