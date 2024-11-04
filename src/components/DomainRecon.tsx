@@ -5,91 +5,54 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useSession } from '@supabase/auth-helpers-react';
 import { supabase } from "@/integrations/supabase/client";
+import { sendNotification } from "@/utils/notifications";
 
 const DomainRecon = () => {
-  const [domain, setDomain] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [domain, setDomain] = useState<string>("");
+  const [scanning, setScanning] = useState<boolean>(false);
   const { toast } = useToast();
   const session = useSession();
 
-  const validateDomain = (domain: string) => {
-    const pattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-    return pattern.test(domain);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateDomain(domain)) {
-      toast({
-        title: "Invalid Domain",
-        description: "Please enter a valid domain (e.g., example.com)",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleScan = async () => {
     if (!session?.user?.id) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to perform reconnaissance",
-        variant: "destructive",
-      });
+      toast.error("Please log in to perform scans");
       return;
     }
 
-    setLoading(true);
+    setScanning(true);
     try {
       const { error } = await supabase.functions.invoke('domain-recon', {
-        body: { 
-          domain,
-          userId: session.user.id
-        }
+        body: { domain, userId: session.user.id }
       });
 
       if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Domain reconnaissance started successfully",
-      });
-      
-      setDomain("");
+
+      toast.success("Domain reconnaissance started successfully");
+      await sendNotification(session.user.id, "Your domain reconnaissance scan has started successfully!");
     } catch (error) {
       console.error('Domain recon error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start domain reconnaissance",
-        variant: "destructive",
-      });
+      toast.error("Failed to start domain reconnaissance");
     } finally {
-      setLoading(false);
+      setScanning(false);
     }
   };
 
   return (
     <Card className="p-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2 text-left">
-          <h2 className="text-xl font-semibold">Domain Reconnaissance</h2>
-          <p className="text-sm text-gray-500">
-            Enter a domain name to start reconnaissance and vulnerability scanning
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            placeholder="example.com"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={loading}>
-            {loading ? "Processing..." : "Start Recon"}
-          </Button>
-        </div>
-      </form>
+      <h2 className="text-xl font-semibold">Domain Recon</h2>
+      <p className="text-sm text-gray-500">
+        Enter a domain to start the reconnaissance scan.
+      </p>
+      <Input
+        type="text"
+        placeholder="example.com"
+        value={domain}
+        onChange={(e) => setDomain(e.target.value)}
+        className="mt-4 mb-4"
+      />
+      <Button onClick={handleScan} disabled={scanning}>
+        {scanning ? "Scanning..." : "Start Scan"}
+      </Button>
     </Card>
   );
 };
