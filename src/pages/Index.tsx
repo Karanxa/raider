@@ -18,6 +18,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import IPIntelligence from "@/components/ip-intelligence/IPIntelligence";
+import ApkUpload from "@/components/mobile/ApkUpload";
+import ApkDashboard from "@/components/mobile/ApkDashboard";
 
 const Index = () => {
   const navigate = useNavigate();
