@@ -18,6 +18,12 @@ interface NotificationSettings {
   slack_webhook_url?: string;
 }
 
+interface SupabaseNotificationSettings extends NotificationSettings {
+  id: string;
+  user_id: string;
+  created_at: string;
+}
+
 export const NotificationSettings = () => {
   const session = useSession();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
@@ -38,7 +44,15 @@ export const NotificationSettings = () => {
         .single();
 
       if (error) throw error;
-      setSettings(data);
+      
+      if (data) {
+        const { notification_type, email_address, slack_webhook_url } = data as SupabaseNotificationSettings;
+        setSettings({
+          notification_type: notification_type as 'email' | 'slack',
+          email_address,
+          slack_webhook_url,
+        });
+      }
     } catch (error) {
       console.error('Error loading notification settings:', error);
     } finally {
