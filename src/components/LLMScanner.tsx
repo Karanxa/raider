@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { sendNotification } from "@/utils/notifications";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -33,6 +32,18 @@ const LLMScanner = () => {
   const navigate = useNavigate();
 
   const { scanning, result, currentPromptIndex, processPrompts, batchId } = useScanLogic(session);
+
+  const sendNotification = async (message: string) => {
+    if (!session?.user?.id) return;
+
+    try {
+      await supabase.functions.invoke('send-notification', {
+        body: { userId: session.user.id, message }
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
 
   const handleViewResults = () => {
     if (batchId) {
@@ -53,6 +64,7 @@ const LLMScanner = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-4">
+          <NotificationSettings />
           <ProviderSelect
             selectedProvider={selectedProvider}
             selectedModel={selectedModel}
@@ -134,14 +146,10 @@ const LLMScanner = () => {
                 );
                 if (prompts.length > 0) {
                   toast.success("Batch scan completed successfully");
-                  if (session?.user?.id) {
-                    await sendNotification(session.user.id, "Your batch LLM scan has completed successfully!");
-                  }
+                  await sendNotification("Your batch LLM scan has completed successfully!");
                 } else {
                   toast.success("Scan completed successfully");
-                  if (session?.user?.id) {
-                    await sendNotification(session.user.id, "Your LLM scan has completed successfully!");
-                  }
+                  await sendNotification("Your LLM scan has completed successfully!");
                 }
               } catch (error) {
                 console.error(error);

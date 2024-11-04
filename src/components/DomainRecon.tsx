@@ -2,62 +2,94 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 import { useSession } from '@supabase/auth-helpers-react';
 import { supabase } from "@/integrations/supabase/client";
-import { sendNotification } from "@/utils/notifications";
 
 const DomainRecon = () => {
-  const [domain, setDomain] = useState<string>("");
-  const [scanning, setScanning] = useState<boolean>(false);
+  const [domain, setDomain] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const session = useSession();
 
-  const handleScan = async () => {
-    if (!session?.user?.id) {
-      toast("Please log in to perform scans", {
-        description: "Authentication required",
+  const validateDomain = (domain: string) => {
+    const pattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+    return pattern.test(domain);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateDomain(domain)) {
+      toast({
+        title: "Invalid Domain",
+        description: "Please enter a valid domain (e.g., example.com)",
+        variant: "destructive",
       });
       return;
     }
 
-    setScanning(true);
+    if (!session?.user?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to perform reconnaissance",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
     try {
       const { error } = await supabase.functions.invoke('domain-recon', {
-        body: { domain, userId: session.user.id }
+        body: { 
+          domain,
+          userId: session.user.id
+        }
       });
 
       if (error) throw error;
-
-      toast("Domain reconnaissance started successfully", {
-        description: "You will be notified when the scan completes",
+      
+      toast({
+        title: "Success",
+        description: "Domain reconnaissance started successfully",
       });
-      await sendNotification(session.user.id, "Your domain reconnaissance scan has started successfully!");
+      
+      setDomain("");
     } catch (error) {
       console.error('Domain recon error:', error);
-      toast("Failed to start domain reconnaissance", {
-        description: "Please try again later",
+      toast({
+        title: "Error",
+        description: "Failed to start domain reconnaissance",
+        variant: "destructive",
       });
     } finally {
-      setScanning(false);
+      setLoading(false);
     }
   };
 
   return (
     <Card className="p-6">
-      <h2 className="text-xl font-semibold">Domain Recon</h2>
-      <p className="text-sm text-gray-500">
-        Enter a domain to start the reconnaissance scan.
-      </p>
-      <Input
-        type="text"
-        placeholder="example.com"
-        value={domain}
-        onChange={(e) => setDomain(e.target.value)}
-        className="mt-4 mb-4"
-      />
-      <Button onClick={handleScan} disabled={scanning}>
-        {scanning ? "Scanning..." : "Start Scan"}
-      </Button>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2 text-left">
+          <h2 className="text-xl font-semibold">Domain Reconnaissance</h2>
+          <p className="text-sm text-gray-500">
+            Enter a domain name to start reconnaissance and vulnerability scanning
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="example.com"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={loading}>
+            {loading ? "Processing..." : "Start Recon"}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 };

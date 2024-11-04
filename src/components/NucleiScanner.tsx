@@ -15,7 +15,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { sendNotification } from "@/utils/notifications";
 
 const NUCLEI_TEMPLATES = [
   'cves',
@@ -107,8 +106,6 @@ const NucleiScanner = () => {
         title: "Success",
         description: "Nuclei scan started successfully",
       });
-
-      await sendNotification(session.user.id, "Your Nuclei scan has started successfully!");
       
       setUrl("");
       setSelectedDomain("");
