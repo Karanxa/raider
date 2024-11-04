@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as zip from "https://deno.land/x/zip@v1.2.3/mod.ts";
 import { Buffer } from "https://deno.land/std@0.177.0/node/buffer.ts";
-import { AndroidBinaryXmlParser } from "https://deno.land/x/android_binary_xml@v0.1.1/mod.ts";
+import { AndroidManifestParser } from "npm:android-manifest-parser";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,8 +54,8 @@ serve(async (req) => {
         if (entry.filename === "AndroidManifest.xml") {
           const content = await entry.getData();
           try {
-            const parser = new AndroidBinaryXmlParser(content);
-            manifestContent = await parser.parse();
+            const parser = new AndroidManifestParser();
+            manifestContent = await parser.parse(Buffer.from(content));
             console.log('Successfully parsed AndroidManifest.xml');
           } catch (e) {
             console.error('Error parsing manifest:', e);
@@ -74,16 +74,13 @@ serve(async (req) => {
 
       // Extract manifest details
       const manifest = manifestContent?.manifest || {};
-      const packageInfo = manifest?.package || {};
-      const application = manifest?.application || {};
+      const packageInfo = manifestContent?.package || {};
       
-      // Extract permissions
-      const permissions = manifest?.uses_permission?.map((p: any) => p?.['@android:name']) || [];
-      
-      // Extract components
-      const activities = application?.activity?.map((a: any) => a?.['@android:name']) || [];
-      const services = application?.service?.map((s: any) => s?.['@android:name']) || [];
-      const receivers = application?.receiver?.map((r: any) => r?.['@android:name']) || [];
+      // Extract permissions and components
+      const permissions = manifestContent?.permissions || [];
+      const activities = manifestContent?.activities || [];
+      const services = manifestContent?.services || [];
+      const receivers = manifestContent?.receivers || [];
 
       console.log('Updating database with extracted information...');
 
@@ -92,11 +89,11 @@ serve(async (req) => {
         .from('apk_analysis')
         .update({
           status: 'completed',
-          package_name: packageInfo?.['@package'] || manifest?.['@package'],
-          version_name: packageInfo?.['@android:versionName'] || manifest?.['@android:versionName'],
-          version_code: packageInfo?.['@android:versionCode'] || manifest?.['@android:versionCode'],
-          min_sdk_version: manifest?.['uses-sdk']?.['@android:minSdkVersion'],
-          target_sdk_version: manifest?.['uses-sdk']?.['@android:targetSdkVersion'],
+          package_name: manifestContent?.package?.name,
+          version_name: manifestContent?.versionName,
+          version_code: manifestContent?.versionCode,
+          min_sdk_version: manifestContent?.usesSdk?.minSdkVersion,
+          target_sdk_version: manifestContent?.usesSdk?.targetSdkVersion,
           permissions,
           activities,
           services,
