@@ -95,16 +95,11 @@ const LLMResultsDashboard = () => {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-xl sm:text-2xl font-bold">
-            {batchId ? "Batch Scan Results" : "LLM Scan Results"}
-          </h2>
-          {batchId && (
-            <div className="text-sm text-muted-foreground">
-              Batch ID: {batchId}
-            </div>
-          )}
-        </div>
+        {batchId && (
+          <div className="text-sm text-muted-foreground">
+            Batch ID: {batchId}
+          </div>
+        )}
         <FilterBar
           filterType={filterType}
           filterLabel={filterLabel}

@@ -5,7 +5,6 @@ import { Globe, Database as DatabaseIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -55,15 +54,6 @@ const PostmanDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Postman Collections</h2>
-          <p className="text-muted-foreground">
-            Discover public Postman API collections using porch-pirate
-          </p>
-        </div>
-      </div>
-
       <div className="flex gap-4 items-center">
         <Input
           placeholder="Enter organization name or keyword (e.g., stripe, payment)"
