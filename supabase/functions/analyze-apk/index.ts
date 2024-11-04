@@ -58,16 +58,37 @@ serve(async (req) => {
             const parsedManifest = await parser.parse(Buffer.from(content));
             console.log('Raw parsed manifest:', parsedManifest);
             
-            // Transform the manifest structure to match our needs
+            // Extract permissions with proper null checks
+            const permissions = parsedManifest.usesPermissions?.map(p => 
+              typeof p === 'string' ? p : p.name
+            ) || [];
+
+            // Extract components with proper null checks
+            const activities = parsedManifest.application?.activities?.map(a => 
+              typeof a === 'string' ? a : a.name
+            ) || [];
+
+            const services = parsedManifest.application?.services?.map(s => 
+              typeof s === 'string' ? s : s.name
+            ) || [];
+
+            const receivers = parsedManifest.application?.receivers?.map(r => 
+              typeof r === 'string' ? r : r.name
+            ) || [];
+
+            // Transform the manifest structure
             manifestContent = {
-              package: parsedManifest.package,
-              versionName: parsedManifest.versionName,
-              versionCode: parsedManifest.versionCode,
-              usesSdk: parsedManifest.usesSdk,
-              permissions: parsedManifest.usesPermissions?.map(p => p.name) || [],
-              activities: parsedManifest.application?.activities?.map(a => a.name) || [],
-              services: parsedManifest.application?.services?.map(s => s.name) || [],
-              receivers: parsedManifest.application?.receivers?.map(r => r.name) || []
+              package: parsedManifest.package || null,
+              versionName: parsedManifest.versionName || null,
+              versionCode: parsedManifest.versionCode || null,
+              usesSdk: {
+                minSdkVersion: parsedManifest.usesSdk?.minSdkVersion || null,
+                targetSdkVersion: parsedManifest.usesSdk?.targetSdkVersion || null
+              },
+              permissions,
+              activities,
+              services,
+              receivers
             };
             
             console.log('Transformed manifest:', JSON.stringify(manifestContent, null, 2));
