@@ -115,7 +115,7 @@ export const NotificationSettings = () => {
         <div className="space-y-2">
           <Label>Notification Type</Label>
           <Select
-            value={settings?.notification_type || 'email'}
+            value={settings?.notification_type || "email"}
             onValueChange={(value: 'email' | 'slack') => {
               setSettings(prev => ({
                 notification_type: value,
