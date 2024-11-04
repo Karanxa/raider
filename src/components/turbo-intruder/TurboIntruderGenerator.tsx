@@ -7,13 +7,13 @@ const TurboIntruderGenerator = () => {
   const [generatedScript, setGeneratedScript] = useState<string>("");
 
   const generateScript = (values: TurboIntruderFormValues) => {
-    const script = `def queueRequests(target, wordlists):
+    let script = `def queueRequests(target, wordlists):
     engine = RequestEngine(
         endpoint=target.endpoint,
         requestsPerConnection=${values.requestsPerConnection},
         maxRetriesPerRequest=${values.maxRetries},
         pipeline=False,
-        maxQueueSize=1,
+        maxQueueSize=${values.raceCondition ? values.raceThreads : 1},
         timeout=10
     )
     
@@ -24,7 +24,38 @@ const TurboIntruderGenerator = () => {
       : `custom_payloads = """${values.customPayload}""".splitlines()`
     }
     
-    ${values.engineMode === "clusterbomb" && values.variable2 
+    ${values.raceCondition ? `
+    # Race condition setup
+    ${values.raceMode === "sync" ? `
+    def race_attack(payload):
+        if ${values.preRaceDelay} > 0:
+            time.sleep(${values.preRaceDelay}/1000)
+        reqs = []
+        for i in range(${values.raceThreads}):
+            reqs.append(target.req)
+        engine.queue_all(reqs, payload)
+        time.sleep(${values.raceTiming}/1000)
+    ` : values.raceMode === "burst" ? `
+    def race_attack(payload):
+        if ${values.preRaceDelay} > 0:
+            time.sleep(${values.preRaceDelay}/1000)
+        reqs = []
+        for i in range(${values.raceThreads}):
+            reqs.append(target.req)
+        engine.queue_all_at_once(reqs, payload)
+    ` : `
+    def race_attack(payload):
+        if ${values.preRaceDelay} > 0:
+            time.sleep(${values.preRaceDelay}/1000)
+        for i in range(${values.raceThreads}):
+            engine.queue(target.req, payload)
+            time.sleep(${values.raceTiming}/1000)
+    `}
+    
+    for word in ${values.payloadType === "custom" ? "custom_payloads" : "wordlist"}:
+        race_attack(word.rstrip())
+    ` : 
+    values.engineMode === "clusterbomb" && values.variable2 
       ? `for word1 in ${values.payloadType === "custom" ? "custom_payloads" : "wordlist"}:
         for word2 in ${values.payloadType === "custom" ? "custom_payloads" : "wordlist"}:
             engine.queue(target.req, [word1.rstrip(), word2.rstrip()], learn=1)`
@@ -45,7 +76,6 @@ def handleResponse(req, interesting):
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-lg font-semibold">
         <Terminal className="h-5 w-5" />
-        {/* Removed the "Generate Turbo Intruder Script" text */}
       </div>
       
       <TurboIntruderForm onSubmit={generateScript} />
