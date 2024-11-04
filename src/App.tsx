@@ -36,8 +36,8 @@ const App: React.FC = () => {
             <QueryClientProvider client={queryClient}>
               <SessionContextProvider supabaseClient={supabase}>
                 <div className="min-h-screen bg-background transition-colors duration-300">
-                  <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-                    <div className="max-w-[1200px] mx-auto">
+                  <div className="w-full max-w-[100vw] mx-auto px-2 sm:px-6 lg:px-8 py-4">
+                    <div className="w-full mx-auto">
                       <div className="flex justify-end mb-4">
                         <Button variant="ghost" size="icon" asChild>
                           <Link to="/settings" className="hover:text-primary">
