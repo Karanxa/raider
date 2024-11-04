@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
@@ -21,6 +21,11 @@ const supabase = createClient(
   "https://facextdabmrqllgdzkms.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY2V4dGRhYm1ycWxsZ2R6a21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA2MjcyMjMsImV4cCI6MjA0NjIwMzIyM30.GouDaqFh1hacbylYiHDHtsjSwKYX6lCIl0chwX2y0gI"
 );
+
+const ConditionalChatSupport = () => {
+  const location = useLocation();
+  return location.pathname !== '/login' ? <ChatSupport /> : null;
+};
 
 const App: React.FC = () => {
   return (
@@ -70,7 +75,7 @@ const App: React.FC = () => {
                           }
                         />
                       </Routes>
-                      <ChatSupport />
+                      <ConditionalChatSupport />
                       <Toaster />
                       <SonnerToaster 
                         position="top-right"
