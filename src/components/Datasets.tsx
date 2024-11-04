@@ -4,33 +4,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
-import { ApiKeyInput } from "./datasets/ApiKeyInput";
 import { DatasetCard } from "./datasets/DatasetCard";
 import { useDatasetExport } from "./datasets/useDatasetExport";
 import { Dataset } from "./datasets/types";
 import { CategorySelect } from "./datasets/CategorySelect";
 import { toast } from "sonner";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 const Datasets = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [customKeyword, setCustomKeyword] = useState("");
   const [useCustomKeyword, setUseCustomKeyword] = useState(false);
   const { exportData } = useDatasetExport();
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('huggingface_api_key');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-  }, []);
+  const { getApiKey } = useApiKeys();
 
   const { data: datasets, isLoading, error, refetch } = useQuery({
-    queryKey: ["adversarial-datasets", apiKey, useCustomKeyword ? customKeyword : selectedCategory],
+    queryKey: ["adversarial-datasets", useCustomKeyword ? customKeyword : selectedCategory],
     queryFn: async () => {
+      const apiKey = getApiKey("huggingface");
       if (!apiKey) {
-        throw new Error("Please enter your HuggingFace API key");
+        throw new Error("Please add your HuggingFace API key in Settings");
       }
 
       const searchQuery = useCustomKeyword ? customKeyword : selectedCategory;
@@ -58,14 +52,9 @@ const Datasets = () => {
         throw new Error("Failed to fetch datasets. Please check your API key and try again.");
       }
     },
-    enabled: Boolean(apiKey && (useCustomKeyword ? customKeyword : selectedCategory)),
+    enabled: Boolean(useCustomKeyword ? customKeyword : selectedCategory),
     retry: false
   });
-
-  const handleApiKeyChange = (newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem('huggingface_api_key', newKey);
-  };
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -89,30 +78,22 @@ const Datasets = () => {
 
   return (
     <div className="space-y-6">
-      <ApiKeyInput 
-        apiKey={apiKey}
-        onApiKeyChange={handleApiKeyChange}
-        onRefresh={refetch}
+      <CategorySelect
+        value={selectedCategory}
+        onValueChange={handleCategoryChange}
+        customKeyword={customKeyword}
+        onCustomKeywordChange={setCustomKeyword}
+        useCustomKeyword={useCustomKeyword}
+        onUseCustomKeywordChange={(value) => {
+          setUseCustomKeyword(value);
+          if (value) {
+            setSelectedCategory("");
+          } else {
+            setCustomKeyword("");
+          }
+          setSearchTerm(""); // Reset search when switching modes
+        }}
       />
-
-      {apiKey && (
-        <CategorySelect
-          value={selectedCategory}
-          onValueChange={handleCategoryChange}
-          customKeyword={customKeyword}
-          onCustomKeywordChange={setCustomKeyword}
-          useCustomKeyword={useCustomKeyword}
-          onUseCustomKeywordChange={(value) => {
-            setUseCustomKeyword(value);
-            if (value) {
-              setSelectedCategory("");
-            } else {
-              setCustomKeyword("");
-            }
-            setSearchTerm(""); // Reset search when switching modes
-          }}
-        />
-      )}
 
       {(selectedCategory || (useCustomKeyword && customKeyword)) && (
         <>
