@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,70 +28,68 @@ const ConditionalChatSupport = () => {
 
 const App: React.FC = () => {
   return (
-    <React.StrictMode>
-      <BrowserRouter>
-        <ThemeProvider>
-          <TooltipProvider>
-            <QueryClientProvider client={queryClient}>
-              <SessionContextProvider supabaseClient={supabase}>
-                <div className="min-h-screen bg-background transition-colors duration-300">
-                  <div className="w-full max-w-[100vw] mx-auto px-2 sm:px-6 lg:px-8 py-4">
-                    <div className="w-full mx-auto">
-                      <div className="flex justify-end mb-4">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link to="/settings" className="hover:text-primary">
-                            <SettingsIcon className="h-5 w-5" />
-                          </Link>
-                        </Button>
-                      </div>
-                      <Routes>
-                        <Route 
-                          path="/login" 
-                          element={
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <Login />
-                            </div>
-                          } 
-                        />
-                        <Route
-                          path="/"
-                          element={
-                            <ProtectedRoute>
-                              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <Index />
-                              </div>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/settings"
-                          element={
-                            <ProtectedRoute>
-                              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <Settings />
-                              </div>
-                            </ProtectedRoute>
-                          }
-                        />
-                      </Routes>
-                      <ConditionalChatSupport />
-                      <Toaster />
-                      <SonnerToaster 
-                        position="top-right"
-                        expand={true}
-                        richColors
-                        closeButton
-                        className="sm:max-w-[420px] max-w-[85vw]"
-                      />
+    <BrowserRouter>
+      <ThemeProvider>
+        <TooltipProvider>
+          <QueryClientProvider client={queryClient}>
+            <SessionContextProvider supabaseClient={supabase}>
+              <div className="min-h-screen bg-background transition-colors duration-300">
+                <div className="w-full max-w-[100vw] mx-auto px-2 sm:px-6 lg:px-8 py-4">
+                  <div className="w-full mx-auto">
+                    <div className="flex justify-end mb-4">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to="/settings" className="hover:text-primary">
+                          <SettingsIcon className="h-5 w-5" />
+                        </Link>
+                      </Button>
                     </div>
+                    <Routes>
+                      <Route 
+                        path="/login" 
+                        element={
+                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <Login />
+                          </div>
+                        } 
+                      />
+                      <Route
+                        path="/"
+                        element={
+                          <ProtectedRoute>
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <Index />
+                            </div>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings"
+                        element={
+                          <ProtectedRoute>
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                              <Settings />
+                            </div>
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Routes>
+                    <ConditionalChatSupport />
+                    <Toaster />
+                    <SonnerToaster 
+                      position="top-right"
+                      expand={true}
+                      richColors
+                      closeButton
+                      className="sm:max-w-[420px] max-w-[85vw]"
+                    />
                   </div>
                 </div>
-              </SessionContextProvider>
-            </QueryClientProvider>
-          </TooltipProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </React.StrictMode>
+              </div>
+            </SessionContextProvider>
+          </QueryClientProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 };
 
