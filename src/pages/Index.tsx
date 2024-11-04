@@ -48,9 +48,10 @@ const Index = () => {
         
         <div className="mb-4 sm:mb-6">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6">
               <TabsTrigger value="web" className="text-sm sm:text-base py-2">Web Security</TabsTrigger>
               <TabsTrigger value="genai" className="text-sm sm:text-base py-2">GenAI Security</TabsTrigger>
+              <TabsTrigger value="mobile" className="text-sm sm:text-base py-2">Mobile Security</TabsTrigger>
               <TabsTrigger value="bounty" className="text-sm sm:text-base py-2">Bounty</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -121,6 +122,26 @@ const Index = () => {
               </TabsContent>
               <TabsContent value="prompt-augmentation">
                 <PromptAugmentation />
+              </TabsContent>
+            </div>
+          </Tabs>
+        ) : activeCategory === "mobile" ? (
+          <Tabs defaultValue="upload" className="w-full">
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <div className="flex p-1">
+                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
+                  <TabsTrigger value="upload">APK Upload</TabsTrigger>
+                  <TabsTrigger value="dashboard">APK Dashboard</TabsTrigger>
+                </TabsList>
+              </div>
+              <ScrollBar orientation="horizontal" className="h-2.5" />
+            </ScrollArea>
+            <div className="mt-4">
+              <TabsContent value="upload">
+                <ApkUpload />
+              </TabsContent>
+              <TabsContent value="dashboard">
+                <ApkDashboard />
               </TabsContent>
             </div>
           </Tabs>

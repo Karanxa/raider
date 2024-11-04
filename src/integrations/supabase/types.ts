@@ -9,6 +9,69 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      apk_analysis: {
+        Row: {
+          activities: Json | null
+          apk_name: string
+          created_at: string | null
+          error_message: string | null
+          extracted_path: string | null
+          file_path: string
+          id: string
+          manifest_content: Json | null
+          min_sdk_version: string | null
+          package_name: string | null
+          permissions: Json | null
+          receivers: Json | null
+          services: Json | null
+          status: string | null
+          target_sdk_version: string | null
+          user_id: string
+          version_code: string | null
+          version_name: string | null
+        }
+        Insert: {
+          activities?: Json | null
+          apk_name: string
+          created_at?: string | null
+          error_message?: string | null
+          extracted_path?: string | null
+          file_path: string
+          id?: string
+          manifest_content?: Json | null
+          min_sdk_version?: string | null
+          package_name?: string | null
+          permissions?: Json | null
+          receivers?: Json | null
+          services?: Json | null
+          status?: string | null
+          target_sdk_version?: string | null
+          user_id: string
+          version_code?: string | null
+          version_name?: string | null
+        }
+        Update: {
+          activities?: Json | null
+          apk_name?: string
+          created_at?: string | null
+          error_message?: string | null
+          extracted_path?: string | null
+          file_path?: string
+          id?: string
+          manifest_content?: Json | null
+          min_sdk_version?: string | null
+          package_name?: string | null
+          permissions?: Json | null
+          receivers?: Json | null
+          services?: Json | null
+          status?: string | null
+          target_sdk_version?: string | null
+          user_id?: string
+          version_code?: string | null
+          version_name?: string | null
+        }
+        Relationships: []
+      }
       bounty_reports: {
         Row: {
           created_at: string | null
