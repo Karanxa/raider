@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { generateAIReport } from "./report-generation/generateAIReport";
@@ -15,6 +16,7 @@ const BountyReporting = () => {
   const session = useSession();
   const [summary, setSummary] = useState("");
   const [severity, setSeverity] = useState("");
+  const [apiKey, setApiKey] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<any>(null);
 
@@ -30,9 +32,14 @@ const BountyReporting = () => {
       return;
     }
 
+    if (!apiKey) {
+      toast.error("Please provide your OpenAI API key");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const report = await generateAIReport(summary, severity);
+      const report = await generateAIReport(summary, severity, apiKey);
       
       const { error } = await supabase.from("bounty_reports").insert({
         user_id: session.user.id,
@@ -75,6 +82,23 @@ const BountyReporting = () => {
             />
             <p className="text-sm text-muted-foreground mt-2">
               Provide a comprehensive description. Our AI will help structure and enhance your report.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="apiKey" className="text-lg font-semibold">
+              OpenAI API Key *
+            </Label>
+            <Input
+              id="apiKey"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your OpenAI API key"
+              required
+            />
+            <p className="text-sm text-muted-foreground mt-2">
+              Your API key is used only for this request and is not stored
             </p>
           </div>
 

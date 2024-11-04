@@ -19,16 +19,16 @@ Format the response as a JSON object with these exact keys:
   "recommendations": "string"
 }`;
 
-export const generateAIReport = async (summary: string, severity: string) => {
+export const generateAIReport = async (summary: string, severity: string, apiKey: string) => {
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.VITE_OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { 
