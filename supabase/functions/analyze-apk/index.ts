@@ -1,14 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 import * as zip from "https://deno.land/x/zip@v1.2.5/mod.ts";
-import { Buffer } from "https://deno.land/std@0.168.0/node/buffer.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple manifest parser function
 const parseManifest = (buffer: Uint8Array) => {
   const content = new TextDecoder().decode(buffer);
   const manifest: any = {};
@@ -69,15 +67,24 @@ serve(async (req) => {
     );
 
     const { filePath } = await req.json();
+    if (!filePath) {
+      throw new Error('No file path provided');
+    }
+
     console.log('Starting APK analysis for:', filePath);
     
+    // Download the file with explicit error handling
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('apk_files')
       .download(filePath);
 
     if (downloadError) {
       console.error('Download error:', downloadError);
-      throw downloadError;
+      throw new Error(`Failed to download APK: ${downloadError.message}`);
+    }
+
+    if (!fileData) {
+      throw new Error('No file data received');
     }
 
     const arrayBuffer = await fileData.arrayBuffer();
@@ -142,11 +149,8 @@ serve(async (req) => {
         .eq('file_path', filePath);
 
       if (updateError) {
-        console.error('Update error:', updateError);
-        throw updateError;
+        throw new Error(`Failed to update analysis results: ${updateError.message}`);
       }
-
-      console.log('APK analysis completed successfully');
 
       return new Response(
         JSON.stringify({ success: true }),
@@ -161,8 +165,33 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('Error:', error);
+    
+    // Update the analysis record with error status
+    try {
+      const { filePath } = await req.json();
+      if (filePath) {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        );
+        
+        await supabase
+          .from('apk_analysis')
+          .update({
+            status: 'error',
+            error_message: error.message
+          })
+          .eq('file_path', filePath);
+      }
+    } catch (e) {
+      console.error('Failed to update error status:', e);
+    }
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Analysis failed', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

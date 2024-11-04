@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from '@supabase/auth-helpers-react';
 
@@ -13,7 +13,10 @@ const ApkUpload = () => {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const file = event.target.files?.[0];
-      if (!file || !session?.user?.id) return;
+      if (!file || !session?.user?.id) {
+        toast.error('Please select an APK file and ensure you are logged in');
+        return;
+      }
 
       if (!file.name.endsWith('.apk')) {
         toast.error('Please upload an APK file');
@@ -22,13 +25,24 @@ const ApkUpload = () => {
 
       setUploading(true);
       
-      // Upload to Supabase Storage
-      const fileName = `${Date.now()}_${file.name}`;
+      // Create a unique filename to prevent collisions
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const fileName = `${timestamp}_${randomString}_${file.name}`;
+
+      // Upload to Supabase Storage with explicit content type
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('apk_files')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          contentType: 'application/vnd.android.package-archive',
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
 
       // Create analysis record
       const { error: dbError } = await supabase
@@ -40,21 +54,30 @@ const ApkUpload = () => {
           status: 'pending'
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // If database insert fails, try to clean up the uploaded file
+        await supabase.storage.from('apk_files').remove([fileName]);
+        throw new Error(`Failed to create analysis record: ${dbError.message}`);
+      }
 
       // Trigger analysis function
       const { error: analysisError } = await supabase.functions.invoke('analyze-apk', {
         body: { filePath: fileName }
       });
 
-      if (analysisError) throw analysisError;
+      if (analysisError) {
+        throw new Error(`Failed to start analysis: ${analysisError.message}`);
+      }
 
       toast.success('APK uploaded successfully and analysis started');
     } catch (error) {
       console.error('Error:', error);
-      toast.error('Failed to upload APK file');
+      toast.error(error instanceof Error ? error.message : 'Failed to upload APK file');
     } finally {
       setUploading(false);
+      if (event.target) {
+        event.target.value = ''; // Reset file input
+      }
     }
   };
 
@@ -79,8 +102,17 @@ const ApkUpload = () => {
             disabled={uploading}
             className="w-full max-w-xs"
           >
-            <Upload className="mr-2 h-4 w-4" />
-            {uploading ? 'Uploading...' : 'Select APK File'}
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Select APK File
+              </>
+            )}
           </Button>
         </div>
       </div>
