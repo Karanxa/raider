@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Bug, AlertCircle } from "lucide-react";
+import PayloadObfuscator from "./PayloadObfuscator";
 
 const XSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPayload, setSelectedPayload] = useState<string>("");
 
   const { data: payloads, isLoading } = useQuery({
     queryKey: ['xss-payloads'],
@@ -47,6 +49,10 @@ const XSSPayloads = () => {
     
     return matchesCategory && matchesSearch;
   });
+
+  const handlePayloadSelect = (payload: string) => {
+    setSelectedPayload(payload);
+  };
 
   return (
     <div className="space-y-6">
@@ -101,11 +107,17 @@ const XSSPayloads = () => {
                     ))}
                   </div>
                 </div>
-                <div className="bg-muted p-2 rounded-md font-mono text-sm mb-2 overflow-x-auto">
+                <div 
+                  className="bg-muted p-2 rounded-md font-mono text-sm mb-2 overflow-x-auto cursor-pointer hover:bg-muted/80"
+                  onClick={() => handlePayloadSelect(payload.payload)}
+                >
                   {payload.payload}
                 </div>
                 {payload.description && (
                   <p className="text-sm text-muted-foreground">{payload.description}</p>
+                )}
+                {selectedPayload === payload.payload && (
+                  <PayloadObfuscator originalPayload={payload.payload} />
                 )}
               </Card>
             ))}
