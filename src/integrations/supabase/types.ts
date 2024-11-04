@@ -48,6 +48,36 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          jira_api_token: string | null
+          jira_domain: string | null
+          jira_email: string | null
+          slack_webhook_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          jira_api_token?: string | null
+          jira_domain?: string | null
+          jira_email?: string | null
+          slack_webhook_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          jira_api_token?: string | null
+          jira_domain?: string | null
+          jira_email?: string | null
+          slack_webhook_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       llm_scan_results: {
         Row: {
           batch_id: string | null

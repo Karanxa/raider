@@ -6,9 +6,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Download, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { FilterProps } from "./types";
+import { ExportDialog } from "./ExportDialog";
 
 export const FilterBar = ({ 
   filterType, 
@@ -16,8 +16,8 @@ export const FilterBar = ({
   onFilterTypeChange, 
   onFilterLabelChange, 
   uniqueLabels,
-  onExport 
-}: FilterProps & { onExport: () => void }) => {
+  results
+}: FilterProps & { results: any[] }) => {
   return (
     <div className="flex flex-col sm:flex-row gap-4">
       <div className="w-full sm:w-[200px]">
@@ -64,14 +64,9 @@ export const FilterBar = ({
           </Select>
         </div>
       )}
-      <Button 
-        onClick={onExport} 
-        className="sm:mt-auto flex items-center gap-2"
-        variant="secondary"
-      >
-        <Download className="w-4 h-4" />
-        Export Results
-      </Button>
+      <div className="sm:mt-auto">
+        <ExportDialog results={results} />
+      </div>
     </div>
   );
 };

@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import Papa from 'papaparse';
 import { FilterBar } from "./llm-results/FilterBar";
 import { ResultCard } from "./llm-results/ResultCard";
 import { ScanResult } from "./llm-results/types";
@@ -46,32 +45,6 @@ const LLMResultsDashboard = () => {
       return data as ScanResult[];
     },
   });
-
-  const handleExport = () => {
-    if (!results || results.length === 0) return;
-
-    const csvData = results.map(result => ({
-      prompt: result.prompt,
-      result: result.result,
-      provider: result.provider,
-      model: result.model || '',
-      scan_type: result.scan_type,
-      batch_name: result.batch_name || '',
-      label: result.label || '',
-      created_at: new Date(result.created_at).toLocaleString(),
-    }));
-
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `llm_scan_results_${new Date().toISOString()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Results exported successfully");
-  };
 
   const handleAddLabel = async (resultId: string, label: string) => {
     const { error } = await supabase
@@ -138,7 +111,7 @@ const LLMResultsDashboard = () => {
           onFilterTypeChange={setFilterType}
           onFilterLabelChange={setFilterLabel}
           uniqueLabels={uniqueLabels}
-          onExport={handleExport}
+          results={results}
         />
       </div>
 
