@@ -15,24 +15,75 @@ const BountyReporting = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateStructuredReport = (summary: string) => {
-    // Extract potential steps from summary by looking for numbered items or sequences
-    const stepsPattern = summary.match(/(?:\d+\.\s*[^.!?]+[.!?])|(?:first[^.!?]+[.!?])|(?:then[^.!?]+[.!?])|(?:finally[^.!?]+[.!?])/gi);
-    const steps = stepsPattern ? stepsPattern.map(step => step.trim()) : ["No specific steps provided"];
+    // Extract steps to reproduce
+    let steps: string[] = [];
+    
+    // Look for numbered steps (e.g., "1.", "2.", etc.)
+    const numberedSteps = summary.match(/\d+\.\s*[^.!?]+[.!?]/g);
+    if (numberedSteps) {
+      steps = numberedSteps.map(step => step.trim());
+    } else {
+      // Look for sequential markers (first, then, next, finally, etc.)
+      const sequentialMarkers = summary.match(/(?:first|then|next|after|finally)[^.!?]+[.!?]/gi);
+      if (sequentialMarkers) {
+        steps = sequentialMarkers.map(step => step.trim());
+      } else {
+        // If no explicit steps found, try to break into logical sequences
+        steps = summary
+          .split(/[.!?]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.toLowerCase().includes("impact") && !s.toLowerCase().includes("proof"))
+          .map((s, i) => `${i + 1}. ${s}`);
+      }
+    }
 
-    // Extract impact by looking for consequences or results
-    const impactPattern = summary.match(/(?:impact|result|cause|lead to|affect|could|would|might)[^.!?]+[.!?]/i);
-    const impact = impactPattern ? impactPattern[0].trim() : "Impact needs to be assessed";
+    // Extract impact - look for explicit impact statements first
+    let impact = "";
+    const impactPatterns = [
+      /impact[^.!?]+[.!?]/i,
+      /(?:results? in|leads? to|causes?|affects?|compromises?)[^.!?]+[.!?]/i,
+      /(?:could|would|might|can|may)[^.!?]+[.!?]/i
+    ];
 
-    // Look for any references or proof mentions
-    const referencesPattern = summary.match(/(?:reference|proof|evidence|log|screenshot)[^.!?]+[.!?]/i);
-    const references = referencesPattern ? [referencesPattern[0].trim()] : [];
+    for (const pattern of impactPatterns) {
+      const match = summary.match(pattern);
+      if (match) {
+        impact = match[0].trim();
+        break;
+      }
+    }
+
+    if (!impact) {
+      // If no explicit impact found, use AI to infer the impact
+      impact = "Potential security impact needs to be assessed based on the provided information.";
+    }
+
+    // Look for proof of concept or references
+    const proofPatterns = [
+      /(?:proof|evidence|log|screenshot|attachment|reference)[^.!?]+[.!?]/i,
+      /(?:demonstrated|shown|verified|confirmed)[^.!?]+[.!?]/i
+    ];
+
+    let proofOfConcept = "";
+    for (const pattern of proofPatterns) {
+      const match = summary.match(pattern);
+      if (match) {
+        proofOfConcept = match[0].trim();
+        break;
+      }
+    }
+
+    // Generate recommendations based on severity and impact
+    const recommendations = `Based on the identified ${severity || "potential"} severity vulnerability, 
+      we recommend conducting a thorough security assessment of the affected components and implementing 
+      appropriate security controls to mitigate the risk.`;
 
     return {
       description: summary,
       steps_to_reproduce: steps.join("\n"),
       impact,
-      proof_of_concept: references.join("\n"),
-      recommendations: "Based on the identified vulnerability, we recommend conducting a thorough security assessment and implementing appropriate fixes.",
+      proof_of_concept: proofOfConcept,
+      recommendations,
     };
   };
 
@@ -51,9 +102,11 @@ const BountyReporting = () => {
     setIsSubmitting(true);
     try {
       const structuredReport = generateStructuredReport(summary);
+      const title = summary.split(/[.!?]/)[0].trim(); // Use first sentence as title
+
       const { error } = await supabase.from("bounty_reports").insert({
         user_id: session.user.id,
-        title: summary.split(".")[0], // Use first sentence as title
+        title: title.length > 10 ? title : summary.substring(0, 100),
         description: structuredReport.description,
         steps_to_reproduce: structuredReport.steps_to_reproduce,
         impact: structuredReport.impact,
@@ -76,48 +129,55 @@ const BountyReporting = () => {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto p-4 sm:p-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="summary">Vulnerability Summary *</Label>
-          <Textarea
-            id="summary"
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder="Describe the vulnerability in detail, including how to reproduce it, its impact, and any supporting evidence."
-            className="min-h-[200px] resize-y"
-            required
-          />
-          <p className="text-sm text-muted-foreground">
-            Provide a comprehensive description of the vulnerability. Include steps to reproduce, potential impact, and any supporting material.
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-6">
+      <Card className="w-full max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="summary" className="text-lg font-semibold">
+              Vulnerability Summary *
+            </Label>
+            <Textarea
+              id="summary"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder="Describe the vulnerability in detail. Include any steps to reproduce, potential impact, and supporting evidence. Our system will automatically structure your report."
+              className="min-h-[200px] resize-y text-base p-4"
+              required
+            />
+            <p className="text-sm text-muted-foreground mt-2">
+              Provide a comprehensive description. The system will automatically extract steps, impact, and evidence from your summary.
+            </p>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="severity">Severity *</Label>
-          <Select value={severity} onValueChange={setSeverity} required>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Select severity level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="critical">Critical</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="info">Informational</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="severity" className="text-lg font-semibold">
+              Severity *
+            </Label>
+            <Select value={severity} onValueChange={setSeverity} required>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select severity level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="info">Informational</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Button 
-          type="submit" 
-          className="w-full sm:w-auto min-w-[200px]" 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Submitting..." : "Generate & Submit Report"}
-        </Button>
-      </form>
-    </Card>
+          <Button 
+            type="submit" 
+            className="w-full sm:w-auto min-w-[200px]" 
+            disabled={isSubmitting}
+            size="lg"
+          >
+            {isSubmitting ? "Generating Report..." : "Generate & Submit Report"}
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 };
 
