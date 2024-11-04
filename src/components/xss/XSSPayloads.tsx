@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Shield, Bug, AlertCircle } from "lucide-react";
 
 const XSSPayloads = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: payloads, isLoading } = useQuery({
@@ -39,7 +39,7 @@ const XSSPayloads = () => {
   });
 
   const filteredPayloads = payloads?.filter(payload => {
-    const matchesCategory = !selectedCategory || payload.category === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || payload.category === selectedCategory;
     const matchesSearch = !searchTerm || 
       payload.payload.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payload.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -57,7 +57,7 @@ const XSSPayloads = () => {
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {categories?.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
