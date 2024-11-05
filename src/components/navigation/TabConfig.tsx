@@ -1,4 +1,4 @@
-import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Mobile, Target } from "lucide-react";
+import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone } from "lucide-react";
 
 export interface TabItem {
   value: string;
@@ -43,7 +43,7 @@ export const categoryConfigs: CategoryConfig[] = [
   {
     value: "mobile",
     label: "Mobile Security",
-    icon: <Mobile className="h-4 w-4" />,
+    icon: <Smartphone className="h-4 w-4" />,
     tabs: [
       { value: "upload", label: "APK Upload", icon: <FileCode className="h-4 w-4" /> },
       { value: "dashboard", label: "APK Dashboard", icon: <Database className="h-4 w-4" /> },
