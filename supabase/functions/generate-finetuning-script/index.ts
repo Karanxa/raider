@@ -12,13 +12,52 @@ serve(async (req) => {
   }
 
   try {
-    const { modelName, datasetType, taskType, hyperparameters, apiKey } = await req.json();
+    const { 
+      modelName, 
+      datasetType, 
+      taskType, 
+      datasetDescription,
+      trainingExamples,
+      hyperparameters, 
+      apiKey 
+    } = await req.json();
 
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
 
-    const prompt = `Generate a Google Colab Python script for fine-tuning a ${modelName} model for ${taskType} using a ${datasetType} dataset. Include these hyperparameters: ${JSON.stringify(hyperparameters)}. The script should be complete and ready to run in Colab.`;
+    console.log('Generating fine-tuning script with params:', {
+      modelName,
+      datasetType,
+      taskType,
+      examplesCount: trainingExamples.split('\n').length,
+      hyperparameters
+    });
+
+    const systemPrompt = `You are an AI assistant that generates Python scripts for fine-tuning machine learning models in Google Colab. Generate clear, well-documented code with proper error handling and progress tracking.`;
+
+    const userPrompt = `Create a complete Google Colab Python script for fine-tuning a ${modelName} model for ${taskType} tasks using a ${datasetType} dataset.
+
+Dataset Description:
+${datasetDescription}
+
+Training Examples (first few):
+${trainingExamples.split('\n').slice(0, 5).join('\n')}
+...
+
+Hyperparameters:
+- Learning Rate: ${hyperparameters.learningRate}
+- Batch Size: ${hyperparameters.batchSize}
+- Epochs: ${hyperparameters.epochs}
+
+Requirements:
+1. Include all necessary imports and setup
+2. Add proper error handling and progress tracking
+3. Save checkpoints during training
+4. Include evaluation metrics
+5. Add comments explaining each major step
+6. Make it easy to upload custom datasets
+7. Include example usage at the end`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -29,12 +68,10 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4',
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are an AI assistant that generates Python scripts for fine-tuning machine learning models in Google Colab.' 
-          },
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
+        temperature: 0.7,
       }),
     });
 
@@ -46,6 +83,8 @@ serve(async (req) => {
 
     const data = await response.json();
     const script = data.choices[0].message.content;
+
+    console.log('Successfully generated fine-tuning script');
 
     return new Response(JSON.stringify({ script }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

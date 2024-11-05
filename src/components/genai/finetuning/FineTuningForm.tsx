@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useApiKeys } from "@/hooks/useApiKeys";
 
@@ -13,6 +14,8 @@ export const FineTuningForm = () => {
   const [modelName, setModelName] = useState("");
   const [datasetType, setDatasetType] = useState("");
   const [taskType, setTaskType] = useState("");
+  const [datasetDescription, setDatasetDescription] = useState("");
+  const [trainingExamples, setTrainingExamples] = useState("");
   const [hyperparameters, setHyperparameters] = useState({
     learningRate: "0.0001",
     batchSize: "32",
@@ -36,52 +39,48 @@ export const FineTuningForm = () => {
       return;
     }
 
+    if (!trainingExamples.trim()) {
+      toast.error("Please provide some training examples");
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      console.log("Generating fine-tuning script with:", {
-        modelName,
-        datasetType,
-        taskType,
-        hyperparameters
-      });
-
       const { data, error } = await supabase.functions.invoke('generate-finetuning-script', {
         body: {
           modelName,
           datasetType,
           taskType,
+          datasetDescription,
+          trainingExamples,
           hyperparameters,
           apiKey: openaiKey
         }
       });
 
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw error;
-      }
-
-      if (!data || !data.script) {
-        throw new Error("No script generated");
-      }
+      if (error) throw error;
+      if (!data?.script) throw new Error("No script generated");
 
       const { script } = data;
 
-      // Save the job to the database
       const { error: dbError } = await supabase.from('finetuning_jobs').insert({
         user_id: session.user.id,
         model_name: modelName,
         dataset_type: datasetType,
         task_type: taskType,
         hyperparameters,
-        colab_script: script
+        colab_script: script,
+        training_config: {
+          dataset_description: datasetDescription,
+          examples_count: trainingExamples.split('\n').length
+        }
       });
 
-      if (dbError) {
-        console.error("Database error:", dbError);
-        throw dbError;
-      }
+      if (dbError) throw dbError;
 
       toast.success("Fine-tuning script generated successfully!");
+      setDatasetDescription("");
+      setTrainingExamples("");
     } catch (error) {
       console.error("Error generating fine-tuning script:", error);
       toast.error("Failed to generate fine-tuning script: " + (error as Error).message);
@@ -95,15 +94,15 @@ export const FineTuningForm = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <div>
-            <Label>Model Name</Label>
+            <Label>Base Model</Label>
             <Select value={modelName} onValueChange={setModelName}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                <SelectItem value="gpt-4">GPT-4</SelectItem>
                 <SelectItem value="llama-2">LLaMA 2</SelectItem>
+                <SelectItem value="mistral">Mistral</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -137,46 +136,71 @@ export const FineTuningForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label>Learning Rate</Label>
-            <Input
-              type="number"
-              step="0.0001"
-              value={hyperparameters.learningRate}
-              onChange={(e) => setHyperparameters(prev => ({
-                ...prev,
-                learningRate: e.target.value
-              }))}
+            <Label>Dataset Description</Label>
+            <Textarea 
+              placeholder="Describe your dataset and what you want the model to learn..."
+              value={datasetDescription}
+              onChange={(e) => setDatasetDescription(e.target.value)}
+              className="min-h-[100px]"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Batch Size</Label>
-            <Input
-              type="number"
-              value={hyperparameters.batchSize}
-              onChange={(e) => setHyperparameters(prev => ({
-                ...prev,
-                batchSize: e.target.value
-              }))}
+            <Label>Training Examples</Label>
+            <Textarea 
+              placeholder="Enter your training examples, one per line..."
+              value={trainingExamples}
+              onChange={(e) => setTrainingExamples(e.target.value)}
+              className="min-h-[200px] font-mono"
             />
+            <p className="text-sm text-muted-foreground">
+              Examples count: {trainingExamples.split('\n').filter(line => line.trim()).length}
+            </p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Epochs</Label>
-            <Input
-              type="number"
-              value={hyperparameters.epochs}
-              onChange={(e) => setHyperparameters(prev => ({
-                ...prev,
-                epochs: e.target.value
-              }))}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Learning Rate</Label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={hyperparameters.learningRate}
+                onChange={(e) => setHyperparameters(prev => ({
+                  ...prev,
+                  learningRate: e.target.value
+                }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Batch Size</Label>
+              <Input
+                type="number"
+                value={hyperparameters.batchSize}
+                onChange={(e) => setHyperparameters(prev => ({
+                  ...prev,
+                  batchSize: e.target.value
+                }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Epochs</Label>
+              <Input
+                type="number"
+                value={hyperparameters.epochs}
+                onChange={(e) => setHyperparameters(prev => ({
+                  ...prev,
+                  epochs: e.target.value
+                }))}
+              />
+            </div>
           </div>
         </div>
 
         <Button 
           type="submit" 
-          disabled={isGenerating || !modelName || !datasetType || !taskType}
+          disabled={isGenerating || !modelName || !datasetType || !taskType || !trainingExamples.trim()}
           className="w-full"
         >
           {isGenerating ? "Generating Script..." : "Generate Fine-tuning Script"}
