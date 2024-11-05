@@ -1,43 +1,42 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useSession } from "@supabase/auth-helpers-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ExternalLink } from "lucide-react";
-import { useApiKeys } from "@/hooks/useApiKeys";
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { NotebookInterface } from "./NotebookInterface";
+import { storeGoogleTokens } from "@/utils/googleAuth";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export const PerformFineTuning = () => {
-  const [colabApiKey, setColabApiKey] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
   const session = useSession();
-  const { saveApiKey, getApiKey } = useApiKeys();
   const [script, setScript] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleGoogleSuccess = async (credentialResponse: any) => {
     if (!session?.user?.id) {
       toast.error("Please login to continue");
       return;
     }
 
-    if (!colabApiKey) {
-      toast.error("Please enter your Google Colab API key");
-      return;
-    }
-
     try {
-      // Store API key locally
-      saveApiKey('googlecolab', colabApiKey);
+      // Exchange the credential for tokens using our edge function
+      const { data, error } = await supabase.functions.invoke('exchange-google-token', {
+        body: { 
+          credential: credentialResponse.credential,
+          userId: session.user.id
+        }
+      });
+
+      if (error) throw error;
+
+      // Store the tokens
+      await storeGoogleTokens(data.tokens, session.user.id);
 
       // Initialize Colab session
       const { error: initError } = await supabase.functions.invoke('init-colab-session', {
         body: { 
-          apiKey: colabApiKey,
           userId: session.user.id
         }
       });
@@ -58,21 +57,18 @@ export const PerformFineTuning = () => {
 
       setScript(jobData.colab_script);
       setIsConfigured(true);
-      toast.success("Google Colab session initialized successfully");
+      toast.success("Google Colab connected successfully");
     } catch (error) {
       console.error('Error:', error);
-      toast.error("Failed to initialize Google Colab session");
+      toast.error("Failed to connect to Google Colab");
     }
   };
 
   const handleExecutionComplete = async () => {
     try {
-      // Update job status
       const { error: updateError } = await supabase
         .from('finetuning_jobs')
-        .update({ 
-          status: 'running'
-        })
+        .update({ status: 'running' })
         .eq('user_id', session?.user?.id)
         .eq('status', 'generated');
 
@@ -83,49 +79,36 @@ export const PerformFineTuning = () => {
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-6">
-          {!isConfigured ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="colabApiKey">Google Colab API Key</Label>
-                <Input
-                  id="colabApiKey"
-                  type="password"
-                  placeholder="Enter your Google Colab API key"
-                  value={colabApiKey}
-                  onChange={(e) => setColabApiKey(e.target.value)}
-                />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-6">
+            {!isConfigured ? (
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-semibold">Connect to Google Colab</h3>
                 <p className="text-sm text-muted-foreground">
-                  You can find your API key in the Google Colab settings.{" "}
-                  <a 
-                    href="https://colab.research.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline inline-flex items-center"
-                  >
-                    Open Colab Settings <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
+                  Sign in with your Google account to use Colab's GPU resources
                 </p>
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => toast.error("Google Sign In Failed")}
+                  />
+                </div>
               </div>
-
-              <Button type="submit" className="w-full">
-                Configure & Initialize Session
-              </Button>
-            </form>
-          ) : script ? (
-            <NotebookInterface 
-              script={script}
-              onExecutionComplete={handleExecutionComplete}
-            />
-          ) : (
-            <p className="text-center text-muted-foreground">
-              No script found. Please generate a fine-tuning script first.
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            ) : script ? (
+              <NotebookInterface 
+                script={script}
+                onExecutionComplete={handleExecutionComplete}
+              />
+            ) : (
+              <p className="text-center text-muted-foreground">
+                No script found. Please generate a fine-tuning script first.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </GoogleOAuthProvider>
   );
 };
