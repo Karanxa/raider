@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { DatasetInput } from "./DatasetInput";
 import { ModelSelect } from "./ModelSelect";
+import { DatasetInput } from "./DatasetInput";
 import { HyperParameters } from "./HyperParameters";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { ScriptDisplay } from "./ScriptDisplay";
@@ -186,10 +186,6 @@ export const FineTuningForm = () => {
           />
 
           <DatasetInput
-            datasetType={datasetType}
-            setDatasetType={setDatasetType}
-            taskType={taskType}
-            setTaskType={setTaskType}
             onFileSelect={setSelectedFile}
           />
 

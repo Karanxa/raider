@@ -638,6 +638,33 @@ export type Database = {
         }
         Relationships: []
       }
+      xss_payload_sources: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_fetched: string | null
+          source_name: string
+          source_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_fetched?: string | null
+          source_name: string
+          source_url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_fetched?: string | null
+          source_name?: string
+          source_url?: string
+        }
+        Relationships: []
+      }
       xss_payloads: {
         Row: {
           category: string

@@ -1,3 +1,12 @@
 project_id = "facextdabmrqllgdzkms"
 
 [global.env]
+OPENAI_API_KEY = "OPENAI_API_KEY"
+
+[[edge_functions]]
+name = "fetch-xss-payloads"
+verify_jwt = false
+
+[[edge_functions]]
+name = "analyze-document"
+verify_jwt = false
