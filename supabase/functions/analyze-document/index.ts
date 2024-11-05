@@ -39,9 +39,19 @@ serve(async (req) => {
       throw new Error('File and API key are required');
     }
 
-    // Read file content as text
-    const fileContent = await file.text();
-    console.log('File content length:', fileContent.length);
+    // Read file content as text with proper error handling
+    let fileContent;
+    try {
+      fileContent = await file.text();
+      console.log('Processing file:', file.name, 'Size:', file.size, 'Type:', file.type);
+    } catch (readError) {
+      console.error('Error reading file:', readError);
+      throw new Error('Failed to read file content');
+    }
+
+    if (!fileContent) {
+      throw new Error('File content is empty');
+    }
 
     // Send to OpenAI for analysis
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
