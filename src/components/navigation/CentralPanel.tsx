@@ -4,13 +4,18 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { categoryConfigs } from "./TabConfig";
 import { cn } from "@/lib/utils";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { ResponsiveTabs } from "./ResponsiveTabs";
 
 export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { category, tab } = useParams();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    category || null
+  );
 
   const handleCategorySelect = (categoryValue: string) => {
     setSelectedCategory(categoryValue);
@@ -19,6 +24,8 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
   };
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const currentCategory = categoryConfigs.find(c => c.value === selectedCategory);
 
   if (!selectedCategory && location.pathname === '/') {
     return (
@@ -101,7 +108,31 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-6">{children}</div>
+      <div className="flex-1 overflow-auto p-6">
+        {currentCategory && !tab && (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold">{currentCategory.label}</h1>
+            <p className="text-muted-foreground">
+              Select a tool from the sidebar to get started with {currentCategory.label.toLowerCase()} security testing.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {currentCategory.tabs.map((tab) => (
+                <Card
+                  key={tab.value}
+                  className="p-4 cursor-pointer hover:shadow-md transition-all"
+                  onClick={() => navigate(`/${currentCategory.value}/${tab.value}`)}
+                >
+                  <div className="flex items-center gap-2">
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+        {tab && children}
+      </div>
     </div>
   );
 };
