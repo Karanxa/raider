@@ -42,6 +42,7 @@ serve(async (req) => {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
+      console.error('Token exchange error:', errorData);
       throw new Error(`Failed to exchange token: ${errorData}`);
     }
 

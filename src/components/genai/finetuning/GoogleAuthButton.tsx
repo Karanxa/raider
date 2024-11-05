@@ -52,6 +52,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
         flow="auth-code"
         ux_mode="redirect"
         redirect_uri="https://preview--raider.gptengineer.run/"
+        scope="https://www.googleapis.com/auth/drive.file"
       />
     </div>
   );
