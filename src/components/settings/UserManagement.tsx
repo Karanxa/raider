@@ -28,15 +28,25 @@ export const UserManagement = () => {
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const { data: users } = await supabase
+      // First get all user roles
+      const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select(`
-          id,
-          user_id,
-          role,
-          email:profiles!user_roles_user_id_fkey(email)
-        `);
-      return users;
+        .select('id, user_id, role');
+      
+      if (rolesError) throw rolesError;
+
+      // Then get the corresponding profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email');
+      
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      return userRoles.map(userRole => ({
+        ...userRole,
+        email: profiles.find(profile => profile.id === userRole.user_id)?.email
+      }));
     },
   });
 
@@ -112,7 +122,7 @@ export const UserManagement = () => {
         <TableBody>
           {users?.map((user) => (
             <TableRow key={user.id}>
-              <TableCell>{user.email?.[0]?.email}</TableCell>
+              <TableCell>{user.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>
                 <Select
