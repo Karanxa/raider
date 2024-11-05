@@ -34,9 +34,7 @@ export const UserManagement = () => {
           id,
           user_id,
           role,
-          user:user_id (
-            email
-          )
+          email:profiles!user_roles_user_id_fkey(email)
         `);
       return users;
     },
@@ -114,7 +112,7 @@ export const UserManagement = () => {
         <TableBody>
           {users?.map((user) => (
             <TableRow key={user.id}>
-              <TableCell>{user.user?.email}</TableCell>
+              <TableCell>{user.email?.[0]?.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>
                 <Select
