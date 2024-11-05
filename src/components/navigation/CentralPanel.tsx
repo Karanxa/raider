@@ -34,26 +34,35 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
 
   if (!selectedCategory && location.pathname === '/') {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {categoryConfigs.map((category) => (
-          <Card
-            key={category.value}
-            className="p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-            onClick={() => handleCategorySelect(category.value)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-primary/10">
-                {category.icon}
+      <div className="space-y-8 p-4">
+        <div className="space-y-4">
+          <h1 className="text-4xl font-bold tracking-tight">Welcome to Raider</h1>
+          <p className="text-lg text-muted-foreground">
+            Your comprehensive security testing platform. Choose a category below to get started with various security testing tools.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categoryConfigs.map((category) => (
+            <Card
+              key={category.value}
+              className="p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              onClick={() => handleCategorySelect(category.value)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  {category.icon}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{category.label}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {category.tabs.length} tools available
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold">{category.label}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {category.tabs.length} tools available
-                </p>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
