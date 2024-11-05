@@ -1,4 +1,4 @@
-import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone } from "lucide-react";
+import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings } from "lucide-react";
 
 export interface TabItem {
   value: string;
@@ -38,6 +38,7 @@ export const categoryConfigs: CategoryConfig[] = [
       { value: "llm-results", label: "LLM Results", icon: <Database className="h-4 w-4" /> },
       { value: "datasets", label: "Datasets", icon: <Database className="h-4 w-4" /> },
       { value: "prompt-augmentation", label: "Prompt Augmentation", icon: <FileCode className="h-4 w-4" /> },
+      { value: "finetuning", label: "Fine-tuning", icon: <Settings className="h-4 w-4" /> },
     ],
   },
   {

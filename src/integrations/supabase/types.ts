@@ -210,6 +210,48 @@ export type Database = {
         }
         Relationships: []
       }
+      finetuning_jobs: {
+        Row: {
+          colab_script: string | null
+          created_at: string | null
+          dataset_type: string
+          hyperparameters: Json | null
+          id: string
+          model_name: string
+          status: string | null
+          task_type: string
+          training_config: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          colab_script?: string | null
+          created_at?: string | null
+          dataset_type: string
+          hyperparameters?: Json | null
+          id?: string
+          model_name: string
+          status?: string | null
+          task_type: string
+          training_config?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          colab_script?: string | null
+          created_at?: string | null
+          dataset_type?: string
+          hyperparameters?: Json | null
+          id?: string
+          model_name?: string
+          status?: string | null
+          task_type?: string
+          training_config?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       integration_settings: {
         Row: {
           created_at: string | null
