@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { XSS_CATEGORIES } from "./constants";
 import { XSSPayloadList } from "./XSSPayloadList";
+import { supabase } from "@/integrations/supabase/client";
 
 const StaticXSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
