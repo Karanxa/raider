@@ -1,5 +1,5 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,8 +39,9 @@ serve(async (req) => {
       throw new Error('File and API key are required');
     }
 
-    // Read file content
+    // Read file content as text
     const fileContent = await file.text();
+    console.log('File content length:', fileContent.length);
 
     // Send to OpenAI for analysis
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -50,23 +51,22 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4-mini',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { 
             role: 'user', 
-            content: [
-              { type: 'text', text: 'Analyze this document for security threats:' },
-              { type: 'text', text: fileContent }
-            ]
+            content: `Analyze this document for security threats:\n\n${fileContent}`
           }
         ],
-        max_tokens: 4000,
+        temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
+      console.error('OpenAI API error:', error);
       throw new Error(error.error?.message || 'OpenAI API error');
     }
 
@@ -78,9 +78,14 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in analyze-document function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Failed to process document analysis request'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
