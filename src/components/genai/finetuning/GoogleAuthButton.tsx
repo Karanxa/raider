@@ -36,17 +36,6 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       // Store the tokens
       await storeGoogleTokens(data.tokens, session.user.id);
 
-      // Initialize Colab session
-      const { error: initError } = await supabase.functions.invoke('init-colab-session', {
-        body: { userId: session.user.id }
-      });
-
-      if (initError) {
-        console.error('Init error:', initError);
-        toast.error("Failed to initialize Colab session");
-        return;
-      }
-
       toast.success("Successfully connected to Google Colab");
       onAuthSuccess();
     } catch (error) {
@@ -60,7 +49,8 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       <GoogleLogin
         onSuccess={handleGoogleSuccess}
         onError={() => toast.error("Google Sign In Failed")}
-        useOneTap
+        useOneTap={false}
+        flow="implicit"
       />
     </div>
   );
