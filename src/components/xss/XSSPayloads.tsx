@@ -44,13 +44,21 @@ const XSSPayloads = () => {
   });
 
   const filteredPayloads = payloads?.filter(payload => {
-    const matchesCategory = selectedCategory === "all" || payload.category.toLowerCase() === selectedCategory.toLowerCase();
-    const matchesSearch = !searchTerm || 
+    if (selectedCategory === "all") {
+      return searchTerm 
+        ? payload.payload.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          payload.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          payload.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        : true;
+    }
+    
+    const categoryMatches = payload.category.toLowerCase() === selectedCategory.toLowerCase();
+    const searchMatches = !searchTerm || 
       payload.payload.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payload.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payload.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    return matchesCategory && matchesSearch;
+    return categoryMatches && searchMatches;
   });
 
   const handlePayloadSelect = (payload: string) => {
@@ -75,10 +83,8 @@ const XSSPayloads = () => {
     setSelectedPayloads(prev => {
       const allSelected = categoryPayloads.every(p => prev.includes(p));
       if (allSelected) {
-        // Deselect all in category
         return prev.filter(p => !categoryPayloads.includes(p));
       } else {
-        // Select all in category
         const newSelection = [...prev];
         categoryPayloads.forEach(p => {
           if (!newSelection.includes(p)) {
@@ -94,14 +100,20 @@ const XSSPayloads = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="w-full sm:w-1/3">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <Select 
+            value={selectedCategory} 
+            onValueChange={(value) => {
+              setSelectedCategory(value);
+              setSearchTerm("");
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories?.map((category) => (
-                <SelectItem key={category} value={category}>
+                <SelectItem key={category} value={category.toLowerCase()}>
                   {category}
                 </SelectItem>
               ))}
