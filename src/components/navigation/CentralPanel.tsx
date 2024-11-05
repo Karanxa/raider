@@ -41,7 +41,7 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
             Your comprehensive security testing platform. Choose a category below to get started with various security testing tools.
           </p>
           <p className="text-sm text-muted-foreground">
-            Developed by Karan Arora - A comprehensive E2E security testing solution.
+            Developed by <a href="https://x.com/Itskaranxa" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Karan Arora</a>
           </p>
         </div>
         
