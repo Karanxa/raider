@@ -39,8 +39,8 @@ serve(async (req) => {
       throw new Error('File and API key are required');
     }
 
-    // Simple direct text extraction
-    const fileContent = await file.text();
+    // Read file content as text with explicit encoding
+    const fileContent = await new Response(file).text();
     
     console.log('Processing file:', {
       name: file.name,
