@@ -103,12 +103,12 @@ export const PerformFineTuning = () => {
               <p className="text-sm text-muted-foreground">
                 You can find your API key in the Google Colab settings.{" "}
                 <a 
-                  href="https://colab.research.google.com/notebooks/settings"
+                  href="https://colab.research.google.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center"
                 >
-                  Open Settings <ExternalLink className="h-3 w-3 ml-1" />
+                  Open Colab <ExternalLink className="h-3 w-3 ml-1" />
                 </a>
               </p>
             </div>
