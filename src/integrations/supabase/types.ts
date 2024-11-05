@@ -255,29 +255,35 @@ export type Database = {
       integration_settings: {
         Row: {
           created_at: string | null
+          google_oauth_tokens: Json | null
           id: string
           jira_api_token: string | null
           jira_domain: string | null
           jira_email: string | null
           slack_webhook_url: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          google_oauth_tokens?: Json | null
           id?: string
           jira_api_token?: string | null
           jira_domain?: string | null
           jira_email?: string | null
           slack_webhook_url?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          google_oauth_tokens?: Json | null
           id?: string
           jira_api_token?: string | null
           jira_domain?: string | null
           jira_email?: string | null
           slack_webhook_url?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
