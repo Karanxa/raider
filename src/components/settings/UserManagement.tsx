@@ -32,8 +32,11 @@ export const UserManagement = () => {
         .from('user_roles')
         .select(`
           id,
+          user_id,
           role,
-          profiles:profiles(email)
+          user:user_id (
+            email
+          )
         `);
       return users;
     },
@@ -41,8 +44,23 @@ export const UserManagement = () => {
 
   const handleInviteUser = async () => {
     try {
-      const { error } = await supabase.auth.admin.inviteUserByEmail(newUserEmail);
-      if (error) throw error;
+      const response = await fetch(
+        'https://facextdabmrqllgdzkms.supabase.co/functions/v1/invite-user',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({ email: newUserEmail }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to invite user');
+      }
+
       toast.success("User invited successfully");
       setNewUserEmail("");
       refetch();
@@ -96,12 +114,12 @@ export const UserManagement = () => {
         <TableBody>
           {users?.map((user) => (
             <TableRow key={user.id}>
-              <TableCell>{user.profiles?.email}</TableCell>
+              <TableCell>{user.user?.email}</TableCell>
               <TableCell>{user.role}</TableCell>
               <TableCell>
                 <Select
                   defaultValue={user.role}
-                  onValueChange={(value: UserRole) => updateUserRole(user.id, value)}
+                  onValueChange={(value: UserRole) => updateUserRole(user.user_id, value)}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue />
