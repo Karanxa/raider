@@ -69,11 +69,18 @@ export const FineTuningForm = () => {
     setIsGenerating(true);
 
     try {
-      // Read file content for example data
-      const fileContent = await selectedFile.text();
-      const exampleData = fileContent.split('\n').slice(0, 5).join('\n'); // First 5 lines as example
+      // Read file content as text
+      const fileContent = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(selectedFile);
+      });
 
-      // Generate training script using OpenAI
+      // Take first 5 lines as example data
+      const exampleData = fileContent.split('\n').slice(0, 5).join('\n');
+
+      // Generate training script using Edge Function
       const { error: fnError, data } = await supabase.functions.invoke('generate-finetuning-script', {
         body: {
           modelName: selectedModel,
