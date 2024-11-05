@@ -50,26 +50,27 @@ export const FineTuningForm = () => {
     setIsGenerating(true);
 
     try {
-      // Create a unique filename
-      const timestamp = Date.now();
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${timestamp}_${selectedFile.name}`;
-      const filePath = `${session.user.id}/${fileName}`;
+      // Read file content for example data
+      const fileContent = await selectedFile.text();
+      const exampleData = fileContent.split('\n').slice(0, 5).join('\n'); // First 5 lines as example
 
-      // Upload file to Supabase Storage with explicit content type
-      const { error: uploadError } = await supabase.storage
-        .from('finetuning_datasets')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          contentType: selectedFile.type || 'application/octet-stream',
-          upsert: false
-        });
+      // Generate training script using OpenAI
+      const { error: fnError, data } = await supabase.functions.invoke('generate-finetuning-script', {
+        body: {
+          modelName: selectedModel,
+          datasetType,
+          taskType,
+          datasetDescription: `File type: ${selectedFile.type}, Size: ${selectedFile.size} bytes`,
+          trainingExamples: exampleData,
+          hyperparameters
+        }
+      });
 
-      if (uploadError) {
-        throw new Error(`Failed to upload dataset: ${uploadError.message}`);
+      if (fnError) {
+        throw new Error(`Failed to generate script: ${fnError.message}`);
       }
 
-      // Create fine-tuning job record
+      // Store the generated script
       const { error: dbError } = await supabase
         .from('finetuning_jobs')
         .insert({
@@ -78,34 +79,15 @@ export const FineTuningForm = () => {
           dataset_type: datasetType,
           task_type: taskType,
           hyperparameters,
-          training_config: {
-            dataset_path: filePath
-          },
-          status: 'pending'
+          colab_script: data.script,
+          status: 'generated'
         });
 
       if (dbError) {
-        // If database insert fails, try to clean up the uploaded file
-        await supabase.storage.from('finetuning_datasets').remove([filePath]);
-        throw new Error(`Failed to create job: ${dbError.message}`);
+        throw new Error(`Failed to save script: ${dbError.message}`);
       }
 
-      // Generate training script
-      const { error: fnError } = await supabase.functions.invoke('generate-finetuning-script', {
-        body: {
-          modelName: selectedModel,
-          datasetType,
-          taskType,
-          hyperparameters,
-          datasetPath: filePath
-        }
-      });
-
-      if (fnError) {
-        throw new Error(`Failed to generate script: ${fnError.message}`);
-      }
-
-      toast.success("Fine-tuning job created successfully");
+      toast.success("Fine-tuning script generated successfully");
       
       // Reset form
       setSelectedModel("");
@@ -115,7 +97,7 @@ export const FineTuningForm = () => {
       
     } catch (error) {
       console.error('Error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create fine-tuning job');
+      toast.error(error instanceof Error ? error.message : 'Failed to generate fine-tuning script');
     } finally {
       setIsGenerating(false);
     }
@@ -151,10 +133,10 @@ export const FineTuningForm = () => {
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Training Script...
+                Generating Script...
               </>
             ) : (
-              'Create Fine-tuning Job'
+              'Generate Fine-tuning Script'
             )}
           </Button>
         </form>
