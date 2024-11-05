@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
 import { XSS_CATEGORIES } from "./constants";
 import { XSSPayloadList } from "./XSSPayloadList";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const StaticXSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -41,6 +41,27 @@ const StaticXSSPayloads = () => {
     return categoryMatches && searchMatches;
   });
 
+  const handleSelectAllInCategory = () => {
+    const categoryPayloads = filteredPayloads?.map(p => p.payload) || [];
+    const allSelected = categoryPayloads.every(p => selectedPayloads.includes(p));
+
+    if (allSelected) {
+      // Deselect all in current category
+      setSelectedPayloads(prev => prev.filter(p => !categoryPayloads.includes(p)));
+    } else {
+      // Select all in current category
+      setSelectedPayloads(prev => {
+        const newSelection = [...prev];
+        categoryPayloads.forEach(p => {
+          if (!newSelection.includes(p)) {
+            newSelection.push(p);
+          }
+        });
+        return newSelection;
+      });
+    }
+  };
+
   return (
     <Card className="p-6">
       <div className="space-y-6">
@@ -49,7 +70,10 @@ const StaticXSSPayloads = () => {
             <Label>Category</Label>
             <Select 
               value={selectedCategory} 
-              onValueChange={setSelectedCategory}
+              onValueChange={(value) => {
+                setSelectedCategory(value);
+                setSearchTerm("");
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
@@ -78,19 +102,35 @@ const StaticXSSPayloads = () => {
           <div className="text-center py-8">Loading payloads...</div>
         ) : (
           <ScrollArea className="h-[600px]">
-            <XSSPayloadList
-              payloads={filteredPayloads}
-              selectedPayload={selectedPayload}
-              selectedPayloads={selectedPayloads}
-              onPayloadSelect={(payload) => setSelectedPayload(payload === selectedPayload ? "" : payload)}
-              onCheckboxChange={(payload) => {
-                setSelectedPayloads(prev => 
-                  prev.includes(payload) 
-                    ? prev.filter(p => p !== payload)
-                    : [...prev, payload]
-                );
-              }}
-            />
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 p-4 bg-muted rounded-lg">
+                <Checkbox
+                  id="select-all"
+                  checked={filteredPayloads?.length > 0 && filteredPayloads?.every(p => selectedPayloads.includes(p.payload))}
+                  onCheckedChange={handleSelectAllInCategory}
+                />
+                <label
+                  htmlFor="select-all"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Select all {selectedCategory === "all" ? "payloads" : `in ${selectedCategory}`}
+                </label>
+              </div>
+
+              <XSSPayloadList
+                payloads={filteredPayloads}
+                selectedPayload={selectedPayload}
+                selectedPayloads={selectedPayloads}
+                onPayloadSelect={(payload) => setSelectedPayload(payload === selectedPayload ? "" : payload)}
+                onCheckboxChange={(payload) => {
+                  setSelectedPayloads(prev => 
+                    prev.includes(payload) 
+                      ? prev.filter(p => p !== payload)
+                      : [...prev, payload]
+                  );
+                }}
+              />
+            </div>
           </ScrollArea>
         )}
       </div>
