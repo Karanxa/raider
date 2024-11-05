@@ -23,6 +23,7 @@ import ApkDashboard from "@/components/mobile/ApkDashboard";
 import { categoryConfigs } from "@/components/navigation/TabConfig";
 import { ResponsiveTabs } from "@/components/navigation/ResponsiveTabs";
 import { useRBAC } from "@/hooks/useRBAC";
+import { FineTuning } from "@/components/genai/finetuning/FineTuning";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -39,11 +40,9 @@ const Index = () => {
     }
   };
 
-  // Filter categories based on user permissions
   const allowedCategories = categoryConfigs.filter(cat => hasAccess(cat.value));
   const currentCategory = allowedCategories.find(cat => cat.value === activeCategory);
 
-  // If the current category is not allowed, set the first allowed category as active
   useEffect(() => {
     if (!rbacLoading && allowedCategories.length > 0 && !hasAccess(activeCategory)) {
       setActiveCategory(allowedCategories[0].value);
@@ -56,7 +55,6 @@ const Index = () => {
 
   const renderContent = (value: string) => {
     switch (value) {
-      // Web Security
       case "recon": return <DomainRecon />;
       case "recon-results": return <ReconResults />;
       case "nuclei": return <NucleiScanner />;
@@ -65,16 +63,14 @@ const Index = () => {
       case "turbo-intruder": return <TurboIntruderGenerator />;
       case "ip-intelligence": return <IPIntelligence />;
       case "xss": return <XSSPayloads />;
-      // GenAI Security
       case "llm": return <LLMScanner />;
       case "llm-results": return <LLMResultsDashboard />;
       case "datasets": return <Datasets />;
       case "prompt-augmentation": return <PromptAugmentation />;
-      // Mobile Security
       case "upload": return <ApkUpload />;
       case "dashboard": return <ApkDashboard />;
-      // Bounty
       case "reporting": return <BountyReporting />;
+      case "finetuning": return <FineTuning />;
       default: return null;
     }
   };
