@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import DomainRecon from "@/components/DomainRecon";
 import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
@@ -21,6 +20,8 @@ import { toast } from "sonner";
 import IPIntelligence from "@/components/ip-intelligence/IPIntelligence";
 import ApkUpload from "@/components/mobile/ApkUpload";
 import ApkDashboard from "@/components/mobile/ApkDashboard";
+import { categoryConfigs } from "@/components/navigation/TabConfig";
+import { ResponsiveTabs } from "@/components/navigation/ResponsiveTabs";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -33,6 +34,33 @@ const Index = () => {
       navigate("/login");
     } catch (error) {
       toast.error("Error logging out");
+    }
+  };
+
+  const currentCategory = categoryConfigs.find(cat => cat.value === activeCategory);
+
+  const renderContent = (value: string) => {
+    switch (value) {
+      // Web Security
+      case "recon": return <DomainRecon />;
+      case "recon-results": return <ReconResults />;
+      case "nuclei": return <NucleiScanner />;
+      case "nuclei-results": return <NucleiResults domain={null} />;
+      case "postman": return <PostmanDashboard />;
+      case "turbo-intruder": return <TurboIntruderGenerator />;
+      case "ip-intelligence": return <IPIntelligence />;
+      case "xss": return <XSSPayloads />;
+      // GenAI Security
+      case "llm": return <LLMScanner />;
+      case "llm-results": return <LLMResultsDashboard />;
+      case "datasets": return <Datasets />;
+      case "prompt-augmentation": return <PromptAugmentation />;
+      // Mobile Security
+      case "upload": return <ApkUpload />;
+      case "dashboard": return <ApkDashboard />;
+      // Bounty
+      case "reporting": return <BountyReporting />;
+      default: return null;
     }
   };
 
@@ -51,121 +79,31 @@ const Index = () => {
         
         <div className="mb-4 sm:mb-6">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6">
-              <TabsTrigger value="web" className="text-sm sm:text-base py-2">Web Security</TabsTrigger>
-              <TabsTrigger value="genai" className="text-sm sm:text-base py-2">GenAI Security</TabsTrigger>
-              <TabsTrigger value="mobile" className="text-sm sm:text-base py-2">Mobile Security</TabsTrigger>
-              <TabsTrigger value="bounty" className="text-sm sm:text-base py-2">Bounty</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6">
+              {categoryConfigs.map((category) => (
+                <TabsTrigger 
+                  key={category.value} 
+                  value={category.value} 
+                  className="text-sm sm:text-base py-2 gap-2"
+                >
+                  {category.icon}
+                  <span className="hidden sm:inline">{category.label}</span>
+                  <span className="sm:hidden">{category.label.split(' ')[0]}</span>
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         </div>
 
-        {activeCategory === "web" ? (
-          <Tabs defaultValue="recon" className="w-full">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-              <div className="flex p-1">
-                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
-                  <TabsTrigger value="recon">Domain Recon</TabsTrigger>
-                  <TabsTrigger value="recon-results">Recon Results</TabsTrigger>
-                  <TabsTrigger value="nuclei">Nuclei Scanner</TabsTrigger>
-                  <TabsTrigger value="nuclei-results">Nuclei Results</TabsTrigger>
-                  <TabsTrigger value="postman">Postman Collections</TabsTrigger>
-                  <TabsTrigger value="turbo-intruder">Turbo Intruder</TabsTrigger>
-                  <TabsTrigger value="ip-intelligence">IP Intelligence</TabsTrigger>
-                  <TabsTrigger value="xss">XSS Payloads</TabsTrigger>
-                </TabsList>
-              </div>
-              <ScrollBar orientation="horizontal" className="h-2.5" />
-            </ScrollArea>
+        {currentCategory && (
+          <Tabs defaultValue={currentCategory.tabs[0].value} className="w-full">
+            <ResponsiveTabs tabs={currentCategory.tabs} />
             <div className="mt-4">
-              <TabsContent value="recon">
-                <DomainRecon />
-              </TabsContent>
-              <TabsContent value="recon-results">
-                <ReconResults />
-              </TabsContent>
-              <TabsContent value="nuclei">
-                <NucleiScanner />
-              </TabsContent>
-              <TabsContent value="nuclei-results">
-                <NucleiResults domain={null} />
-              </TabsContent>
-              <TabsContent value="postman">
-                <PostmanDashboard />
-              </TabsContent>
-              <TabsContent value="turbo-intruder">
-                <TurboIntruderGenerator />
-              </TabsContent>
-              <TabsContent value="ip-intelligence">
-                <IPIntelligence />
-              </TabsContent>
-              <TabsContent value="xss">
-                <XSSPayloads />
-              </TabsContent>
-            </div>
-          </Tabs>
-        ) : activeCategory === "genai" ? (
-          <Tabs defaultValue="llm" className="w-full">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-              <div className="flex p-1">
-                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
-                  <TabsTrigger value="llm">LLM Scanner</TabsTrigger>
-                  <TabsTrigger value="llm-results">LLM Results</TabsTrigger>
-                  <TabsTrigger value="datasets">Datasets</TabsTrigger>
-                  <TabsTrigger value="prompt-augmentation">Prompt Augmentation</TabsTrigger>
-                </TabsList>
-              </div>
-              <ScrollBar orientation="horizontal" className="h-2.5" />
-            </ScrollArea>
-            <div className="mt-4">
-              <TabsContent value="llm">
-                <LLMScanner />
-              </TabsContent>
-              <TabsContent value="llm-results">
-                <LLMResultsDashboard />
-              </TabsContent>
-              <TabsContent value="datasets">
-                <Datasets />
-              </TabsContent>
-              <TabsContent value="prompt-augmentation">
-                <PromptAugmentation />
-              </TabsContent>
-            </div>
-          </Tabs>
-        ) : activeCategory === "mobile" ? (
-          <Tabs defaultValue="upload" className="w-full">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-              <div className="flex p-1">
-                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
-                  <TabsTrigger value="upload">APK Upload</TabsTrigger>
-                  <TabsTrigger value="dashboard">APK Dashboard</TabsTrigger>
-                </TabsList>
-              </div>
-              <ScrollBar orientation="horizontal" className="h-2.5" />
-            </ScrollArea>
-            <div className="mt-4">
-              <TabsContent value="upload">
-                <ApkUpload />
-              </TabsContent>
-              <TabsContent value="dashboard">
-                <ApkDashboard />
-              </TabsContent>
-            </div>
-          </Tabs>
-        ) : (
-          <Tabs defaultValue="reporting" className="w-full">
-            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-              <div className="flex p-1">
-                <TabsList className="inline-flex h-9 items-center justify-center rounded-none bg-transparent p-0">
-                  <TabsTrigger value="reporting">Reporting</TabsTrigger>
-                </TabsList>
-              </div>
-              <ScrollBar orientation="horizontal" className="h-2.5" />
-            </ScrollArea>
-            <div className="mt-4">
-              <TabsContent value="reporting">
-                <BountyReporting />
-              </TabsContent>
+              {currentCategory.tabs.map((tab) => (
+                <TabsContent key={tab.value} value={tab.value}>
+                  {renderContent(tab.value)}
+                </TabsContent>
+              ))}
             </div>
           </Tabs>
         )}
