@@ -12,8 +12,8 @@ interface PayloadObfuscatorProps {
 }
 
 const PayloadObfuscator = ({ originalPayload }: PayloadObfuscatorProps) => {
-  const [encodingType, setEncodingType] = useState<EncodingType>('base64');
-  const [obfuscatedPayload, setObfuscatedPayload] = useState<string>('');
+  const [encodingType, setEncodingType] = useState<EncodingType>("base64");
+  const [obfuscatedPayload, setObfuscatedPayload] = useState<string>("");
 
   const handleEncode = () => {
     const encoded = encodePayload(originalPayload, encodingType);

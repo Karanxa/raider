@@ -6,8 +6,16 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import PayloadObfuscator from "./PayloadObfuscator";
 
+interface XSSPayload {
+  id: string;
+  category: string;
+  payload: string;
+  description?: string;
+  tags?: string[];
+}
+
 interface XSSPayloadListProps {
-  payloads: any[];
+  payloads: XSSPayload[];
   selectedPayload: string;
   selectedPayloads: string[];
   onPayloadSelect: (payload: string) => void;
@@ -31,6 +39,17 @@ export const XSSPayloadList = ({
     }
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'waf bypass':
+        return <Shield className="h-5 w-5 text-yellow-500" />;
+      case 'csp bypass':
+        return <Bug className="h-5 w-5 text-red-500" />;
+      default:
+        return <AlertCircle className="h-5 w-5 text-blue-500" />;
+    }
+  };
+
   return (
     <div className="grid gap-4">
       {payloads?.map((payload) => (
@@ -42,17 +61,11 @@ export const XSSPayloadList = ({
                 onCheckedChange={() => onCheckboxChange(payload.payload)}
                 className="mt-1"
               />
-              {payload.category === 'WAF Bypass' ? (
-                <Shield className="h-5 w-5 text-yellow-500" />
-              ) : payload.category === 'CSP Bypass' ? (
-                <Bug className="h-5 w-5 text-red-500" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-blue-500" />
-              )}
+              {getCategoryIcon(payload.category)}
               <span className="font-medium">{payload.category}</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {payload.tags?.map((tag: string) => (
+              {payload.tags?.map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}
                 </Badge>

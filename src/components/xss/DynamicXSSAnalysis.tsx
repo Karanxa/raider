@@ -73,47 +73,44 @@ const DynamicXSSAnalysis = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Programming Language</Label>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Code Snippet</Label>
-            <Textarea
-              placeholder="Paste your code snippet here..."
-              value={codeSnippet}
-              onChange={(e) => setCodeSnippet(e.target.value)}
-              className="min-h-[200px] font-mono"
-            />
-          </div>
-
-          <Button 
-            onClick={analyzeCodeSnippet}
-            disabled={isAnalyzing}
-          >
-            {isAnalyzing ? "Analyzing..." : "Analyze for XSS Vulnerabilities"}
-          </Button>
+    <Card className="p-6">
+      <div className="space-y-6">
+        <div>
+          <Label>Programming Language</Label>
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select language" />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </Card>
 
-      {analysis && (
-        <Card className="p-6">
-          <div className="space-y-4">
+        <div>
+          <Label>Code Snippet</Label>
+          <Textarea
+            placeholder="Paste your code snippet here..."
+            value={codeSnippet}
+            onChange={(e) => setCodeSnippet(e.target.value)}
+            className="min-h-[200px] font-mono"
+          />
+        </div>
+
+        <Button 
+          onClick={analyzeCodeSnippet}
+          disabled={isAnalyzing}
+          className="w-full"
+        >
+          {isAnalyzing ? "Analyzing..." : "Analyze for XSS Vulnerabilities"}
+        </Button>
+
+        {analysis && (
+          <div className="space-y-6 mt-6">
             <div>
               <h3 className="font-semibold mb-2">Analysis</h3>
               <p className="text-muted-foreground whitespace-pre-wrap">{analysis.analysis}</p>
@@ -139,9 +136,9 @@ const DynamicXSSAnalysis = () => {
               </div>
             </div>
           </div>
-        </Card>
-      )}
-    </div>
+        )}
+      </div>
+    </Card>
   );
 };
 
