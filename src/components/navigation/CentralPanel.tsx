@@ -40,6 +40,9 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
           <p className="text-lg text-muted-foreground">
             Your comprehensive security testing platform. Choose a category below to get started with various security testing tools.
           </p>
+          <p className="text-sm text-muted-foreground">
+            Developed by Karan Arora - A comprehensive E2E security testing solution.
+          </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
