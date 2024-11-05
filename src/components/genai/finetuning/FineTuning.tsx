@@ -1,5 +1,6 @@
-import { FineTuningForm } from "./FineTuningForm";
-import { FineTuningJobs } from "./FineTuningJobs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GenerateScript } from "./generate-script/GenerateScript";
+import { PerformFineTuning } from "./perform-finetuning/PerformFineTuning";
 
 export const FineTuning = () => {
   return (
@@ -11,8 +12,20 @@ export const FineTuning = () => {
         </p>
       </div>
       
-      <FineTuningForm />
-      <FineTuningJobs />
+      <Tabs defaultValue="generate" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="generate">Generate Script</TabsTrigger>
+          <TabsTrigger value="perform">Perform Fine-tuning</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="generate" className="mt-6">
+          <GenerateScript />
+        </TabsContent>
+
+        <TabsContent value="perform" className="mt-6">
+          <PerformFineTuning />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
