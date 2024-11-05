@@ -17,6 +17,13 @@ serve(async (req) => {
       throw new Error('Credential and userId are required');
     }
 
+    const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+    const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('Google OAuth credentials not configured');
+    }
+
     // Exchange the credential for tokens using Google's OAuth2 token endpoint
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -25,15 +32,17 @@ serve(async (req) => {
       },
       body: new URLSearchParams({
         code: credential,
-        client_id: Deno.env.get('GOOGLE_CLIENT_ID') || '',
-        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
-        redirect_uri: Deno.env.get('GOOGLE_REDIRECT_URI') || '',
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: `${req.headers.get('origin')}/oauth/callback`,
         grant_type: 'authorization_code',
       }),
     });
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange token');
+      const errorData = await tokenResponse.text();
+      console.error('Token exchange failed:', errorData);
+      throw new Error('Failed to exchange token with Google');
     }
 
     const tokens = await tokenResponse.json();

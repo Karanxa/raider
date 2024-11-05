@@ -22,7 +22,16 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Token exchange error:', error);
+        toast.error("Failed to authenticate with Google");
+        return;
+      }
+
+      if (!data?.tokens) {
+        toast.error("No tokens received from Google");
+        return;
+      }
 
       // Store the tokens
       await storeGoogleTokens(data.tokens, session.user.id);
@@ -32,7 +41,11 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
         body: { userId: session.user.id }
       });
 
-      if (initError) throw initError;
+      if (initError) {
+        console.error('Init error:', initError);
+        toast.error("Failed to initialize Colab session");
+        return;
+      }
 
       toast.success("Successfully connected to Google Colab");
       onAuthSuccess();
@@ -47,6 +60,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       <GoogleLogin
         onSuccess={handleGoogleSuccess}
         onError={() => toast.error("Google Sign In Failed")}
+        useOneTap
       />
     </div>
   );
