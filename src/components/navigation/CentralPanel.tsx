@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home } from "lucide-react";
 import { categoryConfigs } from "./TabConfig";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
@@ -21,6 +21,11 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
     setSelectedCategory(categoryValue);
     setIsSidebarOpen(true);
     navigate(`/${categoryValue}`);
+  };
+
+  const handleHomeClick = () => {
+    setSelectedCategory(null);
+    navigate('/');
   };
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -62,9 +67,15 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
         )}
       >
         <div className="flex items-center justify-between p-4">
-          <h2 className={cn("font-semibold", !isSidebarOpen && "hidden")}>
-            Navigation
-          </h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleHomeClick}
+            className="gap-2"
+          >
+            <Home className="h-4 w-4" />
+            {isSidebarOpen && <span>Home</span>}
+          </Button>
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
             {isSidebarOpen ? (
               <ChevronLeft className="h-4 w-4" />
