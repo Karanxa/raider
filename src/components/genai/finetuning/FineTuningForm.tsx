@@ -50,15 +50,18 @@ export const FineTuningForm = () => {
     setIsGenerating(true);
 
     try {
-      // Upload file to Supabase Storage
+      // Create a unique filename
       const timestamp = Date.now();
       const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${session.user.id}/${timestamp}_${selectedFile.name}`;
+      const fileName = `${timestamp}_${selectedFile.name}`;
+      const filePath = `${session.user.id}/${fileName}`;
 
+      // Upload file to Supabase Storage with explicit content type
       const { error: uploadError } = await supabase.storage
         .from('finetuning_datasets')
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
+          contentType: selectedFile.type || 'application/octet-stream',
           upsert: false
         });
 
@@ -82,6 +85,8 @@ export const FineTuningForm = () => {
         });
 
       if (dbError) {
+        // If database insert fails, try to clean up the uploaded file
+        await supabase.storage.from('finetuning_datasets').remove([filePath]);
         throw new Error(`Failed to create job: ${dbError.message}`);
       }
 
@@ -101,6 +106,13 @@ export const FineTuningForm = () => {
       }
 
       toast.success("Fine-tuning job created successfully");
+      
+      // Reset form
+      setSelectedModel("");
+      setDatasetType("");
+      setTaskType("");
+      setSelectedFile(null);
+      
     } catch (error) {
       console.error('Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create fine-tuning job');
