@@ -1,20 +1,18 @@
 import { useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useApiKeys } from "@/hooks/useApiKeys";
-import { ModelSelect } from "./ModelSelect";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { DatasetInput } from "./DatasetInput";
+import { ModelSelect } from "./ModelSelect";
 import { HyperParameters } from "./HyperParameters";
 
 export const FineTuningForm = () => {
-  const [modelName, setModelName] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
   const [datasetType, setDatasetType] = useState("");
   const [taskType, setTaskType] = useState("");
-  const [datasetDescription, setDatasetDescription] = useState("");
-  const [trainingExamples, setTrainingExamples] = useState("");
   const [hyperparameters, setHyperparameters] = useState({
     learningRate: "0.0001",
     batchSize: "32",
@@ -29,105 +27,126 @@ export const FineTuningForm = () => {
     dropoutRate: "0.1"
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const session = useSession();
-  const { getApiKey } = useApiKeys();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!session?.user?.id) {
-      toast.error("Please login to use this feature");
+      toast.error("Please login to continue");
       return;
     }
 
-    const openaiKey = getApiKey("openai");
-    if (!openaiKey) {
-      toast.error("Please add your OpenAI API key in Settings");
+    if (!selectedModel || !datasetType || !taskType) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    if (!trainingExamples.trim()) {
-      toast.error("Please provide some training examples");
+    if (!selectedFile) {
+      toast.error("Please upload a dataset file");
       return;
     }
 
     setIsGenerating(true);
+
     try {
-      const { data, error } = await supabase.functions.invoke('generate-finetuning-script', {
+      // Upload file to Supabase Storage
+      const timestamp = Date.now();
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `${session.user.id}/${timestamp}_${selectedFile.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('finetuning_datasets')
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload dataset: ${uploadError.message}`);
+      }
+
+      // Create fine-tuning job record
+      const { error: dbError } = await supabase
+        .from('finetuning_jobs')
+        .insert({
+          user_id: session.user.id,
+          model_name: selectedModel,
+          dataset_type: datasetType,
+          task_type: taskType,
+          hyperparameters,
+          training_config: {
+            dataset_path: filePath
+          },
+          status: 'pending'
+        });
+
+      if (dbError) {
+        throw new Error(`Failed to create job: ${dbError.message}`);
+      }
+
+      // Generate training script
+      const { error: fnError } = await supabase.functions.invoke('generate-finetuning-script', {
         body: {
-          modelName,
+          modelName: selectedModel,
           datasetType,
           taskType,
-          datasetDescription,
-          trainingExamples,
           hyperparameters,
-          apiKey: openaiKey
+          datasetPath: filePath
         }
       });
 
-      if (error) throw error;
-      if (!data?.script) throw new Error("No script generated");
+      if (fnError) {
+        throw new Error(`Failed to generate script: ${fnError.message}`);
+      }
 
-      const { script } = data;
-
-      const { error: dbError } = await supabase.from('finetuning_jobs').insert({
-        user_id: session.user.id,
-        model_name: modelName,
-        dataset_type: datasetType,
-        task_type: taskType,
-        hyperparameters,
-        colab_script: script,
-        training_config: {
-          dataset_description: datasetDescription,
-          examples_count: trainingExamples.split('\n').length
-        }
-      });
-
-      if (dbError) throw dbError;
-
-      toast.success("Fine-tuning script generated successfully!");
-      setDatasetDescription("");
-      setTrainingExamples("");
+      toast.success("Fine-tuning job created successfully");
     } catch (error) {
-      console.error("Error generating fine-tuning script:", error);
-      toast.error("Failed to generate fine-tuning script: " + (error as Error).message);
+      console.error('Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create fine-tuning job');
     } finally {
       setIsGenerating(false);
     }
   };
 
   return (
-    <Card className="p-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <ModelSelect
-          modelName={modelName}
-          setModelName={setModelName}
-          datasetType={datasetType}
-          setDatasetType={setDatasetType}
-          taskType={taskType}
-          setTaskType={setTaskType}
-        />
+    <Card>
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <ModelSelect
+            value={selectedModel}
+            onChange={setSelectedModel}
+          />
 
-        <DatasetInput
-          datasetDescription={datasetDescription}
-          setDatasetDescription={setDatasetDescription}
-          trainingExamples={trainingExamples}
-          setTrainingExamples={setTrainingExamples}
-        />
+          <DatasetInput
+            datasetType={datasetType}
+            setDatasetType={setDatasetType}
+            taskType={taskType}
+            setTaskType={setTaskType}
+            onFileSelect={setSelectedFile}
+          />
 
-        <HyperParameters
-          hyperparameters={hyperparameters}
-          setHyperparameters={setHyperparameters}
-        />
+          <HyperParameters
+            hyperparameters={hyperparameters}
+            setHyperparameters={setHyperparameters}
+          />
 
-        <Button 
-          type="submit" 
-          disabled={isGenerating || !modelName || !datasetType || !taskType || !trainingExamples.trim()}
-          className="w-full"
-        >
-          {isGenerating ? "Generating Script..." : "Generate Fine-tuning Script"}
-        </Button>
-      </form>
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Training Script...
+              </>
+            ) : (
+              'Create Fine-tuning Job'
+            )}
+          </Button>
+        </form>
+      </CardContent>
     </Card>
   );
 };
