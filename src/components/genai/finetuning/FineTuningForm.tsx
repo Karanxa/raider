@@ -9,7 +9,6 @@ import { DatasetInput } from "./DatasetInput";
 import { ModelSelect } from "./ModelSelect";
 import { HyperParameters } from "./HyperParameters";
 import { useApiKeys } from "@/hooks/useApiKeys";
-import { ScriptDisplay } from "./ScriptDisplay";
 
 export const FineTuningForm = () => {
   const [selectedModel, setSelectedModel] = useState("");
@@ -17,10 +16,8 @@ export const FineTuningForm = () => {
   const [taskType, setTaskType] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [generatedScript, setGeneratedScript] = useState<string | null>(null);
   const session = useSession();
   const { getApiKey } = useApiKeys();
-  
   const [hyperparameters, setHyperparameters] = useState({
     // Basic parameters
     learningRate: "0.0001",
@@ -113,7 +110,6 @@ export const FineTuningForm = () => {
     }
 
     setIsGenerating(true);
-    setGeneratedScript(null);
 
     try {
       // Read file content as text
@@ -161,8 +157,13 @@ export const FineTuningForm = () => {
         throw new Error(`Failed to save script: ${dbError.message}`);
       }
 
-      setGeneratedScript(data.script);
       toast.success("Fine-tuning script generated successfully");
+      
+      // Reset form
+      setSelectedModel("");
+      setDatasetType("");
+      setTaskType("");
+      setSelectedFile(null);
       
     } catch (error) {
       console.error('Error:', error);
@@ -213,8 +214,6 @@ export const FineTuningForm = () => {
             )}
           </Button>
         </form>
-
-        <ScriptDisplay script={generatedScript} />
       </CardContent>
     </Card>
   );
