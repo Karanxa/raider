@@ -167,21 +167,19 @@ const XSSPayloads = () => {
       ) : (
         <ScrollArea className="h-[600px]">
           <div className="grid gap-4">
-            {selectedCategory !== "all" && (
-              <div className="flex items-center space-x-2 p-4 bg-muted rounded-lg">
-                <Checkbox
-                  id={`select-all-${selectedCategory}`}
-                  checked={filteredPayloads?.every(p => selectedPayloads.includes(p.payload))}
-                  onCheckedChange={() => handleSelectAllInCategory(selectedCategory)}
-                />
-                <label
-                  htmlFor={`select-all-${selectedCategory}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Select all in {selectedCategory}
-                </label>
-              </div>
-            )}
+            <div className="flex items-center space-x-2 p-4 bg-muted rounded-lg">
+              <Checkbox
+                id="select-all"
+                checked={filteredPayloads?.every(p => selectedPayloads.includes(p.payload))}
+                onCheckedChange={() => handleSelectAllInCategory(selectedCategory)}
+              />
+              <label
+                htmlFor="select-all"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Select all {selectedCategory === "all" ? "payloads" : `in ${selectedCategory}`}
+              </label>
+            </div>
             
             <XSSPayloadList
               payloads={filteredPayloads}
