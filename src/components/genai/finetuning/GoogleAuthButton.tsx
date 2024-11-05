@@ -4,12 +4,19 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { storeGoogleTokens } from "@/utils/googleAuth";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
   const session = useSession();
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     if (!session?.user?.id) {
       toast.error("Please login to continue");
+      return;
+    }
+
+    if (!GOOGLE_CLIENT_ID) {
+      toast.error("Google Client ID is not configured");
       return;
     }
 
@@ -44,6 +51,14 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
     }
   };
 
+  if (!GOOGLE_CLIENT_ID) {
+    return (
+      <div className="text-center text-red-500">
+        Google Client ID is not configured. Please check your environment variables.
+      </div>
+    );
+  }
+
   return (
     <div className="flex justify-center mb-6">
       <GoogleLogin
@@ -53,6 +68,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
         ux_mode="redirect"
         redirect_uri="https://preview--raider.gptengineer.run/"
         scope="https://www.googleapis.com/auth/drive.file"
+        clientId={GOOGLE_CLIENT_ID}
       />
     </div>
   );
