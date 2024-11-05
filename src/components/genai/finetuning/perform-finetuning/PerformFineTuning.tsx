@@ -8,12 +8,14 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink } from "lucide-react";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { NotebookInterface } from "./NotebookInterface";
 
 export const PerformFineTuning = () => {
-  const [colabUrl, setColabUrl] = useState("");
+  const [colabApiKey, setColabApiKey] = useState("");
+  const [isConfigured, setIsConfigured] = useState(false);
   const session = useSession();
   const { saveApiKey, getApiKey } = useApiKeys();
-  const [colabApiKey, setColabApiKey] = useState(getApiKey('googlecolab') || "");
+  const [script, setScript] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,50 +34,51 @@ export const PerformFineTuning = () => {
       // Store API key locally
       saveApiKey('googlecolab', colabApiKey);
 
+      // Initialize Colab session
+      const { error: initError } = await supabase.functions.invoke('init-colab-session', {
+        body: { 
+          apiKey: colabApiKey,
+          userId: session.user.id
+        }
+      });
+
+      if (initError) throw initError;
+
+      // Get the latest generated script
+      const { data: jobData, error: fetchError } = await supabase
+        .from('finetuning_jobs')
+        .select('colab_script')
+        .eq('user_id', session.user.id)
+        .eq('status', 'generated')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      setScript(jobData.colab_script);
+      setIsConfigured(true);
+      toast.success("Google Colab session initialized successfully");
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error("Failed to initialize Google Colab session");
+    }
+  };
+
+  const handleExecutionComplete = async () => {
+    try {
       // Update job status
       const { error: updateError } = await supabase
         .from('finetuning_jobs')
         .update({ 
-          status: 'configuring'
+          status: 'running'
         })
-        .eq('user_id', session.user.id)
+        .eq('user_id', session?.user?.id)
         .eq('status', 'generated');
 
       if (updateError) throw updateError;
-
-      // Open Google Colab in a new tab
-      window.open('https://colab.research.google.com', '_blank');
-
-      toast.success("Google Colab opened in a new tab. Please paste your generated script there.");
     } catch (error) {
-      console.error('Error:', error);
-      toast.error("Failed to configure Google Colab access");
-    }
-  };
-
-  const handleStartFineTuning = async () => {
-    if (!colabUrl) {
-      toast.error("Please enter the Colab notebook URL");
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('finetuning_jobs')
-        .update({ 
-          status: 'running',
-          colab_url: colabUrl 
-        })
-        .eq('user_id', session.user.id)
-        .eq('status', 'configuring');
-
-      if (error) throw error;
-
-      toast.success("Fine-tuning job started successfully");
-      setColabUrl("");
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error("Failed to start fine-tuning job");
+      console.error('Error updating job status:', error);
     }
   };
 
@@ -83,63 +86,44 @@ export const PerformFineTuning = () => {
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-6">
-          <div>
-            <h3 className="text-xl font-semibold mb-2">Perform Fine-tuning</h3>
-            <p className="text-muted-foreground">
-              Configure Google Colab access and start your fine-tuning job.
+          {!isConfigured ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="colabApiKey">Google Colab API Key</Label>
+                <Input
+                  id="colabApiKey"
+                  type="password"
+                  placeholder="Enter your Google Colab API key"
+                  value={colabApiKey}
+                  onChange={(e) => setColabApiKey(e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  You can find your API key in the Google Colab settings.{" "}
+                  <a 
+                    href="https://colab.research.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center"
+                  >
+                    Open Colab Settings <ExternalLink className="h-3 w-3 ml-1" />
+                  </a>
+                </p>
+              </div>
+
+              <Button type="submit" className="w-full">
+                Configure & Initialize Session
+              </Button>
+            </form>
+          ) : script ? (
+            <NotebookInterface 
+              script={script}
+              onExecutionComplete={handleExecutionComplete}
+            />
+          ) : (
+            <p className="text-center text-muted-foreground">
+              No script found. Please generate a fine-tuning script first.
             </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="colabApiKey">Google Colab API Key</Label>
-              <Input
-                id="colabApiKey"
-                type="password"
-                placeholder="Enter your Google Colab API key"
-                value={colabApiKey}
-                onChange={(e) => setColabApiKey(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                You can find your API key in the Google Colab settings.{" "}
-                <a 
-                  href="https://colab.research.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex items-center"
-                >
-                  Open Colab <ExternalLink className="h-3 w-3 ml-1" />
-                </a>
-              </p>
-            </div>
-
-            <Button type="submit" className="w-full">
-              Configure & Open Colab
-            </Button>
-          </form>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="colabUrl">Google Colab Notebook URL</Label>
-              <Input
-                id="colabUrl"
-                placeholder="https://colab.research.google.com/..."
-                value={colabUrl}
-                onChange={(e) => setColabUrl(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                After pasting and saving your script in Google Colab, paste the notebook URL here.
-              </p>
-            </div>
-
-            <Button 
-              onClick={handleStartFineTuning} 
-              className="w-full"
-              variant="secondary"
-            >
-              Start Fine-tuning
-            </Button>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>
