@@ -1,7 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Bug, AlertCircle } from "lucide-react";
+import { Shield, Bug, AlertCircle, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import PayloadObfuscator from "./PayloadObfuscator";
 
 interface XSSPayloadListProps {
@@ -19,6 +21,16 @@ export const XSSPayloadList = ({
   onPayloadSelect,
   onCheckboxChange
 }: XSSPayloadListProps) => {
+  const copyPayload = async (payload: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(payload);
+      toast.success("Payload copied to clipboard!");
+    } catch (err) {
+      toast.error("Failed to copy payload");
+    }
+  };
+
   return (
     <div className="grid gap-4">
       {payloads?.map((payload) => (
@@ -47,11 +59,21 @@ export const XSSPayloadList = ({
               ))}
             </div>
           </div>
-          <div 
-            className="bg-muted p-2 rounded-md font-mono text-sm mb-2 overflow-x-auto cursor-pointer hover:bg-muted/80"
-            onClick={() => onPayloadSelect(payload.payload)}
-          >
-            {payload.payload}
+          <div className="relative group">
+            <div 
+              className="bg-muted p-2 rounded-md font-mono text-sm mb-2 overflow-x-auto cursor-pointer hover:bg-muted/80"
+              onClick={() => onPayloadSelect(payload.payload)}
+            >
+              {payload.payload}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => copyPayload(payload.payload, e)}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
           </div>
           {payload.description && (
             <p className="text-sm text-muted-foreground">{payload.description}</p>

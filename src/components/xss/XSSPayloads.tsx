@@ -6,14 +6,18 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Copy } from "lucide-react";
+import { toast } from "sonner";
 import { XSS_CATEGORIES } from "./constants";
 import { XSSPayloadList } from "./XSSPayloadList";
+import PayloadObfuscator from "./PayloadObfuscator";
 
 const XSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPayload, setSelectedPayload] = useState<string>("");
   const [selectedPayloads, setSelectedPayloads] = useState<string[]>([]);
+  const [showBulkObfuscator, setShowBulkObfuscator] = useState(false);
 
   const { data: payloads, isLoading } = useQuery({
     queryKey: ['xss-payloads'],
@@ -48,6 +52,7 @@ const XSSPayloads = () => {
 
   const handlePayloadSelect = (payload: string) => {
     setSelectedPayload(payload === selectedPayload ? "" : payload);
+    setShowBulkObfuscator(false);
   };
 
   const handleCheckboxChange = (payload: string) => {
@@ -79,6 +84,15 @@ const XSSPayloads = () => {
         return newSelection;
       }
     });
+  };
+
+  const copySelectedPayloads = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedPayloads.join('\n'));
+      toast.success("Selected payloads copied to clipboard!");
+    } catch (err) {
+      toast.error("Failed to copy payloads");
+    }
   };
 
   return (
@@ -117,13 +131,35 @@ const XSSPayloads = () => {
       {selectedPayloads.length > 0 && (
         <div className="flex justify-between items-center bg-muted p-4 rounded-lg">
           <span>{selectedPayloads.length} payloads selected</span>
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedPayloads([])}
-          >
-            Clear Selection
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={copySelectedPayloads}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Selected
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowBulkObfuscator(prev => !prev)}
+            >
+              Obfuscate Selected
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSelectedPayloads([]);
+                setShowBulkObfuscator(false);
+              }}
+            >
+              Clear Selection
+            </Button>
+          </div>
         </div>
+      )}
+
+      {showBulkObfuscator && selectedPayloads.length > 0 && (
+        <PayloadObfuscator originalPayload={selectedPayloads.join('\n')} />
       )}
 
       {isLoading ? (
