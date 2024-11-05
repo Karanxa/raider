@@ -39,15 +39,20 @@ serve(async (req) => {
       throw new Error('File and API key are required');
     }
 
-    // Read file content as text with proper error handling
-    let fileContent;
-    try {
-      fileContent = await file.text();
-      console.log('Processing file:', file.name, 'Size:', file.size, 'Type:', file.type);
-    } catch (readError) {
-      console.error('Error reading file:', readError);
-      throw new Error('Failed to read file content');
-    }
+    // Convert file to base64 for better handling
+    const arrayBuffer = await file.arrayBuffer();
+    const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    console.log('Processing file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      contentLength: base64Content.length
+    });
+
+    // Decode base64 content to text
+    const decoder = new TextDecoder();
+    const fileContent = decoder.decode(Uint8Array.from(atob(base64Content), c => c.charCodeAt(0)));
 
     if (!fileContent) {
       throw new Error('File content is empty');
