@@ -7,52 +7,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Utility functions to keep the main handler clean
 const parseManifest = (buffer: Uint8Array) => {
   const content = new TextDecoder().decode(buffer);
   const manifest: any = {};
 
-  // Extract package name
-  const packageMatch = content.match(/package="([^"]+)"/);
-  manifest.package = packageMatch ? packageMatch[1] : null;
-
-  // Extract version info
-  const versionNameMatch = content.match(/android:versionName="([^"]+)"/);
-  manifest.versionName = versionNameMatch ? versionNameMatch[1] : null;
-
-  const versionCodeMatch = content.match(/android:versionCode="([^"]+)"/);
-  manifest.versionCode = versionCodeMatch ? versionCodeMatch[1] : null;
-
+  // Extract basic info
+  manifest.package = content.match(/package="([^"]+)"/)?.at(1) ?? null;
+  manifest.versionName = content.match(/android:versionName="([^"]+)"/)?.at(1) ?? null;
+  manifest.versionCode = content.match(/android:versionCode="([^"]+)"/)?.at(1) ?? null;
+  
   // Extract SDK versions
-  const minSdkMatch = content.match(/android:minSdkVersion="([^"]+)"/);
-  const targetSdkMatch = content.match(/android:targetSdkVersion="([^"]+)"/);
   manifest.usesSdk = {
-    minSdkVersion: minSdkMatch ? minSdkMatch[1] : null,
-    targetSdkVersion: targetSdkMatch ? targetSdkMatch[1] : null
+    minSdkVersion: content.match(/android:minSdkVersion="([^"]+)"/)?.at(1) ?? null,
+    targetSdkVersion: content.match(/android:targetSdkVersion="([^"]+)"/)?.at(1) ?? null
   };
 
-  // Extract permissions
-  const permissions = content.match(/uses-permission[^>]+android:name="([^"]+)"/g);
-  manifest.permissions = permissions 
-    ? permissions.map(p => p.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
-    : [];
-
   // Extract components
-  const activities = content.match(/activity[^>]+android:name="([^"]+)"/g);
-  manifest.activities = activities 
-    ? activities.map(a => a.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
-    : [];
+  manifest.permissions = content.match(/uses-permission[^>]+android:name="([^"]+)"/g)
+    ?.map(p => p.match(/android:name="([^"]+)"/)?.at(1))
+    .filter(Boolean) ?? [];
 
-  const services = content.match(/service[^>]+android:name="([^"]+)"/g);
-  manifest.services = services 
-    ? services.map(s => s.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
-    : [];
+  manifest.activities = content.match(/activity[^>]+android:name="([^"]+)"/g)
+    ?.map(a => a.match(/android:name="([^"]+)"/)?.at(1))
+    .filter(Boolean) ?? [];
 
-  const receivers = content.match(/receiver[^>]+android:name="([^"]+)"/g);
-  manifest.receivers = receivers 
-    ? receivers.map(r => r.match(/android:name="([^"]+)"/)?.[1]).filter(Boolean)
-    : [];
+  manifest.services = content.match(/service[^>]+android:name="([^"]+)"/g)
+    ?.map(s => s.match(/android:name="([^"]+)"/)?.at(1))
+    .filter(Boolean) ?? [];
+
+  manifest.receivers = content.match(/receiver[^>]+android:name="([^"]+)"/g)
+    ?.map(r => r.match(/android:name="([^"]+)"/)?.at(1))
+    .filter(Boolean) ?? [];
 
   return manifest;
+};
+
+const updateAnalysisRecord = async (supabase: any, filePath: string, data: any) => {
+  const { error } = await supabase
+    .from('apk_analysis')
+    .update(data)
+    .eq('file_path', filePath);
+
+  if (error) throw new Error(`Failed to update analysis results: ${error.message}`);
 };
 
 serve(async (req) => {
@@ -73,13 +70,11 @@ serve(async (req) => {
 
     console.log('Starting APK analysis for:', filePath);
     
-    // Download the file with explicit error handling
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('apk_files')
       .download(filePath);
 
     if (downloadError) {
-      console.error('Download error:', downloadError);
       throw new Error(`Failed to download APK: ${downloadError.message}`);
     }
 
@@ -105,13 +100,8 @@ serve(async (req) => {
       for (const entry of entries) {
         if (entry.filename === "AndroidManifest.xml") {
           const content = await entry.getData();
-          try {
-            manifestContent = parseManifest(content);
-            console.log('Parsed manifest:', manifestContent);
-          } catch (e) {
-            console.error('Error parsing manifest:', e);
-            manifestContent = { error: 'Failed to parse manifest' };
-          }
+          manifestContent = parseManifest(content);
+          console.log('Parsed manifest:', manifestContent);
         } else if (entry.filename.endsWith(".dex")) {
           dexFiles.push(entry.filename);
         } else if (entry.filename.startsWith("lib/")) {
@@ -123,34 +113,25 @@ serve(async (req) => {
         }
       }
 
-      console.log('Updating database with extracted information...');
-
-      const { error: updateError } = await supabase
-        .from('apk_analysis')
-        .update({
-          status: 'completed',
-          package_name: manifestContent?.package || null,
-          version_name: manifestContent?.versionName || null,
-          version_code: manifestContent?.versionCode?.toString() || null,
-          min_sdk_version: manifestContent?.usesSdk?.minSdkVersion?.toString() || null,
-          target_sdk_version: manifestContent?.usesSdk?.targetSdkVersion?.toString() || null,
-          permissions: manifestContent?.permissions || [],
-          activities: manifestContent?.activities || [],
-          services: manifestContent?.services || [],
-          receivers: manifestContent?.receivers || [],
-          manifest_content: {
-            raw: manifestContent,
-            resources,
-            dexFiles,
-            libraries,
-            assets
-          }
-        })
-        .eq('file_path', filePath);
-
-      if (updateError) {
-        throw new Error(`Failed to update analysis results: ${updateError.message}`);
-      }
+      await updateAnalysisRecord(supabase, filePath, {
+        status: 'completed',
+        package_name: manifestContent?.package || null,
+        version_name: manifestContent?.versionName || null,
+        version_code: manifestContent?.versionCode?.toString() || null,
+        min_sdk_version: manifestContent?.usesSdk?.minSdkVersion?.toString() || null,
+        target_sdk_version: manifestContent?.usesSdk?.targetSdkVersion?.toString() || null,
+        permissions: manifestContent?.permissions || [],
+        activities: manifestContent?.activities || [],
+        services: manifestContent?.services || [],
+        receivers: manifestContent?.receivers || [],
+        manifest_content: {
+          raw: manifestContent,
+          resources,
+          dexFiles,
+          libraries,
+          assets
+        }
+      });
 
       return new Response(
         JSON.stringify({ success: true }),
@@ -166,7 +147,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     
-    // Update the analysis record with error status
     try {
       const { filePath } = await req.json();
       if (filePath) {
@@ -175,13 +155,10 @@ serve(async (req) => {
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
         
-        await supabase
-          .from('apk_analysis')
-          .update({
-            status: 'error',
-            error_message: error.message
-          })
-          .eq('file_path', filePath);
+        await updateAnalysisRecord(supabase, filePath, {
+          status: 'error',
+          error_message: error.message
+        });
       }
     } catch (e) {
       console.error('Failed to update error status:', e);
