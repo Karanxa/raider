@@ -15,12 +15,9 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       return;
     }
 
-    if (!GOOGLE_CLIENT_ID) {
-      toast.error("Google Client ID is not configured");
-      return;
-    }
-
     try {
+      console.log("Attempting Google authentication...");
+      
       // Exchange the credential for tokens
       const { data, error } = await supabase.functions.invoke('exchange-google-token', {
         body: { 
@@ -36,9 +33,12 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       }
 
       if (!data?.tokens) {
+        console.error('No tokens received');
         toast.error("No tokens received from Google");
         return;
       }
+
+      console.log("Successfully received Google tokens");
 
       // Store the tokens
       await storeGoogleTokens(data.tokens, session.user.id);
@@ -46,24 +46,19 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       toast.success("Successfully connected to Google Colab");
       onAuthSuccess();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error during Google authentication:', error);
       toast.error("Failed to connect to Google Colab");
     }
   };
-
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <div className="text-center text-red-500">
-        Google Client ID is not configured. Please check your environment variables.
-      </div>
-    );
-  }
 
   return (
     <div className="flex justify-center mb-6">
       <GoogleLogin
         onSuccess={handleGoogleSuccess}
-        onError={() => toast.error("Google Sign In Failed")}
+        onError={() => {
+          console.error("Google Sign In Failed");
+          toast.error("Google Sign In Failed");
+        }}
         flow="auth-code"
         ux_mode="redirect"
         redirect_uri="https://preview--raider.gptengineer.run/"
