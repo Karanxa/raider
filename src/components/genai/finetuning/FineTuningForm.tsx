@@ -2,13 +2,12 @@ import { useState } from "react";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { ModelSelect } from "./ModelSelect";
+import { DatasetInput } from "./DatasetInput";
+import { HyperParameters } from "./HyperParameters";
 
 export const FineTuningForm = () => {
   const [modelName, setModelName] = useState("");
@@ -92,111 +91,26 @@ export const FineTuningForm = () => {
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <Label>Base Model</Label>
-            <Select value={modelName} onValueChange={setModelName}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                <SelectItem value="llama-2">LLaMA 2</SelectItem>
-                <SelectItem value="mistral">Mistral</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <ModelSelect
+          modelName={modelName}
+          setModelName={setModelName}
+          datasetType={datasetType}
+          setDatasetType={setDatasetType}
+          taskType={taskType}
+          setTaskType={setTaskType}
+        />
 
-          <div>
-            <Label>Dataset Type</Label>
-            <Select value={datasetType} onValueChange={setDatasetType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select dataset type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="text">Text</SelectItem>
-                <SelectItem value="code">Code</SelectItem>
-                <SelectItem value="conversation">Conversation</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <DatasetInput
+          datasetDescription={datasetDescription}
+          setDatasetDescription={setDatasetDescription}
+          trainingExamples={trainingExamples}
+          setTrainingExamples={setTrainingExamples}
+        />
 
-          <div>
-            <Label>Task Type</Label>
-            <Select value={taskType} onValueChange={setTaskType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select task type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="classification">Classification</SelectItem>
-                <SelectItem value="generation">Generation</SelectItem>
-                <SelectItem value="completion">Completion</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Dataset Description</Label>
-            <Textarea 
-              placeholder="Describe your dataset and what you want the model to learn..."
-              value={datasetDescription}
-              onChange={(e) => setDatasetDescription(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Training Examples</Label>
-            <Textarea 
-              placeholder="Enter your training examples, one per line..."
-              value={trainingExamples}
-              onChange={(e) => setTrainingExamples(e.target.value)}
-              className="min-h-[200px] font-mono"
-            />
-            <p className="text-sm text-muted-foreground">
-              Examples count: {trainingExamples.split('\n').filter(line => line.trim()).length}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Learning Rate</Label>
-              <Input
-                type="number"
-                step="0.0001"
-                value={hyperparameters.learningRate}
-                onChange={(e) => setHyperparameters(prev => ({
-                  ...prev,
-                  learningRate: e.target.value
-                }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Batch Size</Label>
-              <Input
-                type="number"
-                value={hyperparameters.batchSize}
-                onChange={(e) => setHyperparameters(prev => ({
-                  ...prev,
-                  batchSize: e.target.value
-                }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Epochs</Label>
-              <Input
-                type="number"
-                value={hyperparameters.epochs}
-                onChange={(e) => setHyperparameters(prev => ({
-                  ...prev,
-                  epochs: e.target.value
-                }))}
-              />
-            </div>
-          </div>
-        </div>
+        <HyperParameters
+          hyperparameters={hyperparameters}
+          setHyperparameters={setHyperparameters}
+        />
 
         <Button 
           type="submit" 
