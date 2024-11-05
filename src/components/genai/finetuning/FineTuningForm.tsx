@@ -5,11 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ModelSelect } from "./ModelSelect";
-import { DatasetInput } from "./DatasetInput";
-import { HyperParameters } from "./HyperParameters";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { ScriptDisplay } from "./ScriptDisplay";
+import { GoogleAuthButton } from "./GoogleAuthButton";
+import { FormFields } from "./FormFields";
+import { defaultHyperparameters } from "./hyperparameters/defaults";
 
 export const FineTuningForm = () => {
   const [selectedModel, setSelectedModel] = useState("");
@@ -18,81 +18,21 @@ export const FineTuningForm = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [generatedScript, setGeneratedScript] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const session = useSession();
   const { getApiKey } = useApiKeys();
   
-  const [hyperparameters, setHyperparameters] = useState({
-    // Basic parameters
-    learningRate: "0.0001",
-    batchSize: "32",
-    epochs: "10",
-    warmupSteps: "500",
-    weightDecay: "0.01",
-    optimizerType: "adamw",
-    schedulerType: "linear",
-    gradientClipping: "1.0",
-    useEarlyStopping: true,
-    validationSplit: "0.2",
-    dropoutRate: "0.1",
-    seed: "42",
-    maxSteps: "1000",
-    evaluationStrategy: "steps",
-    evaluationSteps: "500",
-    loggingSteps: "100",
-    saveStrategy: "steps",
-    saveSteps: "500",
-    
-    // Advanced parameters
-    finetuningType: "sft",
-    
-    loraConfig: {
-      rank: "8",
-      alpha: "16",
-      dropout: "0.1",
-      targetModules: [],
-      bias: "none",
-      scalingRank: "4",
-      moduleMapping: "",
-      fanoutScaling: false,
-      useReparameterization: false,
-      rankPattern: "8,16,32",
-      alphaPattern: "16,32,64",
-      taskType: "causal_lm"
-    },
-    
-    qloraConfig: {
-      bitsQuant: "4",
-      groupSize: "128",
-      doubleQuant: true,
-      quantizationMethod: "symmetric",
-      useNesterov: false,
-      usePagedOptim: true,
-      useFastTokenizer: true,
-      blockSize: "64",
-      targetModules: [],
-      quantizedDataType: "nf4"
-    },
-    
-    sftConfig: {
-      useDeepSpeed: false,
-      gradientCheckpointing: true,
-      mixedPrecision: "fp16",
-      useFlashAttention: true,
-      useXformers: false,
-      useTritonKernels: false,
-      gradientAccumulationSteps: "4",
-      maxGradNorm: "1.0",
-      optimMemory: true,
-      useActivationCheckpointing: false,
-      useFsdp: false,
-      useParallelTraining: false
-    }
-  });
+  const [hyperparameters, setHyperparameters] = useState(defaultHyperparameters);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user?.id) {
       toast.error("Please login to continue");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      toast.error("Please connect to Google Colab first");
       return;
     }
 
@@ -140,9 +80,7 @@ export const FineTuningForm = () => {
         }
       });
 
-      if (fnError) {
-        throw new Error(`Failed to generate script: ${fnError.message}`);
-      }
+      if (fnError) throw new Error(`Failed to generate script: ${fnError.message}`);
 
       // Store the generated script
       const { error: dbError } = await supabase
@@ -157,9 +95,7 @@ export const FineTuningForm = () => {
           status: 'generated'
         });
 
-      if (dbError) {
-        throw new Error(`Failed to save script: ${dbError.message}`);
-      }
+      if (dbError) throw new Error(`Failed to save script: ${dbError.message}`);
 
       setGeneratedScript(data.script);
       toast.success("Fine-tuning script generated successfully");
@@ -175,21 +111,19 @@ export const FineTuningForm = () => {
   return (
     <Card>
       <CardContent className="pt-6">
+        {!isAuthenticated && (
+          <GoogleAuthButton onAuthSuccess={() => setIsAuthenticated(true)} />
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          <ModelSelect
-            modelName={selectedModel}
-            setModelName={setSelectedModel}
+          <FormFields
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
             datasetType={datasetType}
             setDatasetType={setDatasetType}
             taskType={taskType}
             setTaskType={setTaskType}
-          />
-
-          <DatasetInput
-            onFileSelect={setSelectedFile}
-          />
-
-          <HyperParameters
+            setSelectedFile={setSelectedFile}
             hyperparameters={hyperparameters}
             setHyperparameters={setHyperparameters}
           />
@@ -197,7 +131,7 @@ export const FineTuningForm = () => {
           <Button 
             type="submit" 
             className="w-full"
-            disabled={isGenerating}
+            disabled={isGenerating || !isAuthenticated}
           >
             {isGenerating ? (
               <>
