@@ -114,6 +114,39 @@ export type Database = {
         }
         Relationships: []
       }
+      code_snippet_analysis: {
+        Row: {
+          analysis: string | null
+          code_snippet: string
+          created_at: string | null
+          id: string
+          language: string | null
+          suggested_payloads: Json | null
+          user_id: string
+          vulnerability_points: string[] | null
+        }
+        Insert: {
+          analysis?: string | null
+          code_snippet: string
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          suggested_payloads?: Json | null
+          user_id: string
+          vulnerability_points?: string[] | null
+        }
+        Update: {
+          analysis?: string | null
+          code_snippet?: string
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          suggested_payloads?: Json | null
+          user_id?: string
+          vulnerability_points?: string[] | null
+        }
+        Relationships: []
+      }
       domain_recon_results: {
         Row: {
           error_message: string | null

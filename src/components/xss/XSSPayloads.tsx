@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { XSS_CATEGORIES } from "./constants";
 import { XSSPayloadList } from "./XSSPayloadList";
 import PayloadObfuscator from "./PayloadObfuscator";
+import CodeSnippetAnalysis from "./CodeSnippetAnalysis";
 
 const XSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -18,6 +19,7 @@ const XSSPayloads = () => {
   const [selectedPayload, setSelectedPayload] = useState<string>("");
   const [selectedPayloads, setSelectedPayloads] = useState<string[]>([]);
   const [showBulkObfuscator, setShowBulkObfuscator] = useState(false);
+  const [showCodeAnalysis, setShowCodeAnalysis] = useState(false);
 
   const { data: payloads, isLoading } = useQuery({
     queryKey: ['xss-payloads'],
@@ -158,39 +160,53 @@ const XSSPayloads = () => {
         </div>
       )}
 
-      {showBulkObfuscator && selectedPayloads.length > 0 && (
-        <PayloadObfuscator originalPayload={selectedPayloads.join('\n')} />
-      )}
-
-      {isLoading ? (
-        <div className="text-center py-8">Loading payloads...</div>
+      {showCodeAnalysis ? (
+        <CodeSnippetAnalysis />
       ) : (
-        <ScrollArea className="h-[600px]">
-          <div className="grid gap-4">
-            <div className="flex items-center space-x-2 p-4 bg-muted rounded-lg">
-              <Checkbox
-                id="select-all"
-                checked={filteredPayloads?.every(p => selectedPayloads.includes(p.payload))}
-                onCheckedChange={() => handleSelectAllInCategory(selectedCategory)}
-              />
-              <label
-                htmlFor="select-all"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Select all {selectedCategory === "all" ? "payloads" : `in ${selectedCategory}`}
-              </label>
-            </div>
-            
-            <XSSPayloadList
-              payloads={filteredPayloads}
-              selectedPayload={selectedPayload}
-              selectedPayloads={selectedPayloads}
-              onPayloadSelect={handlePayloadSelect}
-              onCheckboxChange={handleCheckboxChange}
-            />
-          </div>
-        </ScrollArea>
+        <>
+          {showBulkObfuscator && selectedPayloads.length > 0 && (
+            <PayloadObfuscator originalPayload={selectedPayloads.join('\n')} />
+          )}
+
+          {isLoading ? (
+            <div className="text-center py-8">Loading payloads...</div>
+          ) : (
+            <ScrollArea className="h-[600px]">
+              <div className="grid gap-4">
+                <div className="flex items-center space-x-2 p-4 bg-muted rounded-lg">
+                  <Checkbox
+                    id="select-all"
+                    checked={filteredPayloads?.every(p => selectedPayloads.includes(p.payload))}
+                    onCheckedChange={() => handleSelectAllInCategory(selectedCategory)}
+                  />
+                  <label
+                    htmlFor="select-all"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Select all {selectedCategory === "all" ? "payloads" : `in ${selectedCategory}`}
+                  </label>
+                </div>
+                
+                <XSSPayloadList
+                  payloads={filteredPayloads}
+                  selectedPayload={selectedPayload}
+                  selectedPayloads={selectedPayloads}
+                  onPayloadSelect={handlePayloadSelect}
+                  onCheckboxChange={handleCheckboxChange}
+                />
+              </div>
+            </ScrollArea>
+          )}
+        </>
       )}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          onClick={() => setShowCodeAnalysis(!showCodeAnalysis)}
+        >
+          {showCodeAnalysis ? "View XSS Payloads" : "Analyze Code Snippet"}
+        </Button>
+      </div>
     </div>
   );
 };
