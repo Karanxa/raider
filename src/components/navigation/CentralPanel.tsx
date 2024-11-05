@@ -36,9 +36,9 @@ export const CentralPanel = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="space-y-8 p-4">
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight">Welcome to Raider</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Welcome to your comprehensive E2E security testing platform</h1>
           <p className="text-lg text-muted-foreground">
-            Your comprehensive security testing platform. Choose a category below to get started with various security testing tools.
+            Choose a category below to get started with various security testing tools.
           </p>
           <p className="text-sm text-muted-foreground">
             Developed by <a href="https://x.com/Itskaranxa" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Karan Arora</a>
