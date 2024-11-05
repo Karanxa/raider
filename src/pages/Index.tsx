@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -22,10 +22,12 @@ import ApkUpload from "@/components/mobile/ApkUpload";
 import ApkDashboard from "@/components/mobile/ApkDashboard";
 import { categoryConfigs } from "@/components/navigation/TabConfig";
 import { ResponsiveTabs } from "@/components/navigation/ResponsiveTabs";
+import { useRBAC } from "@/hooks/useRBAC";
 
 const Index = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("web");
+  const { hasAccess, loading: rbacLoading } = useRBAC();
 
   const handleLogout = async () => {
     try {
@@ -37,7 +39,20 @@ const Index = () => {
     }
   };
 
-  const currentCategory = categoryConfigs.find(cat => cat.value === activeCategory);
+  // Filter categories based on user permissions
+  const allowedCategories = categoryConfigs.filter(cat => hasAccess(cat.value));
+  const currentCategory = allowedCategories.find(cat => cat.value === activeCategory);
+
+  // If the current category is not allowed, set the first allowed category as active
+  useEffect(() => {
+    if (!rbacLoading && allowedCategories.length > 0 && !hasAccess(activeCategory)) {
+      setActiveCategory(allowedCategories[0].value);
+    }
+  }, [rbacLoading, activeCategory, allowedCategories]);
+
+  if (rbacLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   const renderContent = (value: string) => {
     switch (value) {
@@ -80,7 +95,7 @@ const Index = () => {
         <div className="mb-4 sm:mb-6">
           <Tabs value={activeCategory} onValueChange={setActiveCategory}>
             <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6">
-              {categoryConfigs.map((category) => (
+              {allowedCategories.map((category) => (
                 <TabsTrigger 
                   key={category.value} 
                   value={category.value} 
