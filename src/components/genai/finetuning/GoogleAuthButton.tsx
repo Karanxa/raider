@@ -17,7 +17,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       // Exchange the credential for tokens
       const { data, error } = await supabase.functions.invoke('exchange-google-token', {
         body: { 
-          credential: credentialResponse.credential,
+          code: credentialResponse.code,
           userId: session.user.id
         }
       });
@@ -49,8 +49,9 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       <GoogleLogin
         onSuccess={handleGoogleSuccess}
         onError={() => toast.error("Google Sign In Failed")}
-        useOneTap={false}
-        flow="implicit"
+        flow="auth-code"
+        ux_mode="redirect"
+        redirect_uri="https://preview--raider.gptengineer.run/"
       />
     </div>
   );
