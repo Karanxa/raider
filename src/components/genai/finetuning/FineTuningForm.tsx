@@ -18,7 +18,15 @@ export const FineTuningForm = () => {
   const [hyperparameters, setHyperparameters] = useState({
     learningRate: "0.0001",
     batchSize: "32",
-    epochs: "10"
+    epochs: "10",
+    warmupSteps: "500",
+    weightDecay: "0.01",
+    optimizerType: "adam",
+    schedulerType: "linear",
+    gradientClipping: "1.0",
+    useEarlyStopping: true,
+    validationSplit: "0.2",
+    dropoutRate: "0.1"
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const session = useSession();
