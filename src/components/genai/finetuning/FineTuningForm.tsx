@@ -14,6 +14,7 @@ export const FineTuningForm = () => {
   const [datasetType, setDatasetType] = useState("");
   const [taskType, setTaskType] = useState("");
   const [hyperparameters, setHyperparameters] = useState({
+    // Basic parameters
     learningRate: "0.0001",
     batchSize: "32",
     epochs: "10",
@@ -24,7 +25,25 @@ export const FineTuningForm = () => {
     gradientClipping: "1.0",
     useEarlyStopping: true,
     validationSplit: "0.2",
-    dropoutRate: "0.1"
+    dropoutRate: "0.1",
+    // Advanced parameters
+    finetuningType: "sft",
+    loraConfig: {
+      rank: "8",
+      alpha: "16",
+      dropout: "0.1",
+      targetModules: []
+    },
+    qloraConfig: {
+      bitsQuant: "4",
+      groupSize: "128",
+      doubleQuant: true
+    },
+    sftConfig: {
+      useDeepSpeed: false,
+      gradientCheckpointing: true,
+      mixedPrecision: "fp16"
+    }
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -108,8 +127,12 @@ export const FineTuningForm = () => {
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <ModelSelect
-            value={selectedModel}
-            onChange={setSelectedModel}
+            modelName={selectedModel}
+            setModelName={setSelectedModel}
+            datasetType={datasetType}
+            setDatasetType={setDatasetType}
+            taskType={taskType}
+            setTaskType={setTaskType}
           />
 
           <DatasetInput
