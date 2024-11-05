@@ -7,11 +7,13 @@ import { toast } from "sonner";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ExternalLink } from "lucide-react";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 export const PerformFineTuning = () => {
-  const [colabApiKey, setColabApiKey] = useState("");
   const [colabUrl, setColabUrl] = useState("");
   const session = useSession();
+  const { saveApiKey, getApiKey } = useApiKeys();
+  const [colabApiKey, setColabApiKey] = useState(getApiKey('googlecolab') || "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +29,13 @@ export const PerformFineTuning = () => {
     }
 
     try {
-      // First, store the API key
+      // Store API key locally
+      saveApiKey('googlecolab', colabApiKey);
+
+      // Update job status
       const { error: updateError } = await supabase
         .from('finetuning_jobs')
         .update({ 
-          colab_api_key: colabApiKey,
           status: 'configuring'
         })
         .eq('user_id', session.user.id)
