@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { categoryConfigs } from "@/components/navigation/TabConfig";
+import { useRBAC } from "@/hooks/useRBAC";
+import { CentralPanel } from "@/components/navigation/CentralPanel";
 import DomainRecon from "@/components/DomainRecon";
 import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
@@ -14,21 +20,15 @@ import BountyReporting from "@/components/bounty/BountyReporting";
 import PostmanDashboard from "@/components/postman/PostmanDashboard";
 import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGenerator";
 import XSSPayloads from "@/components/xss/XSSPayloads";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import IPIntelligence from "@/components/ip-intelligence/IPIntelligence";
 import ApkUpload from "@/components/mobile/ApkUpload";
 import ApkDashboard from "@/components/mobile/ApkDashboard";
-import { categoryConfigs } from "@/components/navigation/TabConfig";
-import { ResponsiveTabs } from "@/components/navigation/ResponsiveTabs";
-import { useRBAC } from "@/hooks/useRBAC";
 import { FineTuning } from "@/components/genai/finetuning/FineTuning";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [activeCategory, setActiveCategory] = useState("web");
   const { hasAccess, loading: rbacLoading } = useRBAC();
+  const { category, tab } = useParams();
 
   const handleLogout = async () => {
     try {
@@ -39,19 +39,6 @@ const Index = () => {
       toast.error("Error logging out");
     }
   };
-
-  const allowedCategories = categoryConfigs.filter(cat => hasAccess(cat.value));
-  const currentCategory = allowedCategories.find(cat => cat.value === activeCategory);
-
-  useEffect(() => {
-    if (!rbacLoading && allowedCategories.length > 0 && !hasAccess(activeCategory)) {
-      setActiveCategory(allowedCategories[0].value);
-    }
-  }, [rbacLoading, activeCategory, allowedCategories]);
-
-  if (rbacLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
 
   const renderContent = (value: string) => {
     switch (value) {
@@ -75,12 +62,16 @@ const Index = () => {
     }
   };
 
+  if (rbacLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 gap-3">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Raider</h1>
-          <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Raider</h1>
+          <div className="flex items-center gap-4">
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Logout
@@ -88,36 +79,15 @@ const Index = () => {
           </div>
         </div>
         
-        <div className="mb-4 sm:mb-6">
-          <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4 sm:mb-6">
-              {allowedCategories.map((category) => (
-                <TabsTrigger 
-                  key={category.value} 
-                  value={category.value} 
-                  className="text-sm sm:text-base py-2 gap-2"
-                >
-                  {category.icon}
-                  <span className="hidden sm:inline">{category.label}</span>
-                  <span className="sm:hidden">{category.label.split(' ')[0]}</span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {currentCategory && (
-          <Tabs defaultValue={currentCategory.tabs[0].value} className="w-full">
-            <ResponsiveTabs tabs={currentCategory.tabs} />
-            <div className="mt-4">
-              {currentCategory.tabs.map((tab) => (
-                <TabsContent key={tab.value} value={tab.value}>
-                  {renderContent(tab.value)}
-                </TabsContent>
-              ))}
-            </div>
-          </Tabs>
-        )}
+        <CentralPanel>
+          {tab && (
+            <Tabs value={tab} className="w-full">
+              <TabsContent value={tab}>
+                {renderContent(tab)}
+              </TabsContent>
+            </Tabs>
+          )}
+        </CentralPanel>
       </div>
     </div>
   );

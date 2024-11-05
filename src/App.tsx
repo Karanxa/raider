@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
@@ -22,12 +22,7 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY2V4dGRhYm1ycWxsZ2R6a21zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA2MjcyMjMsImV4cCI6MjA0NjIwMzIyM30.GouDaqFh1hacbylYiHDHtsjSwKYX6lCIl0chwX2y0gI"
 );
 
-const ConditionalChatSupport = () => {
-  const location = useLocation();
-  return location.pathname !== '/login' ? <ChatSupport /> : null;
-};
-
-const App: React.FC = () => {
+const App = () => {
   return (
     <BrowserRouter>
       <ThemeProvider>
@@ -45,21 +40,28 @@ const App: React.FC = () => {
                       </Button>
                     </div>
                     <Routes>
-                      <Route 
-                        path="/login" 
-                        element={
-                          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <Login />
-                          </div>
-                        } 
-                      />
+                      <Route path="/login" element={<Login />} />
                       <Route
                         path="/"
                         element={
                           <ProtectedRoute>
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <Index />
-                            </div>
+                            <Index />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/:category"
+                        element={
+                          <ProtectedRoute>
+                            <Index />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/:category/:tab"
+                        element={
+                          <ProtectedRoute>
+                            <Index />
                           </ProtectedRoute>
                         }
                       />
@@ -67,9 +69,7 @@ const App: React.FC = () => {
                         path="/settings"
                         element={
                           <ProtectedRoute>
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <Settings />
-                            </div>
+                            <Settings />
                           </ProtectedRoute>
                         }
                       />
@@ -77,14 +77,12 @@ const App: React.FC = () => {
                         path="/apk/:id"
                         element={
                           <ProtectedRoute>
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <ApkDetails />
-                            </div>
+                            <ApkDetails />
                           </ProtectedRoute>
                         }
                       />
                     </Routes>
-                    <ConditionalChatSupport />
+                    <ChatSupport />
                     <Toaster />
                     <SonnerToaster 
                       position="top-right"
