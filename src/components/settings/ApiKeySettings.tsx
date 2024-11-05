@@ -34,7 +34,7 @@ export const ApiKeySettings = () => {
       <div>
         <h2 className="text-xl font-semibold mb-4">API Keys</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Configure your API keys for different services. These keys are stored securely in your browser's local storage.
+          Configure your API keys for different services. These keys are stored securely in your browser's local storage and are required for various features like fine-tuning and model inference.
         </p>
       </div>
 
@@ -47,6 +47,9 @@ export const ApiKeySettings = () => {
             onChange={(e) => setOpenaiKey(e.target.value)}
             placeholder="Enter your OpenAI API key"
           />
+          <p className="text-sm text-muted-foreground">
+            Required for model fine-tuning and GPT-based features
+          </p>
         </div>
 
         <div className="space-y-2">

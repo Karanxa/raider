@@ -8,11 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { DatasetInput } from "./DatasetInput";
 import { ModelSelect } from "./ModelSelect";
 import { HyperParameters } from "./HyperParameters";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 export const FineTuningForm = () => {
   const [selectedModel, setSelectedModel] = useState("");
   const [datasetType, setDatasetType] = useState("");
   const [taskType, setTaskType] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const session = useSession();
+  const { getApiKey } = useApiKeys();
   const [hyperparameters, setHyperparameters] = useState({
     // Basic parameters
     learningRate: "0.0001",
@@ -80,14 +85,17 @@ export const FineTuningForm = () => {
       useParallelTraining: false
     }
   });
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const session = useSession();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session?.user?.id) {
       toast.error("Please login to continue");
+      return;
+    }
+
+    const openaiKey = getApiKey("openai");
+    if (!openaiKey) {
+      toast.error("Please set your OpenAI API key in Settings first");
       return;
     }
 
@@ -123,7 +131,8 @@ export const FineTuningForm = () => {
           taskType,
           datasetDescription: `File type: ${selectedFile.type}, Size: ${selectedFile.size} bytes`,
           trainingExamples: exampleData,
-          hyperparameters
+          hyperparameters,
+          apiKey: openaiKey
         }
       });
 
