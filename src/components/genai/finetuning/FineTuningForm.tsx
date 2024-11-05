@@ -38,6 +38,13 @@ export const FineTuningForm = () => {
 
     setIsGenerating(true);
     try {
+      console.log("Generating fine-tuning script with:", {
+        modelName,
+        datasetType,
+        taskType,
+        hyperparameters
+      });
+
       const { data, error } = await supabase.functions.invoke('generate-finetuning-script', {
         body: {
           modelName,
@@ -48,7 +55,14 @@ export const FineTuningForm = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function error:", error);
+        throw error;
+      }
+
+      if (!data || !data.script) {
+        throw new Error("No script generated");
+      }
 
       const { script } = data;
 
@@ -62,12 +76,15 @@ export const FineTuningForm = () => {
         colab_script: script
       });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("Database error:", dbError);
+        throw dbError;
+      }
 
       toast.success("Fine-tuning script generated successfully!");
     } catch (error) {
       console.error("Error generating fine-tuning script:", error);
-      toast.error("Failed to generate fine-tuning script");
+      toast.error("Failed to generate fine-tuning script: " + (error as Error).message);
     } finally {
       setIsGenerating(false);
     }
