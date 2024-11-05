@@ -9,12 +9,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Copy, Eraser, Wand2 } from "lucide-react";
+import { toast } from "sonner";
+import PayloadObfuscator from "./PayloadObfuscator";
 
 const StaticXSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPayload, setSelectedPayload] = useState<string>("");
   const [selectedPayloads, setSelectedPayloads] = useState<string[]>([]);
+  const [showObfuscator, setShowObfuscator] = useState(false);
 
   const { data: payloads, isLoading } = useQuery({
     queryKey: ['xss-payloads'],
@@ -46,10 +51,8 @@ const StaticXSSPayloads = () => {
     const allSelected = categoryPayloads.every(p => selectedPayloads.includes(p));
 
     if (allSelected) {
-      // Deselect all in current category
       setSelectedPayloads(prev => prev.filter(p => !categoryPayloads.includes(p)));
     } else {
-      // Select all in current category
       setSelectedPayloads(prev => {
         const newSelection = [...prev];
         categoryPayloads.forEach(p => {
@@ -60,6 +63,21 @@ const StaticXSSPayloads = () => {
         return newSelection;
       });
     }
+  };
+
+  const copySelectedPayloads = async () => {
+    try {
+      await navigator.clipboard.writeText(selectedPayloads.join('\n'));
+      toast.success("Selected payloads copied to clipboard!");
+    } catch (err) {
+      toast.error("Failed to copy payloads");
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedPayloads([]);
+    setSelectedPayload("");
+    setShowObfuscator(false);
   };
 
   return (
@@ -97,6 +115,39 @@ const StaticXSSPayloads = () => {
             />
           </div>
         </div>
+
+        {selectedPayloads.length > 0 && (
+          <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={copySelectedPayloads}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Selected ({selectedPayloads.length})
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowObfuscator(true)}
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              Obfuscate Selected
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearSelection}
+            >
+              <Eraser className="h-4 w-4 mr-2" />
+              Clear Selection
+            </Button>
+          </div>
+        )}
+
+        {showObfuscator && selectedPayloads.length > 0 && (
+          <PayloadObfuscator originalPayload={selectedPayloads.join('\n')} />
+        )}
 
         {isLoading ? (
           <div className="text-center py-8">Loading payloads...</div>

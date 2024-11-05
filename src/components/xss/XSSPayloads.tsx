@@ -7,7 +7,7 @@ import { XSS_CATEGORIES } from "./constants";
 
 const xssTabs = [
   { value: "static", label: "XSS Payloads", icon: null },
-  { value: "dynamic", label: "Code Analysis", icon: null }
+  { value: "dynamic", label: "Payload Generator", icon: null }
 ];
 
 const XSSPayloads = () => {
