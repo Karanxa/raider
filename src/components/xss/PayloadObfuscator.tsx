@@ -13,19 +13,21 @@ interface PayloadObfuscatorProps {
 
 const PayloadObfuscator = ({ originalPayload }: PayloadObfuscatorProps) => {
   const [encodingType, setEncodingType] = useState<EncodingType>("base64");
-  const [obfuscatedPayload, setObfuscatedPayload] = useState<string>("");
+  const [obfuscatedPayloads, setObfuscatedPayloads] = useState<string[]>([]);
 
   const handleEncode = () => {
-    const encoded = encodePayload(originalPayload, encodingType);
-    setObfuscatedPayload(encoded);
+    // Split the input into individual payloads and encode each one
+    const payloads = originalPayload.split('\n').filter(p => p.trim());
+    const encoded = payloads.map(payload => encodePayload(payload, encodingType));
+    setObfuscatedPayloads(encoded);
   };
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(obfuscatedPayload);
-      toast.success("Payload copied to clipboard!");
+      await navigator.clipboard.writeText(obfuscatedPayloads.join('\n'));
+      toast.success("Payloads copied to clipboard!");
     } catch (err) {
-      toast.error("Failed to copy payload");
+      toast.error("Failed to copy payloads");
     }
   };
 
@@ -49,21 +51,21 @@ const PayloadObfuscator = ({ originalPayload }: PayloadObfuscatorProps) => {
             </Select>
           </div>
           <Button className="mt-6" onClick={handleEncode}>
-            Encode Payload
+            Encode Payload{obfuscatedPayloads.length > 1 ? 's' : ''}
           </Button>
         </div>
 
-        {obfuscatedPayload && (
+        {obfuscatedPayloads.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Obfuscated Payload</Label>
+              <Label>Obfuscated Payload{obfuscatedPayloads.length > 1 ? 's' : ''}</Label>
               <Button variant="ghost" size="sm" onClick={copyToClipboard}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
             </div>
             <pre className="bg-muted p-2 rounded-md overflow-x-auto">
-              <code>{obfuscatedPayload}</code>
+              <code>{obfuscatedPayloads.join('\n')}</code>
             </pre>
           </div>
         )}
