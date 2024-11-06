@@ -27,6 +27,33 @@ export const APIFindings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Set up real-time subscription
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('api-findings-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'github_api_findings' 
+        }, 
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  // Use the subscription
+  useState(() => {
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
+  }, []);
+
   const { data: findings = [], isLoading, refetch } = useQuery({
     queryKey: ['api-findings', session?.user?.id],
     queryFn: async () => {
@@ -46,7 +73,7 @@ export const APIFindings = () => {
     },
     enabled: !!session?.user?.id,
     refetchOnWindowFocus: true,
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0
   });
 
   const owners = [...new Set(findings.map(f => f.repository_owner))].filter(Boolean);
@@ -140,10 +167,9 @@ export const APIFindings = () => {
               if (error) throw error;
 
               await queryClient.invalidateQueries({ queryKey: ['api-findings'] });
-              await refetch(); // Explicitly refetch after deletion
+              await refetch();
               toast.success('Finding deleted successfully');
               
-              // If we're on the last page and it's now empty, go to previous page
               if (paginatedFindings.length === 1 && currentPage > 1) {
                 setCurrentPage(currentPage - 1);
               }
