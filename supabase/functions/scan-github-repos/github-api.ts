@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { API_PATTERNS } from './api-patterns.ts';
-import { detectPIITypes } from './piiPatterns.ts';
+import { detectPIITypes } from '../../src/utils/piiPatterns.ts';
 import { fetchRepoContents } from './repo-contents.ts';
 import { processRepoFiles } from './file-processor.ts';
 
