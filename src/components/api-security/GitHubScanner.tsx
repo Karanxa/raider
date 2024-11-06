@@ -6,7 +6,6 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useSession } from "@supabase/auth-helpers-react";
 
@@ -89,74 +88,36 @@ export const GitHubScanner = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">GitHub API Scanner</h2>
+        <h2 className="text-2xl font-bold tracking-tight">GitHub Repository Scanner</h2>
         <p className="text-muted-foreground">
-          Scan GitHub repositories to discover API endpoints and analyze their security.
+          Enter a GitHub repository to scan for API endpoints and analyze their security.
         </p>
       </div>
 
       <Card className="p-6">
-        <Tabs defaultValue="specific" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="specific">Specific Repository</TabsTrigger>
-            <TabsTrigger value="org">Organization</TabsTrigger>
-            <TabsTrigger value="all">All Public Repos</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="specific" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="repo-name">Public Repository Name</Label>
-              <Input
-                id="repo-name"
-                type="text"
-                placeholder="e.g., octocat/Hello-World"
-                value={specificRepo}
-                onChange={(e) => setSpecificRepo(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
-              </p>
-            </div>
-            <Button onClick={() => handleScan('specific')} disabled={isScanning}>
-              {isScanning ? "Scanning..." : "Start Scan"}
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="org" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="org-name">Organization Name</Label>
-              <Input
-                id="org-name"
-                type="text"
-                placeholder="e.g., microsoft"
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Enter the GitHub organization name (e.g., microsoft)
-              </p>
-            </div>
-            <Button onClick={() => handleScan('org')} disabled={isScanning}>
-              {isScanning ? "Scanning..." : "Start Scan"}
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="all" className="space-y-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Scan all public repositories available through GitHub's API.
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="repo-name">Repository Name</Label>
+            <Input
+              id="repo-name"
+              type="text"
+              placeholder="e.g., octocat/Hello-World"
+              value={specificRepo}
+              onChange={(e) => setSpecificRepo(e.target.value)}
+              className="w-full"
+            />
+            <p className="text-sm text-muted-foreground">
+              Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
             </p>
-            <Button onClick={() => handleScan('all')} disabled={isScanning}>
-              {isScanning ? "Scanning..." : "Start Scan"}
-            </Button>
-          </TabsContent>
+          </div>
 
-          <div className="flex items-center space-x-2 mt-4">
+          <div className="flex items-center space-x-2">
             <Switch
               id="private-repos"
               checked={includePrivateRepos}
               onCheckedChange={setIncludePrivateRepos}
             />
-            <Label htmlFor="private-repos">Include Private Repositories</Label>
+            <Label htmlFor="private-repos">Include Private Repository</Label>
           </div>
 
           {includePrivateRepos && (
@@ -174,7 +135,15 @@ export const GitHubScanner = () => {
               </p>
             </div>
           )}
-        </Tabs>
+
+          <Button 
+            onClick={() => handleScan('specific')} 
+            disabled={isScanning}
+            className="w-full"
+          >
+            {isScanning ? "Scanning..." : "Start Scan"}
+          </Button>
+        </div>
 
         {isScanning && (
           <div className="space-y-2 mt-4">
