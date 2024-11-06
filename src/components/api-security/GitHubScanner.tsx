@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 export const GitHubScanner = () => {
   const [githubToken, setGithubToken] = useState("");
@@ -16,10 +17,11 @@ export const GitHubScanner = () => {
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
   const [totalRepos, setTotalRepos] = useState(0);
   const [scannedRepos, setScannedRepos] = useState(0);
+  const [includePrivateRepos, setIncludePrivateRepos] = useState(false);
 
   const handleScan = async (scanType: 'all' | 'specific') => {
-    if (!githubToken) {
-      toast.error("Please enter your GitHub token");
+    if (includePrivateRepos && !githubToken) {
+      toast.error("GitHub token is required for scanning private repositories");
       return;
     }
 
@@ -54,9 +56,10 @@ export const GitHubScanner = () => {
 
       const { error } = await supabase.functions.invoke('scan-github-repos', {
         body: { 
-          githubToken,
+          githubToken: includePrivateRepos ? githubToken : null,
           userId: session.user.id,
-          specificRepo: scanType === 'specific' ? specificRepo : null
+          specificRepo: scanType === 'specific' ? specificRepo : null,
+          includePrivateRepos
         }
       });
 
@@ -69,7 +72,7 @@ export const GitHubScanner = () => {
       supabase.removeChannel(channel);
     } catch (error) {
       console.error('Error scanning GitHub repos:', error);
-      toast.error("Failed to scan GitHub repositories. Please check your token and try again.");
+      toast.error("Failed to scan GitHub repositories. Please try again.");
     } finally {
       setIsScanning(false);
       setProgress(0);
@@ -93,11 +96,20 @@ export const GitHubScanner = () => {
             <TabsTrigger value="specific">Scan Specific Repository</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="github-token-all">GitHub Personal Access Token</Label>
+          <div className="flex items-center space-x-2 mb-4">
+            <Switch
+              id="private-repos"
+              checked={includePrivateRepos}
+              onCheckedChange={setIncludePrivateRepos}
+            />
+            <Label htmlFor="private-repos">Include Private Repositories</Label>
+          </div>
+
+          {includePrivateRepos && (
+            <div className="space-y-2 mb-4">
+              <Label htmlFor="github-token">GitHub Personal Access Token</Label>
               <Input
-                id="github-token-all"
+                id="github-token"
                 type="password"
                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                 value={githubToken}
@@ -107,24 +119,15 @@ export const GitHubScanner = () => {
                 Token requires 'repo' scope. Create one in GitHub Settings → Developer settings → Personal access tokens
               </p>
             </div>
+          )}
 
+          <TabsContent value="all" className="space-y-4">
             <Button onClick={() => handleScan('all')} disabled={isScanning}>
               {isScanning ? "Scanning..." : "Start Scan"}
             </Button>
           </TabsContent>
 
           <TabsContent value="specific" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="github-token-specific">GitHub Personal Access Token</Label>
-              <Input
-                id="github-token-specific"
-                type="password"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                value={githubToken}
-                onChange={(e) => setGithubToken(e.target.value)}
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="repo-name">Repository Name</Label>
               <Input

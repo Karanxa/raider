@@ -23,18 +23,24 @@ async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETR
   }
 }
 
-export async function fetchRepositories(githubToken: string) {
+export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean) {
   const repos = [];
   let page = 1;
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  if (githubToken) {
+    headers['Authorization'] = `token ${githubToken}`;
+  }
+
+  const apiUrl = includePrivateRepos 
+    ? 'https://api.github.com/user/repos'
+    : 'https://api.github.com/repositories';
 
   while (true) {
     const response = await retryOperation(() =>
-      fetch(`https://api.github.com/user/repos?per_page=100&page=${page}`, {
-        headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      })
+      fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
     );
 
     if (!response.ok) {
@@ -44,24 +50,33 @@ export async function fetchRepositories(githubToken: string) {
     const data = await response.json();
     if (data.length === 0) break;
 
-    repos.push(...data);
+    // Filter out private repos if we're not including them
+    const filteredRepos = includePrivateRepos 
+      ? data 
+      : data.filter((repo: any) => !repo.private);
+
+    repos.push(...filteredRepos);
     page++;
   }
 
   return repos;
 }
 
-export async function fetchRepositoryContents(repo: any, githubToken: string) {
+export async function fetchRepositoryContents(repo: any, githubToken: string | null) {
   const branches = ['main', 'master', 'develop', 'dev'];
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  if (githubToken) {
+    headers['Authorization'] = `token ${githubToken}`;
+  }
 
   for (const branch of branches) {
     try {
       const response = await retryOperation(() =>
         fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, {
-          headers: {
-            'Authorization': `token ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
-          }
+          headers
         })
       );
 
@@ -76,13 +91,18 @@ export async function fetchRepositoryContents(repo: any, githubToken: string) {
   throw new Error('No valid branch found');
 }
 
-export async function fetchFileContent(repo: any, filePath: string, githubToken: string) {
+export async function fetchFileContent(repo: any, filePath: string, githubToken: string | null) {
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  if (githubToken) {
+    headers['Authorization'] = `token ${githubToken}`;
+  }
+
   const response = await retryOperation(() =>
     fetch(`https://api.github.com/repos/${repo.full_name}/contents/${filePath}`, {
-      headers: {
-        'Authorization': `token ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
+      headers
     })
   );
 
@@ -93,7 +113,7 @@ export async function fetchFileContent(repo: any, filePath: string, githubToken:
   return await response.json();
 }
 
-export async function processFilesBatch(repo: any, files: any[], githubToken: string, supabaseClient: any, userId: string) {
+export async function processFilesBatch(repo: any, files: any[], githubToken: string | null, supabaseClient: any, userId: string) {
   const results = await Promise.all(
     files.map(async (file) => {
       try {

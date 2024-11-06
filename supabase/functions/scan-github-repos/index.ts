@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { fetchRepositories, fetchRepositoryContents, processFilesBatch } from './github-api.ts'
-import { API_PATTERNS } from './api-patterns.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,10 +15,14 @@ serve(async (req) => {
   }
 
   try {
-    const { githubToken, userId, specificRepo } = await req.json()
+    const { githubToken, userId, specificRepo, includePrivateRepos } = await req.json()
     
-    if (!githubToken || !userId) {
+    if (!userId) {
       throw new Error('Missing required parameters')
+    }
+
+    if (includePrivateRepos && !githubToken) {
+      throw new Error('GitHub token is required for scanning private repositories')
     }
 
     console.log('Starting GitHub scan for user:', userId)
@@ -31,11 +34,16 @@ serve(async (req) => {
 
     let repos = []
     if (specificRepo) {
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json'
+      }
+      
+      if (githubToken) {
+        headers['Authorization'] = `token ${githubToken}`
+      }
+      
       const repoResponse = await fetch(`https://api.github.com/repos/${specificRepo}`, {
-        headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
+        headers
       })
       
       if (!repoResponse.ok) {
@@ -44,7 +52,7 @@ serve(async (req) => {
       
       repos = [await repoResponse.json()]
     } else {
-      repos = await fetchRepositories(githubToken)
+      repos = await fetchRepositories(githubToken, includePrivateRepos)
     }
 
     console.log(`Found ${repos.length} repositories to scan`)
