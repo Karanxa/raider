@@ -10,6 +10,13 @@ import ApkComponents from "./ApkComponents";
 import FileViewer from "./FileViewer";
 import SecurityAnalysis from "./SecurityAnalysis";
 
+interface ManifestContent {
+  dexFiles?: string[];
+  libraries?: string[];
+  debuggable?: boolean;
+  allowBackup?: boolean;
+}
+
 const ApkDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -53,6 +60,9 @@ const ApkDetails = () => {
     return <div>APK not found</div>;
   }
 
+  const manifestContent = apk.manifest_content as ManifestContent;
+  const permissions = Array.isArray(apk.permissions) ? apk.permissions : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -95,7 +105,7 @@ const ApkDetails = () => {
 
         <TabsContent value="permissions">
           <div className="grid gap-4">
-            {apk.permissions?.map((permission: string, index: number) => (
+            {permissions.map((permission: string, index: number) => (
               <div
                 key={index}
                 className="p-3 bg-muted rounded-lg hover:bg-accent transition-colors"
@@ -108,7 +118,7 @@ const ApkDetails = () => {
 
         <TabsContent value="source">
           <div className="grid gap-4">
-            {apk.manifest_content?.dexFiles?.map((file: string) => (
+            {manifestContent?.dexFiles?.map((file: string) => (
               <FileViewer 
                 key={file}
                 apkId={id!}
@@ -116,7 +126,7 @@ const ApkDetails = () => {
                 fileType="dex"
               />
             ))}
-            {apk.manifest_content?.libraries?.map((lib: string) => (
+            {manifestContent?.libraries?.map((lib: string) => (
               <FileViewer
                 key={lib}
                 apkId={id!}

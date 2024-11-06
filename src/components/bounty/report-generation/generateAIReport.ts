@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { generateStructuredReport } from "./generateStructuredReport";
 
 const SYSTEM_PROMPT = `You are a security vulnerability report analyzer and formatter. Your task is to analyze the provided vulnerability description and generate a well-structured report with the following sections:
 

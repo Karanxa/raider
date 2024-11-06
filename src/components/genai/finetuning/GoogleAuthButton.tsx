@@ -6,10 +6,16 @@ import { storeGoogleTokens } from "@/utils/googleAuth";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+interface CredentialResponse {
+  clientId: string;
+  credential: string;
+  select_by: string;
+}
+
 export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
   const session = useSession();
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!session?.user?.id) {
       toast.error("Please login to continue");
       return;
@@ -27,7 +33,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       // Exchange the credential for tokens
       const { data, error } = await supabase.functions.invoke('exchange-google-token', {
         body: { 
-          code: credentialResponse.code,
+          code: credentialResponse.credential,
           userId: session.user.id
         }
       });
@@ -73,10 +79,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
           console.error("Google Sign In Failed");
           toast.error("Google Sign In Failed");
         }}
-        flow="auth-code"
-        ux_mode="redirect"
-        redirect_uri="https://preview--raider.gptengineer.run/"
-        scope="https://www.googleapis.com/auth/drive.file"
+        useOneTap
         clientId={GOOGLE_CLIENT_ID}
       />
     </div>
