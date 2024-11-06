@@ -1,18 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { APIFindingsTable } from "./APIFindingsTable";
+import { APIFindingsFilters } from "./APIFindingsFilters";
 
 interface APIFinding {
   id: string;
@@ -101,17 +91,6 @@ export const APIFindings = () => {
     return matchesSearch && matchesPiiFilter;
   });
 
-  const getMethodColor = (method: string) => {
-    const colors: Record<string, string> = {
-      GET: "bg-blue-500",
-      POST: "bg-green-500",
-      PUT: "bg-yellow-500",
-      DELETE: "bg-red-500",
-      PATCH: "bg-purple-500"
-    };
-    return colors[method] || "bg-gray-500";
-  };
-
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -121,87 +100,17 @@ export const APIFindings = () => {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Input
-          placeholder="Search by API path, repository, or method..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-        />
-        <Select value={piiFilter} onValueChange={(value: "all" | "pii" | "non-pii") => setPiiFilter(value)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by PII" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All APIs</SelectItem>
-            <SelectItem value="pii">PII APIs</SelectItem>
-            <SelectItem value="non-pii">Non-PII APIs</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <APIFindingsFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        piiFilter={piiFilter}
+        onPiiFilterChange={setPiiFilter}
+      />
 
-      {isLoading ? (
-        <div className="text-center py-8">Loading findings...</div>
-      ) : findings.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No API findings yet. Try scanning some repositories first.
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Method</TableHead>
-                <TableHead>API Path</TableHead>
-                <TableHead>Repository</TableHead>
-                <TableHead>File Location</TableHead>
-                <TableHead>PII Types</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredFindings.map((finding) => (
-                <TableRow key={finding.id}>
-                  <TableCell>
-                    <Badge className={getMethodColor(finding.method)}>
-                      {finding.method}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono">
-                    <div className="flex items-center gap-2">
-                      {finding.api_path}
-                      {finding.pii_classification && (
-                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <a
-                      href={finding.repository_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      {finding.repository_name}
-                    </a>
-                  </TableCell>
-                  <TableCell>
-                    {finding.file_path}:{finding.line_number}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {finding.pii_types?.map((type) => (
-                        <Badge key={type} variant="outline" className="bg-yellow-500/10">
-                          {type}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <APIFindingsTable
+        findings={filteredFindings}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
