@@ -5,6 +5,8 @@ import { APIFindingsTable } from "./APIFindingsTable";
 import { APIFindingsFilters } from "./APIFindingsFilters";
 import { OWASPResults } from "@/components/security/OWASPResults";
 import { Card } from "@/components/ui/card";
+import { useSession } from '@supabase/auth-helpers-react';
+import { useQuery } from "@tanstack/react-query";
 
 interface APIFinding {
   id: string;
@@ -19,63 +21,32 @@ interface APIFinding {
 }
 
 export const APIFindings = () => {
-  const [findings, setFindings] = useState<APIFinding[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [piiFilter, setPiiFilter] = useState<"all" | "pii" | "non-pii">("all");
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedApiPath, setSelectedApiPath] = useState<string | null>(null);
+  const session = useSession();
 
-  useEffect(() => {
-    const fetchFindings = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
-          toast.error("Please sign in to view API findings");
-          return;
-        }
+  const { data: findings = [], isLoading } = useQuery({
+    queryKey: ['github-api-findings', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
 
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('github_api_findings')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('github_api_findings')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching findings:', error);
-          toast.error('Failed to fetch API findings: ' + error.message);
-          return;
-        }
-
-        setFindings(data || []);
-      } catch (error) {
-        console.error('Error:', error);
-        toast.error('An error occurred while fetching API findings');
-      } finally {
-        setIsLoading(false);
+      if (error) {
+        console.error('Error fetching findings:', error);
+        toast.error('Failed to fetch API findings');
+        return [];
       }
-    };
 
-    fetchFindings();
-
-    const channel = supabase
-      .channel('github_api_findings_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'github_api_findings' 
-        }, 
-        () => {
-          fetchFindings();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      return data as APIFinding[];
+    },
+    enabled: !!session?.user?.id
+  });
 
   const filteredFindings = findings.filter(finding => {
     const matchesSearch = 

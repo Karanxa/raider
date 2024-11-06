@@ -1,66 +1,41 @@
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useSession } from '@supabase/auth-helpers-react';
+import { Progress } from "@/components/ui/progress";
 
 export const GitHubScanner = () => {
+  const [scanning, setScanning] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [githubToken, setGithubToken] = useState("");
   const [specificRepo, setSpecificRepo] = useState("");
   const [orgName, setOrgName] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
-  const [totalRepos, setTotalRepos] = useState(0);
-  const [scannedRepos, setScannedRepos] = useState(0);
   const [includePrivateRepos, setIncludePrivateRepos] = useState(false);
   const session = useSession();
 
-  const handleScan = async (scanType: 'all' | 'specific' | 'org') => {
+  const startScan = async () => {
     if (!session?.user?.id) {
-      toast.error("Please sign in to scan repositories");
+      toast.error("Please sign in to use the GitHub scanner");
       return;
     }
 
-    if (scanType === 'specific' && !specificRepo) {
-      toast.error("Please enter a repository name");
+    if (!githubToken) {
+      toast.error("Please provide a GitHub token");
       return;
     }
 
-    if (scanType === 'org' && !orgName) {
-      toast.error("Please enter an organization name");
-      return;
-    }
-
-    if (includePrivateRepos && !githubToken) {
-      toast.error("GitHub token is required for scanning private repositories");
-      return;
-    }
-
-    setIsScanning(true);
+    setScanning(true);
     setProgress(0);
-    setTimeRemaining(null);
-    setTotalRepos(0);
-    setScannedRepos(0);
 
     try {
-      const channel = supabase
-        .channel('scan-progress')
-        .on('broadcast', { event: 'scan-progress' }, (payload) => {
-          const { progress, timeRemaining, totalRepos, scannedRepos } = payload.payload;
-          setProgress(progress);
-          setTimeRemaining(timeRemaining);
-          setTotalRepos(totalRepos);
-          setScannedRepos(scannedRepos);
-        })
-        .subscribe();
-
-      const { data, error } = await supabase.functions.invoke('scan-github-repos', {
+      const scanType = specificRepo ? 'specific' : orgName ? 'organization' : 'user';
+      
+      const { error } = await supabase.functions.invoke('scan-github-repos', {
         body: {
           githubToken,
           userId: session.user.id,
@@ -73,95 +48,104 @@ export const GitHubScanner = () => {
 
       if (error) throw error;
 
-      toast.success("GitHub scan completed successfully");
-      channel.unsubscribe();
+      const channel = supabase
+        .channel('scan-progress')
+        .on('broadcast', { event: 'scan-progress' }, (payload) => {
+          setProgress(payload.payload.progress || 0);
+          
+          if (payload.payload.progress === 100) {
+            toast.success(`Scan completed! Found ${payload.payload.totalFindings} API endpoints`);
+            setScanning(false);
+          }
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+
     } catch (error: any) {
-      console.error('Error scanning GitHub repos:', error);
-      toast.error(error.message || "Failed to scan GitHub repositories");
-    } finally {
-      setIsScanning(false);
-      setProgress(0);
-      setTimeRemaining(null);
+      console.error('Scan error:', error);
+      toast.error(`Scan failed: ${error.message}`);
+      setScanning(false);
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">GitHub Repository Scanner</h2>
+        <h2 className="text-2xl font-bold tracking-tight">GitHub API Scanner</h2>
         <p className="text-muted-foreground">
-          Enter a GitHub repository to scan for API endpoints and analyze their security.
+          Scan GitHub repositories to discover API endpoints and potential security issues.
         </p>
       </div>
 
       <Card className="p-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="repo-name">Repository Name</Label>
+            <Label htmlFor="githubToken">GitHub Personal Access Token</Label>
             <Input
-              id="repo-name"
-              type="text"
-              placeholder="e.g., octocat/Hello-World"
-              value={specificRepo}
-              onChange={(e) => setSpecificRepo(e.target.value)}
-              className="w-full"
+              id="githubToken"
+              type="password"
+              placeholder="ghp_..."
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
             />
             <p className="text-sm text-muted-foreground">
-              Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
+              Required. Token needs repo access permissions.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="private-repos"
-              checked={includePrivateRepos}
-              onCheckedChange={setIncludePrivateRepos}
+          <div className="space-y-2">
+            <Label htmlFor="specificRepo">Specific Repository (Optional)</Label>
+            <Input
+              id="specificRepo"
+              placeholder="owner/repo"
+              value={specificRepo}
+              onChange={(e) => setSpecificRepo(e.target.value)}
             />
-            <Label htmlFor="private-repos">Include Private Repository</Label>
+            <p className="text-sm text-muted-foreground">
+              Format: owner/repo (e.g., octocat/Hello-World)
+            </p>
           </div>
 
-          {includePrivateRepos && (
+          <div className="space-y-2">
+            <Label htmlFor="orgName">Organization Name (Optional)</Label>
+            <Input
+              id="orgName"
+              placeholder="organization"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              disabled={!!specificRepo}
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="privateRepos"
+              checked={includePrivateRepos}
+              onCheckedChange={(checked) => setIncludePrivateRepos(!!checked)}
+            />
+            <Label htmlFor="privateRepos">Include private repositories</Label>
+          </div>
+
+          <Button 
+            onClick={startScan} 
+            disabled={scanning || !githubToken}
+            className="w-full"
+          >
+            {scanning ? 'Scanning...' : 'Start Scan'}
+          </Button>
+
+          {scanning && (
             <div className="space-y-2">
-              <Label htmlFor="github-token">GitHub Personal Access Token</Label>
-              <Input
-                id="github-token"
-                type="password"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                value={githubToken}
-                onChange={(e) => setGithubToken(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Token requires 'repo' scope. Create one in GitHub Settings → Developer settings → Personal access tokens
+              <Progress value={progress} className="w-full" />
+              <p className="text-sm text-center text-muted-foreground">
+                {progress.toFixed(1)}% complete
               </p>
             </div>
           )}
-
-          <Button 
-            onClick={() => handleScan('specific')} 
-            disabled={isScanning}
-            className="w-full"
-          >
-            {isScanning ? "Scanning..." : "Start Scan"}
-          </Button>
         </div>
-
-        {isScanning && (
-          <div className="space-y-2 mt-4">
-            <div className="flex justify-between text-sm">
-              <span>Scanning Progress</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="w-full" />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>
-                {scannedRepos} of {totalRepos} repositories scanned
-              </span>
-              {timeRemaining && (
-                <span>Estimated time remaining: {timeRemaining}</span>
-              )}
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );

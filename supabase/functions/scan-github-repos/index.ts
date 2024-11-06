@@ -17,8 +17,8 @@ serve(async (req) => {
   try {
     const { githubToken, userId, specificRepo, orgName, includePrivateRepos, scanType } = await req.json()
     
-    if (!userId || !scanType) {
-      throw new Error('Missing required parameters: userId and scanType are required')
+    if (!userId || !scanType || !githubToken) {
+      throw new Error('Missing required parameters: userId, scanType, and githubToken are required')
     }
 
     console.log(`Starting GitHub scan for user: ${userId}, type: ${scanType}`)
