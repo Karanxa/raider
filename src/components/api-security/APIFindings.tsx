@@ -10,6 +10,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@supabase/auth-helpers-react";
+import { toast } from "sonner";
 
 interface APIFinding {
   id: string;
@@ -25,20 +27,31 @@ export const APIFindings = () => {
   const [findings, setFindings] = useState<APIFinding[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const auth = useAuth();
 
   useEffect(() => {
-    fetchFindings();
-  }, []);
+    if (auth?.user?.id) {
+      fetchFindings();
+    }
+  }, [auth?.user?.id]);
 
   const fetchFindings = async () => {
     try {
       const { data, error } = await supabase
         .from('github_api_findings')
         .select('*')
+        .eq('user_id', auth?.user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Error fetching API findings: ' + error.message);
+        throw error;
+      }
+      
       setFindings(data || []);
+      if (data?.length === 0) {
+        toast.info('No API findings found. Try scanning some repositories first.');
+      }
     } catch (error) {
       console.error('Error fetching API findings:', error);
     } finally {
@@ -63,6 +76,10 @@ export const APIFindings = () => {
     return colors[method] || "bg-gray-500";
   };
 
+  if (!auth?.user?.id) {
+    return <div>Please sign in to view API findings.</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -81,6 +98,10 @@ export const APIFindings = () => {
 
       {isLoading ? (
         <div>Loading findings...</div>
+      ) : findings.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No API findings yet. Try scanning some repositories first.
+        </div>
       ) : (
         <div className="rounded-md border">
           <Table>
