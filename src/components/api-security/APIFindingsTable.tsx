@@ -28,6 +28,7 @@ interface APIFinding {
 interface APIFindingsTableProps {
   findings: APIFinding[];
   isLoading: boolean;
+  onScanComplete: (apiPath: string) => void;
 }
 
 const getMethodColor = (method: string) => {
@@ -46,7 +47,7 @@ const getGitHubLineLink = (repoUrl: string, filePath: string, lineNumber: number
   return `${baseUrl}/blob/main/${filePath}#L${lineNumber}`;
 };
 
-export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps) => {
+export const APIFindingsTable = ({ findings, isLoading, onScanComplete }: APIFindingsTableProps) => {
   const session = useSession();
 
   const runOWASPScan = async (finding: APIFinding) => {
@@ -66,6 +67,7 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
       if (error) throw error;
       
       toast.success(`OWASP security scan initiated for ${finding.api_path}`);
+      onScanComplete(finding.api_path);
     } catch (error: any) {
       console.error('OWASP scan error:', error);
       toast.error(`Failed to run security scan: ${error.message}`);

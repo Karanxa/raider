@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { APIFindingsTable } from "./APIFindingsTable";
 import { APIFindingsFilters } from "./APIFindingsFilters";
+import { OWASPResults } from "@/components/security/OWASPResults";
+import { Card } from "@/components/ui/card";
 
 interface APIFinding {
   id: string;
@@ -21,6 +23,7 @@ export const APIFindings = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [piiFilter, setPiiFilter] = useState<"all" | "pii" | "non-pii">("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedApiPath, setSelectedApiPath] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFindings = async () => {
@@ -110,7 +113,15 @@ export const APIFindings = () => {
       <APIFindingsTable
         findings={filteredFindings}
         isLoading={isLoading}
+        onScanComplete={(apiPath) => setSelectedApiPath(apiPath)}
       />
+
+      {selectedApiPath && (
+        <Card className="mt-6 p-6">
+          <h3 className="text-lg font-semibold mb-4">Security Scan Results for {selectedApiPath}</h3>
+          <OWASPResults targetUrl={selectedApiPath} />
+        </Card>
+      )}
     </div>
   );
 };
