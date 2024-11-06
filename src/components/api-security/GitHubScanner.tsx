@@ -91,50 +91,25 @@ export const GitHubScanner = () => {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">GitHub API Scanner</h2>
         <p className="text-muted-foreground">
-          Scan your GitHub repositories to discover API endpoints and analyze their security.
+          Scan GitHub repositories to discover API endpoints and analyze their security.
         </p>
       </div>
 
       <Card className="p-6">
         <Tabs defaultValue="specific" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="specific">Scan Specific Repository</TabsTrigger>
-            <TabsTrigger value="org">Scan Organization</TabsTrigger>
-            <TabsTrigger value="all">Scan Public Repositories</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="specific">Specific Repository</TabsTrigger>
+            <TabsTrigger value="org">Organization</TabsTrigger>
+            <TabsTrigger value="all">All Public Repos</TabsTrigger>
           </TabsList>
-
-          <div className="flex items-center space-x-2 mb-4">
-            <Switch
-              id="private-repos"
-              checked={includePrivateRepos}
-              onCheckedChange={setIncludePrivateRepos}
-            />
-            <Label htmlFor="private-repos">Include Private Repositories</Label>
-          </div>
-
-          {includePrivateRepos && (
-            <div className="space-y-2 mb-4">
-              <Label htmlFor="github-token">GitHub Personal Access Token</Label>
-              <Input
-                id="github-token"
-                type="password"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                value={githubToken}
-                onChange={(e) => setGithubToken(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Token requires 'repo' scope. Create one in GitHub Settings → Developer settings → Personal access tokens
-              </p>
-            </div>
-          )}
 
           <TabsContent value="specific" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="repo-name">Repository Name</Label>
+              <Label htmlFor="repo-name">Public Repository Name</Label>
               <Input
                 id="repo-name"
                 type="text"
-                placeholder="owner/repository"
+                placeholder="e.g., octocat/Hello-World"
                 value={specificRepo}
                 onChange={(e) => setSpecificRepo(e.target.value)}
               />
@@ -153,7 +128,7 @@ export const GitHubScanner = () => {
               <Input
                 id="org-name"
                 type="text"
-                placeholder="organization-name"
+                placeholder="e.g., microsoft"
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
               />
@@ -167,10 +142,38 @@ export const GitHubScanner = () => {
           </TabsContent>
 
           <TabsContent value="all" className="space-y-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Scan all public repositories available through GitHub's API.
+            </p>
             <Button onClick={() => handleScan('all')} disabled={isScanning}>
               {isScanning ? "Scanning..." : "Start Scan"}
             </Button>
           </TabsContent>
+
+          <div className="flex items-center space-x-2 mt-4">
+            <Switch
+              id="private-repos"
+              checked={includePrivateRepos}
+              onCheckedChange={setIncludePrivateRepos}
+            />
+            <Label htmlFor="private-repos">Include Private Repositories</Label>
+          </div>
+
+          {includePrivateRepos && (
+            <div className="space-y-2">
+              <Label htmlFor="github-token">GitHub Personal Access Token</Label>
+              <Input
+                id="github-token"
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Token requires 'repo' scope. Create one in GitHub Settings → Developer settings → Personal access tokens
+              </p>
+            </div>
+          )}
         </Tabs>
 
         {isScanning && (
