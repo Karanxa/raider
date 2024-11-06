@@ -264,7 +264,6 @@ export type Database = {
           pii_classification: boolean | null
           pii_types: string[] | null
           repository_name: string
-          repository_owner: string | null
           repository_url: string
           user_id: string
         }
@@ -279,7 +278,6 @@ export type Database = {
           pii_classification?: boolean | null
           pii_types?: string[] | null
           repository_name: string
-          repository_owner?: string | null
           repository_url: string
           user_id: string
         }
@@ -294,7 +292,6 @@ export type Database = {
           pii_classification?: boolean | null
           pii_types?: string[] | null
           repository_name?: string
-          repository_owner?: string | null
           repository_url?: string
           user_id?: string
         }

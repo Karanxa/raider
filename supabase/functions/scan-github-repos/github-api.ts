@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { API_PATTERNS } from './api-patterns.ts';
-import { detectPIITypes } from './piiPatterns.ts';
+import { detectPIITypes } from '../../src/utils/piiPatterns.ts';
+import { fetchRepoContents } from './repo-contents.ts';
+import { processRepoFiles } from './file-processor.ts';
 
 const BATCH_SIZE = 10;
 const MAX_RETRIES = 3;
@@ -24,10 +26,6 @@ async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETR
 }
 
 export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
-  if (!githubToken && includePrivateRepos) {
-    throw new Error('GitHub token is required for scanning private repositories');
-  }
-
   const repos = [];
   let page = 1;
   const headers: Record<string, string> = {
@@ -38,12 +36,15 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     headers['Authorization'] = `token ${githubToken}`;
   }
 
+  // Determine the appropriate API endpoint based on the scan type
   let apiUrl: string;
   if (orgName) {
     apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
   } else if (githubToken) {
+    // If we have a token, use the authenticated user's repos endpoint
     apiUrl = 'https://api.github.com/user/repos';
   } else {
+    // Fallback to public repositories
     apiUrl = 'https://api.github.com/repositories';
   }
 
@@ -71,6 +72,7 @@ export async function fetchRepositories(githubToken: string | null, includePriva
         return !includePrivateRepos ? !repo.private : true;
       });
 
+      console.log(`Found ${validRepos.length} valid repositories on page ${page}`);
       repos.push(...validRepos);
       page++;
     } catch (error) {

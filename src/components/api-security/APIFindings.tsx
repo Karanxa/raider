@@ -1,70 +1,116 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@supabase/auth-helpers-react";
-import { Card } from "@/components/ui/card";
-import { APIFindingsFilters } from "./APIFindingsFilters";
+import { toast } from "sonner";
 import { APIFindingsTable } from "./APIFindingsTable";
+import { APIFindingsFilters } from "./APIFindingsFilters";
+
+interface APIFinding {
+  id: string;
+  repository_name: string;
+  api_path: string;
+  method: string;
+  file_path: string;
+  line_number: number;
+  repository_url: string;
+  pii_classification: boolean;
+  pii_types: string[];
+}
 
 export const APIFindings = () => {
-  const session = useSession();
+  const [findings, setFindings] = useState<APIFinding[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOwner, setSelectedOwner] = useState("");
+  const [piiFilter, setPiiFilter] = useState<"all" | "pii" | "non-pii">("all");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: findings = [], isLoading } = useQuery({
-    queryKey: ['api-findings', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('github_api_findings')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
+  useEffect(() => {
+    const fetchFindings = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          toast.error("Please sign in to view API findings");
+          return;
+        }
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id
-  });
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('github_api_findings')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
 
-  const owners = [...new Set(findings.map(f => f.repository_owner))].filter(Boolean);
+        if (error) {
+          console.error('Error fetching findings:', error);
+          toast.error('Failed to fetch API findings: ' + error.message);
+          return;
+        }
+
+        setFindings(data || []);
+        if (data?.length === 0) {
+          toast.info('No API findings found. Try scanning some repositories first.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        toast.error('An error occurred while fetching API findings');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFindings();
+
+    const channel = supabase
+      .channel('github_api_findings_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'github_api_findings' 
+        }, 
+        () => {
+          fetchFindings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filteredFindings = findings.filter(finding => {
-    const matchesSearch = !searchTerm || 
-      finding.repository_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = 
       finding.api_path.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      finding.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      finding.repository_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      finding.method.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesOwner = !selectedOwner || finding.repository_owner === selectedOwner;
+    const matchesPiiFilter = 
+      piiFilter === "all" ? true :
+      piiFilter === "pii" ? finding.pii_classification :
+      !finding.pii_classification;
 
-    return matchesSearch && matchesOwner;
+    return matchesSearch && matchesPiiFilter;
   });
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">API Findings</h2>
-          <p className="text-muted-foreground">
-            View and analyze API endpoints discovered in GitHub repositories
-          </p>
-        </div>
-
-        <APIFindingsFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedOwner={selectedOwner}
-          onOwnerChange={setSelectedOwner}
-          owners={owners}
-        />
-
-        <APIFindingsTable findings={filteredFindings} />
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold tracking-tight">API Findings</h2>
+        <p className="text-muted-foreground">
+          Discovered API endpoints from your GitHub repositories.
+        </p>
       </div>
-    </Card>
+
+      <APIFindingsFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        piiFilter={piiFilter}
+        onPiiFilterChange={setPiiFilter}
+      />
+
+      <APIFindingsTable
+        findings={filteredFindings}
+        isLoading={isLoading}
+      />
+    </div>
   );
 };

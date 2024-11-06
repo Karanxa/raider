@@ -1,49 +1,37 @@
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface APIFindingsFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  selectedOwner: string;
-  onOwnerChange: (value: string) => void;
-  owners: string[];
+  piiFilter: "all" | "pii" | "non-pii";
+  onPiiFilterChange: (value: "all" | "pii" | "non-pii") => void;
 }
 
 export const APIFindingsFilters = ({
   searchTerm,
   onSearchChange,
-  selectedOwner,
-  onOwnerChange,
-  owners,
+  piiFilter,
+  onPiiFilterChange,
 }: APIFindingsFiltersProps) => {
   return (
-    <div className="space-y-4">
-      <div>
-        <Label>Search</Label>
-        <Input
-          placeholder="Search by repository, API path, or description..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
-      
-      <div>
-        <Label>Repository Owner</Label>
-        <Select value={selectedOwner} onValueChange={onOwnerChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select owner" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Owners</SelectItem>
-            {owners.map((owner) => (
-              <SelectItem key={owner} value={owner || "unknown"}>
-                {owner || "Unknown Owner"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="flex flex-col sm:flex-row gap-4">
+      <Input
+        placeholder="Search by API path, repository, or method..."
+        value={searchTerm}
+        onChange={(e) => onSearchChange(e.target.value)}
+        className="max-w-md"
+      />
+      <Select value={piiFilter} onValueChange={onPiiFilterChange}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Filter by PII" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All APIs</SelectItem>
+          <SelectItem value="pii">PII APIs</SelectItem>
+          <SelectItem value="non-pii">Non-PII APIs</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 };
