@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useSession } from '@supabase/auth-helpers-react';
 import { Card } from "@/components/ui/card";
-import { APIFindingsFilters } from "./APIFindingsFilters";
-import { APIFindingsTable } from "./APIFindingsTable";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { FindingsFilters } from "./findings/FindingsFilters";
+import { FindingsTable } from "./findings/FindingsTable";
 import { 
   Pagination, 
   PaginationContent, 
@@ -27,8 +27,7 @@ export const APIFindings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Set up real-time subscription
-  const setupRealtimeSubscription = () => {
+  useEffect(() => {
     const channel = supabase
       .channel('api-findings-changes')
       .on('postgres_changes', 
@@ -46,15 +45,9 @@ export const APIFindings = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  }, [queryClient]);
 
-  // Use the subscription
-  useState(() => {
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
-  }, []);
-
-  const { data: findings = [], isLoading, refetch } = useQuery({
+  const { data: findings = [], isLoading } = useQuery({
     queryKey: ['api-findings', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
@@ -109,11 +102,8 @@ export const APIFindings = () => {
         .eq('user_id', session.user.id);
 
       if (error) throw error;
-
-      await queryClient.invalidateQueries({ queryKey: ['api-findings'] });
-      await refetch(); // Explicitly refetch after deletion
       toast.success('All findings deleted successfully');
-      setCurrentPage(1); // Reset to first page
+      setCurrentPage(1);
     } catch (error) {
       console.error('Error deleting findings:', error);
       toast.error('Failed to delete findings');
@@ -147,7 +137,7 @@ export const APIFindings = () => {
           </Button>
         </div>
 
-        <APIFindingsFilters
+        <FindingsFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           selectedOwner={selectedOwner}
@@ -155,29 +145,10 @@ export const APIFindings = () => {
           owners={owners}
         />
 
-        <APIFindingsTable 
-          findings={paginatedFindings} 
-          onDelete={async (id) => {
-            try {
-              const { error } = await supabase
-                .from('github_api_findings')
-                .delete()
-                .eq('id', id);
-
-              if (error) throw error;
-
-              await queryClient.invalidateQueries({ queryKey: ['api-findings'] });
-              await refetch();
-              toast.success('Finding deleted successfully');
-              
-              if (paginatedFindings.length === 1 && currentPage > 1) {
-                setCurrentPage(currentPage - 1);
-              }
-            } catch (error) {
-              console.error('Error deleting finding:', error);
-              toast.error('Failed to delete finding');
-            }
-          }}
+        <FindingsTable 
+          findings={paginatedFindings}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
         />
 
         {totalPages > 1 && (

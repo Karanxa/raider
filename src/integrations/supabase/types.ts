@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_security_issues: {
+        Row: {
+          created_at: string | null
+          description: string
+          finding_id: string
+          id: string
+          owasp_category: string
+          recommendation: string | null
+          severity: string
+          updated_at: string | null
+          user_id: string
+          vulnerability_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          finding_id: string
+          id?: string
+          owasp_category: string
+          recommendation?: string | null
+          severity: string
+          updated_at?: string | null
+          user_id: string
+          vulnerability_type: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          finding_id?: string
+          id?: string
+          owasp_category?: string
+          recommendation?: string | null
+          severity?: string
+          updated_at?: string | null
+          user_id?: string
+          vulnerability_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_security_issues_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "github_api_findings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apk_analysis: {
         Row: {
           activities: Json | null
