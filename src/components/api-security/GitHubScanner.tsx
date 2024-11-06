@@ -28,11 +28,6 @@ export const GitHubScanner = () => {
       return;
     }
 
-    if (includePrivateRepos && !githubToken) {
-      toast.error("GitHub token is required for scanning private repositories");
-      return;
-    }
-
     if (scanType === 'specific' && !specificRepo) {
       toast.error("Please enter a repository name");
       return;
@@ -40,6 +35,11 @@ export const GitHubScanner = () => {
 
     if (scanType === 'org' && !orgName) {
       toast.error("Please enter an organization name");
+      return;
+    }
+
+    if (includePrivateRepos && !githubToken) {
+      toast.error("GitHub token is required for scanning private repositories");
       return;
     }
 
@@ -62,23 +62,19 @@ export const GitHubScanner = () => {
         .subscribe();
 
       const { data, error } = await supabase.functions.invoke('scan-github-repos', {
-        body: { 
-          githubToken: includePrivateRepos ? githubToken : null,
+        body: {
+          githubToken,
           userId: session.user.id,
-          specificRepo: scanType === 'specific' ? specificRepo : null,
-          orgName: scanType === 'org' ? orgName : null,
+          specificRepo,
+          orgName,
           includePrivateRepos,
           scanType
         }
       });
 
       if (error) throw error;
-      
+
       toast.success("GitHub scan completed successfully");
-      
-      setGithubToken("");
-      setSpecificRepo("");
-      setOrgName("");
       channel.unsubscribe();
     } catch (error: any) {
       console.error('Error scanning GitHub repos:', error);
@@ -100,11 +96,11 @@ export const GitHubScanner = () => {
       </div>
 
       <Card className="p-6">
-        <Tabs defaultValue="all" className="space-y-4">
+        <Tabs defaultValue="specific" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">Scan Public Repositories</TabsTrigger>
-            <TabsTrigger value="org">Scan Organization</TabsTrigger>
             <TabsTrigger value="specific">Scan Specific Repository</TabsTrigger>
+            <TabsTrigger value="org">Scan Organization</TabsTrigger>
+            <TabsTrigger value="all">Scan Public Repositories</TabsTrigger>
           </TabsList>
 
           <div className="flex items-center space-x-2 mb-4">
@@ -132,8 +128,21 @@ export const GitHubScanner = () => {
             </div>
           )}
 
-          <TabsContent value="all" className="space-y-4">
-            <Button onClick={() => handleScan('all')} disabled={isScanning}>
+          <TabsContent value="specific" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="repo-name">Repository Name</Label>
+              <Input
+                id="repo-name"
+                type="text"
+                placeholder="owner/repository"
+                value={specificRepo}
+                onChange={(e) => setSpecificRepo(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
+              </p>
+            </div>
+            <Button onClick={() => handleScan('specific')} disabled={isScanning}>
               {isScanning ? "Scanning..." : "Start Scan"}
             </Button>
           </TabsContent>
@@ -157,21 +166,8 @@ export const GitHubScanner = () => {
             </Button>
           </TabsContent>
 
-          <TabsContent value="specific" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="repo-name">Repository Name</Label>
-              <Input
-                id="repo-name"
-                type="text"
-                placeholder="owner/repository"
-                value={specificRepo}
-                onChange={(e) => setSpecificRepo(e.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
-              </p>
-            </div>
-            <Button onClick={() => handleScan('specific')} disabled={isScanning}>
+          <TabsContent value="all" className="space-y-4">
+            <Button onClick={() => handleScan('all')} disabled={isScanning}>
               {isScanning ? "Scanning..." : "Start Scan"}
             </Button>
           </TabsContent>

@@ -38,7 +38,6 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     ? 'https://api.github.com/user/repos'
     : 'https://api.github.com/repositories';
 
-  // If organization name is provided, use the organization repos endpoint
   if (orgName) {
     apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
   }
@@ -55,7 +54,6 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     const data = await response.json();
     if (data.length === 0) break;
 
-    // Filter out private repos if we're not including them
     const filteredRepos = includePrivateRepos 
       ? data 
       : data.filter((repo: any) => !repo.private);

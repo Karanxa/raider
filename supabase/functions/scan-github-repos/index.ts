@@ -15,17 +15,13 @@ serve(async (req) => {
   }
 
   try {
-    const { githubToken, userId, specificRepo, orgName, includePrivateRepos } = await req.json()
+    const { githubToken, userId, specificRepo, orgName, includePrivateRepos, scanType } = await req.json()
     
-    if (!userId) {
-      throw new Error('Missing required parameters')
+    if (!userId || !scanType) {
+      throw new Error('Missing required parameters: userId and scanType are required')
     }
 
-    if (includePrivateRepos && !githubToken) {
-      throw new Error('GitHub token is required for scanning private repositories')
-    }
-
-    console.log('Starting GitHub scan for user:', userId)
+    console.log(`Starting GitHub scan for user: ${userId}, type: ${scanType}`)
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -33,7 +29,11 @@ serve(async (req) => {
     )
 
     let repos = []
-    if (specificRepo) {
+    if (scanType === 'specific') {
+      if (!specificRepo) {
+        throw new Error('Repository name is required for specific scan')
+      }
+
       const headers: Record<string, string> = {
         'Accept': 'application/vnd.github.v3+json'
       }
