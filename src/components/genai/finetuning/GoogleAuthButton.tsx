@@ -78,7 +78,6 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
           toast.error("Google Sign In Failed");
         }}
         useOneTap
-        clientId={GOOGLE_CLIENT_ID}
       />
     </div>
   );

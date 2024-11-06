@@ -25,38 +25,66 @@ serve(async (req) => {
         'Accept': 'application/vnd.github.v3+json'
       }
     })
+    
+    if (!reposResponse.ok) {
+      throw new Error(`GitHub API error: ${reposResponse.statusText}`)
+    }
+    
     const repos = await reposResponse.json()
 
     // Process each repository
     for (const repo of repos) {
       console.log(`Processing repository: ${repo.name}`)
       
-      // Get repository contents
-      const contentsResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/main?recursive=1`, {
-        headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      })
-      const contents = await contentsResponse.json()
-
-      // Filter for potential API-containing files
-      const apiFiles = contents.tree.filter((item: any) => {
-        const ext = item.path.split('.').pop()?.toLowerCase()
-        return ['js', 'ts', 'py', 'rb', 'php', 'java', 'go'].includes(ext)
-      })
-
-      // Analyze each file for API endpoints
-      for (const file of apiFiles) {
-        const fileContentResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${file.path}`, {
+      try {
+        // Get repository contents
+        const contentsResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/main?recursive=1`, {
           headers: {
             'Authorization': `token ${githubToken}`,
             'Accept': 'application/vnd.github.v3+json'
           }
         })
-        const fileContent = await fileContentResponse.json()
         
-        if (fileContent.content) {
+        if (!contentsResponse.ok) {
+          console.warn(`Skipping repo ${repo.name}: ${contentsResponse.statusText}`)
+          continue
+        }
+
+        const contents = await contentsResponse.json()
+        
+        if (!contents?.tree) {
+          console.warn(`No tree found for repo ${repo.name}`)
+          continue
+        }
+
+        // Filter for potential API-containing files
+        const apiFiles = contents.tree.filter((item: any) => {
+          if (!item?.path) return false
+          const ext = item.path.split('.').pop()?.toLowerCase()
+          return ['js', 'ts', 'py', 'rb', 'php', 'java', 'go'].includes(ext)
+        })
+
+        // Analyze each file for API endpoints
+        for (const file of apiFiles) {
+          const fileContentResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${file.path}`, {
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          })
+          
+          if (!fileContentResponse.ok) {
+            console.warn(`Skipping file ${file.path}: ${fileContentResponse.statusText}`)
+            continue
+          }
+
+          const fileContent = await fileContentResponse.json()
+          
+          if (!fileContent?.content) {
+            console.warn(`No content found for file ${file.path}`)
+            continue
+          }
+
           const content = atob(fileContent.content)
           const lines = content.split('\n')
           
@@ -94,6 +122,9 @@ serve(async (req) => {
             }
           }
         }
+      } catch (error) {
+        console.error(`Error processing repo ${repo.name}:`, error)
+        continue // Continue with next repo even if one fails
       }
     }
 
