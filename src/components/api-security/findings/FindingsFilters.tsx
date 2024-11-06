@@ -30,12 +30,10 @@ export const FindingsFilters = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="_all">All owners</SelectItem>
-          {owners.map((owner) => (
-            <SelectItem 
-              key={owner} 
-              value={owner || "_unknown"}
-            >
-              {owner || "Unknown Owner"}
+          <SelectItem value="_unknown">Unknown Owner</SelectItem>
+          {owners.filter(owner => owner !== '_unknown').map((owner) => (
+            <SelectItem key={owner} value={owner}>
+              {owner}
             </SelectItem>
           ))}
         </SelectContent>

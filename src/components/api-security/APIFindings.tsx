@@ -27,6 +27,28 @@ export const APIFindings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const { data: findings = [], isLoading } = useQuery({
+    queryKey: ['api-findings', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('github_api_findings')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching findings:', error);
+        toast.error("Failed to fetch API findings");
+        throw error;
+      }
+
+      return data || [];
+    },
+    enabled: !!session?.user?.id
+  });
+
   useEffect(() => {
     const channel = supabase
       .channel('api-findings-changes')
@@ -47,29 +69,7 @@ export const APIFindings = () => {
     };
   }, [queryClient]);
 
-  const { data: findings = [], isLoading } = useQuery({
-    queryKey: ['api-findings', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('github_api_findings')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        toast.error("Failed to fetch API findings");
-        throw error;
-      }
-      return data || [];
-    },
-    enabled: !!session?.user?.id,
-    refetchOnWindowFocus: true,
-    staleTime: 0
-  });
-
-  const owners = [...new Set(findings.map(f => f.repository_owner))].filter(Boolean);
+  const owners = [...new Set(findings.map(f => f.repository_owner || '_unknown'))].filter(Boolean);
 
   const filteredFindings = findings.filter(finding => {
     const matchesSearch = !searchTerm || 
@@ -147,41 +147,49 @@ export const APIFindings = () => {
           owners={owners}
         />
 
-        <FindingsTable 
-          findings={paginatedFindings}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-        />
+        {filteredFindings.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            No API findings match your search criteria
+          </div>
+        ) : (
+          <>
+            <FindingsTable 
+              findings={paginatedFindings}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+            />
 
-        {totalPages > 1 && (
-          <Pagination className="mt-4">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-              
-              {[...Array(totalPages)].map((_, index) => (
-                <PaginationItem key={index + 1}>
-                  <PaginationLink
-                    onClick={() => handlePageChange(index + 1)}
-                    isActive={currentPage === index + 1}
-                  >
-                    {index + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
+            {totalPages > 1 && (
+              <Pagination className="mt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {[...Array(totalPages)].map((_, index) => (
+                    <PaginationItem key={index + 1}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(index + 1)}
+                        isActive={currentPage === index + 1}
+                      >
+                        {index + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
 
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
         )}
       </div>
     </Card>
