@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { API_PATTERNS } from './api-patterns.ts';
 import { detectPIITypes } from '../../src/utils/piiPatterns.ts';
+import { fetchRepoContents } from './repo-contents.ts';
+import { processRepoFiles } from './file-processor.ts';
 
 const BATCH_SIZE = 10;
 const MAX_RETRIES = 3;
@@ -34,14 +36,23 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     headers['Authorization'] = `token ${githubToken}`;
   }
 
-  // Determine the appropriate API endpoint
-  const apiUrl = orgName 
-    ? `https://api.github.com/orgs/${orgName}/repos`
-    : 'https://api.github.com/repositories';
+  // Determine the appropriate API endpoint based on the scan type
+  let apiUrl: string;
+  if (orgName) {
+    apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
+  } else if (githubToken) {
+    // If we have a token, use the authenticated user's repos endpoint
+    apiUrl = 'https://api.github.com/user/repos';
+  } else {
+    // Fallback to public repositories
+    apiUrl = 'https://api.github.com/repositories';
+  }
+
+  console.log(`Using API endpoint: ${apiUrl}`);
 
   while (true) {
     try {
-      console.log(`Fetching page ${page} from ${apiUrl}`);
+      console.log(`Fetching page ${page}`);
       const response = await retryOperation(() =>
         fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
       );
@@ -53,36 +64,13 @@ export async function fetchRepositories(githubToken: string | null, includePriva
       const data = await response.json();
       if (!Array.isArray(data) || data.length === 0) break;
 
-      // Process each repository to ensure we have complete data
-      const processedRepos = await Promise.all(
-        data.map(async (repo: any) => {
-          try {
-            if (!repo.full_name) {
-              // Fetch complete repository data if we don't have full_name
-              const fullRepoUrl = repo.url || `https://api.github.com/repositories/${repo.id}`;
-              const fullRepoResponse = await fetch(fullRepoUrl, { headers });
-              
-              if (!fullRepoResponse.ok) {
-                console.warn(`Failed to fetch full repo data for ${repo.name || 'unknown repo'}`);
-                return null;
-              }
-              
-              return await fullRepoResponse.json();
-            }
-            return repo;
-          } catch (error) {
-            console.error(`Error processing repository:`, error);
-            return null;
-          }
-        })
-      );
-
-      // Filter out null results and private repos if not requested
-      const validRepos = processedRepos.filter((repo): repo is any => 
-        repo !== null && 
-        repo.full_name && 
-        (!includePrivateRepos ? !repo.private : true)
-      );
+      const validRepos = data.filter((repo: any) => {
+        if (!repo || !repo.full_name) {
+          console.warn('Skipping invalid repository:', repo);
+          return false;
+        }
+        return !includePrivateRepos ? !repo.private : true;
+      });
 
       console.log(`Found ${validRepos.length} valid repositories on page ${page}`);
       repos.push(...validRepos);
