@@ -252,6 +252,45 @@ export type Database = {
         }
         Relationships: []
       }
+      github_api_findings: {
+        Row: {
+          api_path: string
+          created_at: string | null
+          description: string | null
+          file_path: string
+          id: string
+          line_number: number | null
+          method: string
+          repository_name: string
+          repository_url: string
+          user_id: string
+        }
+        Insert: {
+          api_path: string
+          created_at?: string | null
+          description?: string | null
+          file_path: string
+          id?: string
+          line_number?: number | null
+          method: string
+          repository_name: string
+          repository_url: string
+          user_id: string
+        }
+        Update: {
+          api_path?: string
+          created_at?: string | null
+          description?: string | null
+          file_path?: string
+          id?: string
+          line_number?: number | null
+          method?: string
+          repository_name?: string
+          repository_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_settings: {
         Row: {
           created_at: string | null

@@ -24,6 +24,8 @@ import IPIntelligence from "@/components/ip-intelligence/IPIntelligence";
 import ApkUpload from "@/components/mobile/ApkUpload";
 import ApkDashboard from "@/components/mobile/ApkDashboard";
 import { FineTuning } from "@/components/genai/finetuning/FineTuning";
+import { GitHubScanner } from "@/components/api-security/GitHubScanner";
+import { APIFindings } from "@/components/api-security/APIFindings";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -58,6 +60,8 @@ const Index = () => {
       case "dashboard": return <ApkDashboard />;
       case "reporting": return <BountyReporting />;
       case "finetuning": return <FineTuning />;
+      case "github-scan": return <GitHubScanner />;
+      case "api-findings": return <APIFindings />;
       default: return null;
     }
   };
