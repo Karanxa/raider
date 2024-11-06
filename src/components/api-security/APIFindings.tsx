@@ -27,7 +27,7 @@ export const APIFindings = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { data: findings = [], isLoading } = useQuery({
+  const { data: findings = [], isLoading, refetch } = useQuery({
     queryKey: ['api-findings', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
@@ -38,10 +38,15 @@ export const APIFindings = () => {
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        toast.error("Failed to fetch API findings");
+        throw error;
+      }
+      return data || [];
     },
-    enabled: !!session?.user?.id
+    enabled: !!session?.user?.id,
+    refetchOnWindowFocus: true,
+    staleTime: 0 // Always fetch fresh data
   });
 
   const owners = [...new Set(findings.map(f => f.repository_owner))].filter(Boolean);
@@ -57,7 +62,6 @@ export const APIFindings = () => {
     return matchesSearch && matchesOwner;
   });
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredFindings.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedFindings = filteredFindings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -79,8 +83,10 @@ export const APIFindings = () => {
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+      await queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+      await refetch(); // Explicitly refetch after deletion
       toast.success('All findings deleted successfully');
+      setCurrentPage(1); // Reset to first page
     } catch (error) {
       console.error('Error deleting findings:', error);
       toast.error('Failed to delete findings');
@@ -133,8 +139,14 @@ export const APIFindings = () => {
 
               if (error) throw error;
 
-              queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+              await queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+              await refetch(); // Explicitly refetch after deletion
               toast.success('Finding deleted successfully');
+              
+              // If we're on the last page and it's now empty, go to previous page
+              if (paginatedFindings.length === 1 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+              }
             } catch (error) {
               console.error('Error deleting finding:', error);
               toast.error('Failed to delete finding');
