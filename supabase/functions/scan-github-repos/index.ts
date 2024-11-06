@@ -41,6 +41,10 @@ serve(async (req) => {
     const repos = await reposResponse.json()
     console.log(`Found ${repos.length} repositories`)
 
+    let scannedRepos = 0;
+    const totalRepos = repos.length;
+    const startTime = Date.now();
+
     // Process each repository
     for (const repo of repos) {
       console.log(`Processing repository: ${repo.name}`)
@@ -159,6 +163,31 @@ serve(async (req) => {
         console.error(`Error processing repo ${repo.name}:`, error)
         continue // Continue with next repo even if one fails
       }
+
+      // Update progress after each repository
+      scannedRepos++;
+      const progress = (scannedRepos / totalRepos) * 100;
+      const elapsedTime = Date.now() - startTime;
+      const averageTimePerRepo = elapsedTime / scannedRepos;
+      const remainingRepos = totalRepos - scannedRepos;
+      const estimatedRemainingTime = Math.round((averageTimePerRepo * remainingRepos) / 1000); // Convert to seconds
+
+      // Format time remaining
+      const timeRemaining = estimatedRemainingTime > 60 
+        ? `${Math.round(estimatedRemainingTime / 60)} minutes`
+        : `${estimatedRemainingTime} seconds`;
+
+      // Broadcast progress
+      await supabaseClient.channel('scan-progress').send({
+        type: 'broadcast',
+        event: 'scan-progress',
+        payload: {
+          progress,
+          timeRemaining,
+          totalRepos,
+          scannedRepos
+        }
+      });
     }
 
     return new Response(
