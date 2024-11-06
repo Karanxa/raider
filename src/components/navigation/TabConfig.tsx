@@ -1,4 +1,4 @@
-import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings, Api } from "lucide-react";
+import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings } from "lucide-react";
 
 export interface TabItem {
   value: string;
@@ -32,7 +32,7 @@ export const categoryConfigs: CategoryConfig[] = [
   {
     value: "api",
     label: "API Security",
-    icon: <Api className="h-4 w-4" />,
+    icon: <Database className="h-4 w-4" />,
     tabs: [
       { value: "github-scan", label: "GitHub Scanner", icon: <FileCode className="h-4 w-4" /> },
       { value: "api-findings", label: "API Findings", icon: <Database className="h-4 w-4" /> },

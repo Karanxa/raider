@@ -6,11 +6,9 @@ import { storeGoogleTokens } from "@/utils/googleAuth";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-interface CredentialResponse {
-  clientId: string;
+type CredentialResponse = {
   credential: string;
-  select_by: string;
-}
+};
 
 export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
   const session = useSession();
