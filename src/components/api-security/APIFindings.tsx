@@ -5,11 +5,22 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { Card } from "@/components/ui/card";
 import { APIFindingsFilters } from "./APIFindingsFilters";
 import { APIFindingsTable } from "./APIFindingsTable";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
+
+const ITEMS_PER_PAGE = 10;
 
 export const APIFindings = () => {
   const session = useSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOwner, setSelectedOwner] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: findings = [], isLoading } = useQuery({
     queryKey: ['api-findings', session?.user?.id],
@@ -41,6 +52,16 @@ export const APIFindings = () => {
     return matchesSearch && matchesOwner;
   });
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredFindings.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedFindings = filteredFindings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -63,7 +84,38 @@ export const APIFindings = () => {
           owners={owners}
         />
 
-        <APIFindingsTable findings={filteredFindings} />
+        <APIFindingsTable findings={paginatedFindings} />
+
+        {totalPages > 1 && (
+          <Pagination className="mt-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {[...Array(totalPages)].map((_, index) => (
+                <PaginationItem key={index + 1}>
+                  <PaginationLink
+                    onClick={() => handlePageChange(index + 1)}
+                    isActive={currentPage === index + 1}
+                  >
+                    {index + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
       </div>
     </Card>
   );
