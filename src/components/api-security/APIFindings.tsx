@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 
 interface APIFinding {
   id: string;
@@ -20,11 +22,14 @@ interface APIFinding {
   file_path: string;
   line_number: number;
   repository_url: string;
+  pii_classification: boolean;
+  pii_types: string[];
 }
 
 export const APIFindings = () => {
   const [findings, setFindings] = useState<APIFinding[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [piiFilter, setPiiFilter] = useState<"all" | "pii" | "non-pii">("all");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -63,7 +68,6 @@ export const APIFindings = () => {
 
     fetchFindings();
 
-    // Set up real-time subscription
     const channel = supabase
       .channel('github_api_findings_changes')
       .on('postgres_changes', 
@@ -73,7 +77,7 @@ export const APIFindings = () => {
           table: 'github_api_findings' 
         }, 
         () => {
-          fetchFindings(); // Refresh data when changes occur
+          fetchFindings();
         }
       )
       .subscribe();
@@ -83,11 +87,19 @@ export const APIFindings = () => {
     };
   }, []);
 
-  const filteredFindings = findings.filter(finding =>
-    finding.api_path.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    finding.repository_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    finding.method.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFindings = findings.filter(finding => {
+    const matchesSearch = 
+      finding.api_path.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      finding.repository_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      finding.method.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesPiiFilter = 
+      piiFilter === "all" ? true :
+      piiFilter === "pii" ? finding.pii_classification :
+      !finding.pii_classification;
+
+    return matchesSearch && matchesPiiFilter;
+  });
 
   const getMethodColor = (method: string) => {
     const colors: Record<string, string> = {
@@ -109,12 +121,24 @@ export const APIFindings = () => {
         </p>
       </div>
 
-      <Input
-        placeholder="Search by API path, repository, or method..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Input
+          placeholder="Search by API path, repository, or method..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+        <Select value={piiFilter} onValueChange={(value: "all" | "pii" | "non-pii") => setPiiFilter(value)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by PII" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All APIs</SelectItem>
+            <SelectItem value="pii">PII APIs</SelectItem>
+            <SelectItem value="non-pii">Non-PII APIs</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {isLoading ? (
         <div className="text-center py-8">Loading findings...</div>
@@ -131,6 +155,7 @@ export const APIFindings = () => {
                 <TableHead>API Path</TableHead>
                 <TableHead>Repository</TableHead>
                 <TableHead>File Location</TableHead>
+                <TableHead>PII Types</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -141,7 +166,14 @@ export const APIFindings = () => {
                       {finding.method}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono">{finding.api_path}</TableCell>
+                  <TableCell className="font-mono">
+                    <div className="flex items-center gap-2">
+                      {finding.api_path}
+                      {finding.pii_classification && (
+                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <a
                       href={finding.repository_url}
@@ -154,6 +186,15 @@ export const APIFindings = () => {
                   </TableCell>
                   <TableCell>
                     {finding.file_path}:{finding.line_number}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {finding.pii_types?.map((type) => (
+                        <Badge key={type} variant="outline" className="bg-yellow-500/10">
+                          {type}
+                        </Badge>
+                      ))}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

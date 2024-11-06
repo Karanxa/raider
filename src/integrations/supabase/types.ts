@@ -261,6 +261,8 @@ export type Database = {
           id: string
           line_number: number | null
           method: string
+          pii_classification: boolean | null
+          pii_types: string[] | null
           repository_name: string
           repository_url: string
           user_id: string
@@ -273,6 +275,8 @@ export type Database = {
           id?: string
           line_number?: number | null
           method: string
+          pii_classification?: boolean | null
+          pii_types?: string[] | null
           repository_name: string
           repository_url: string
           user_id: string
@@ -285,6 +289,8 @@ export type Database = {
           id?: string
           line_number?: number | null
           method?: string
+          pii_classification?: boolean | null
+          pii_types?: string[] | null
           repository_name?: string
           repository_url?: string
           user_id?: string
