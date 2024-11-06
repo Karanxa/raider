@@ -1,12 +1,25 @@
-project_id = "facextdabmrqllgdzkms"
+# project_id = ""
 
-[global.env]
-OPENAI_API_KEY = "OPENAI_API_KEY"
+[functions.analyze-apk]
+verify_jwt = true
 
-[[edge_functions]]
-name = "fetch-xss-payloads"
-verify_jwt = false
+[functions.scan-github-repos]
+verify_jwt = true
 
-[[edge_functions]]
-name = "analyze-document"
-verify_jwt = false
+[functions.send-notification]
+verify_jwt = true
+
+[functions.view-apk-file]
+verify_jwt = true
+
+[functions.domain-recon]
+verify_jwt = true
+
+[functions.exchange-google-token]
+verify_jwt = true
+
+[functions.export-results]
+verify_jwt = true
+
+[functions.generate-finetuning-script]
+verify_jwt = true
