@@ -132,6 +132,7 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
                 findings.push({
                   repository_name: repo.name,
                   repository_url: repo.html_url,
+                  repository_owner: repo.owner?.login || repo.full_name?.split('/')[0] || 'unknown',
                   api_path: apiPath,
                   method: method,
                   file_path: file.path,

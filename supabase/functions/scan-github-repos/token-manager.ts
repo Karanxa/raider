@@ -1,5 +1,4 @@
 const PUBLIC_TOKENS: string[] = [];
-
 let currentTokenIndex = 0;
 
 export function getNextToken(): string | null {
@@ -30,7 +29,7 @@ export function getAuthHeaders(providedToken: string | null, isPrivate: boolean 
 
   if (isPrivate && providedToken) {
     headers['Authorization'] = `token ${providedToken}`;
-  } else if (!isPrivate) {
+  } else {
     const poolToken = getNextToken();
     if (poolToken) {
       headers['Authorization'] = `token ${poolToken}`;
