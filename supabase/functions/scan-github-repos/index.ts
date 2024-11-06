@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -18,12 +19,12 @@ serve(async (req) => {
       throw new Error('Missing required parameters')
     }
 
+    console.log('Starting GitHub scan for user:', userId)
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
-
-    console.log('Scanning repositories for user:', userId)
 
     // Get user repositories
     const reposResponse = await fetch('https://api.github.com/user/repos?per_page=100', {
@@ -53,6 +54,7 @@ serve(async (req) => {
           }
         })
         
+        let contents;
         if (!contentsResponse.ok) {
           // Try master branch if main doesn't exist
           const masterResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/master?recursive=1`, {
@@ -67,14 +69,15 @@ serve(async (req) => {
             continue
           }
           
-          const contents = await masterResponse.json()
-          if (!contents?.tree) {
-            console.warn(`No tree found for repo ${repo.name}`)
-            continue
-          }
+          contents = await masterResponse.json()
+        } else {
+          contents = await contentsResponse.json()
         }
 
-        const contents = await contentsResponse.json()
+        if (!contents?.tree) {
+          console.warn(`No tree found for repo ${repo.name}`)
+          continue
+        }
         
         // Filter for potential API-containing files
         const apiFiles = contents.tree.filter((item: any) => {
@@ -166,7 +169,10 @@ serve(async (req) => {
     console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      }
     )
   }
 })
