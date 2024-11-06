@@ -1,97 +1,37 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { API_PATTERNS } from './api-patterns.ts';
-import { detectPIITypes } from './piiPatterns.ts';
-
-const BATCH_SIZE = 10;
-const MAX_RETRIES = 5;
-const INITIAL_RETRY_DELAY = 1000;
-const MAX_RETRY_DELAY = 60000;
-
-// Token pool for public repository access
-const PUBLIC_TOKENS = [
-  'ghp_token1', // Replace with actual tokens
-  'ghp_token2',
-  'ghp_token3'
-];
-
-let currentTokenIndex = 0;
-
-function getNextToken() {
-  currentTokenIndex = (currentTokenIndex + 1) % PUBLIC_TOKENS.length;
-  return PUBLIC_TOKENS[currentTokenIndex];
-}
-
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
-  let lastError: Error | null = null;
-  let currentDelay = INITIAL_RETRY_DELAY;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      return await operation();
-    } catch (error: any) {
-      lastError = error;
-      
-      // Check if it's a rate limit error
-      if (error.message.includes('rate limit') && attempt < retries) {
-        console.log(`Rate limit hit, switching tokens and retrying. Attempt ${attempt + 1}/${retries}`);
-        getNextToken(); // Switch to next token
-        await sleep(currentDelay);
-        currentDelay = Math.min(currentDelay * 2, MAX_RETRY_DELAY); // Exponential backoff
-        continue;
-      }
-      
-      // If it's not a rate limit error or we're out of retries, throw the error
-      throw lastError;
-    }
-  }
-  throw lastError;
-}
+import { getAuthHeaders, initializeTokenPool } from './token-manager.ts';
+import { retryOperation } from './retry-utils.ts';
 
 export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
   if (!githubToken && includePrivateRepos) {
     throw new Error('GitHub token is required for scanning private repositories');
   }
 
+  initializeTokenPool();
   const repos = [];
   let page = 1;
   
   while (true) {
     try {
-      console.log(`Fetching page ${page}`);
-      const headers: Record<string, string> = {
-        'Accept': 'application/vnd.github.v3+json'
-      };
-
-      // Use provided token for private repos, or token pool for public repos
-      const token = includePrivateRepos ? githubToken : getNextToken();
-      if (token) {
-        headers['Authorization'] = `token ${token}`;
-      }
+      console.log(`Fetching page ${page} of repositories`);
+      const headers = getAuthHeaders(githubToken, includePrivateRepos);
 
       let apiUrl: string;
       if (orgName) {
         apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
-      } else if (token) {
+      } else if (githubToken) {
         apiUrl = 'https://api.github.com/user/repos';
       } else {
         apiUrl = 'https://api.github.com/repositories';
       }
 
-      const response = await retryOperation(() =>
-        fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
-      );
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        if (response.status === 403) {
-          throw new Error('rate limit');
+      const response = await retryOperation(async () => {
+        const res = await fetch(`${apiUrl}?per_page=100&page=${page}`, { headers });
+        if (!res.ok) {
+          const errorData = await res.text();
+          throw new Error(`GitHub API error: ${res.status} - ${errorData}`);
         }
-        throw new Error(`GitHub API error: ${response.status} - ${errorData}`);
-      }
+        return res;
+      });
 
       const data = await response.json();
       if (!Array.isArray(data) || data.length === 0) break;
@@ -117,65 +57,56 @@ export async function fetchRepositories(githubToken: string | null, includePriva
 
 export async function fetchRepositoryContents(repo: any, githubToken: string | null) {
   const branches = ['main', 'master', 'develop', 'dev'];
+  const headers = getAuthHeaders(githubToken, repo.private);
   
   for (const branch of branches) {
     try {
-      const headers: Record<string, string> = {
-        'Accept': 'application/vnd.github.v3+json'
-      };
+      const response = await retryOperation(async () => {
+        const res = await fetch(
+          `https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`,
+          { headers }
+        );
+        if (!res.ok) {
+          const errorData = await res.text();
+          throw new Error(`GitHub API error: ${res.status} - ${errorData}`);
+        }
+        return res;
+      });
 
-      // Use provided token for private repos, or token pool for public repos
-      const token = repo.private ? githubToken : getNextToken();
-      if (token) {
-        headers['Authorization'] = `token ${token}`;
-      }
-
-      const response = await retryOperation(() =>
-        fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, {
-          headers
-        })
-      );
-
-      if (response.ok) {
-        return await response.json();
-      }
+      return await response.json();
     } catch (error) {
       console.error(`Error fetching ${branch} branch:`, error);
+      continue;
     }
   }
 
   throw new Error('No valid branch found');
 }
 
-export async function fetchFileContent(repo: any, filePath: string, githubToken: string | null) {
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
-  };
-
-  // Use provided token for private repos, or token pool for public repos
-  const token = repo.private ? githubToken : getNextToken();
-  if (token) {
-    headers['Authorization'] = `token ${token}`;
-  }
-
-  const response = await retryOperation(() =>
-    fetch(`https://api.github.com/repos/${repo.full_name}/contents/${filePath}`, {
-      headers
-    })
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch file content: ${response.statusText}`);
-  }
-
-  return await response.json();
-}
-
 export async function processFilesBatch(repo: any, files: any[], githubToken: string | null, supabaseClient: any, userId: string) {
+  const headers = getAuthHeaders(githubToken, repo.private);
+  
   const results = await Promise.all(
     files.map(async (file) => {
       try {
-        const fileContent = await fetchFileContent(repo, file.path, githubToken);
+        const response = await retryOperation(async () => {
+          const res = await fetch(
+            `https://api.github.com/repos/${repo.full_name}/contents/${file.path}`,
+            { headers }
+          );
+          if (!res.ok) {
+            const errorData = await res.text();
+            throw new Error(`GitHub API error: ${res.status} - ${errorData}`);
+          }
+          return res;
+        });
+
+        const fileContent = await response.json();
+        if (!fileContent.content) {
+          console.warn(`No content found for file ${file.path}`);
+          return 0;
+        }
+
         const content = atob(fileContent.content);
         const findings: any[] = [];
 

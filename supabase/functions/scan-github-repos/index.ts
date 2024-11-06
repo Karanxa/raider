@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { fetchRepositories, fetchRepositoryContents, processFilesBatch } from './github-api.ts';
+import { initializeTokenPool } from './token-manager.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,20 +24,18 @@ serve(async (req) => {
       throw new Error('Missing required parameter: scanType');
     }
 
-    if (scanType === 'specific' && !specificRepo) {
-      throw new Error('Missing required parameter: specificRepo for specific scan type');
+    if (scanType === 'repo' && !specificRepo) {
+      throw new Error('Missing required parameter: specificRepo for repository scan');
     }
 
     if (scanType === 'org' && !orgName) {
-      throw new Error('Missing required parameter: orgName for organization scan type');
-    }
-
-    // Only validate GitHub token if scanning private repositories
-    if (includePrivateRepos && !githubToken) {
-      throw new Error('GitHub token is required for scanning private repositories');
+      throw new Error('Missing required parameter: orgName for organization scan');
     }
 
     console.log(`Starting GitHub scan for user: ${userId}, type: ${scanType}`);
+    
+    // Initialize the token pool at the start
+    initializeTokenPool();
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -45,35 +44,21 @@ serve(async (req) => {
 
     let repos = [];
     try {
-      if (scanType === 'specific') {
+      if (scanType === 'repo') {
         console.log(`Fetching specific repository: ${specificRepo}`);
-        const headers: Record<string, string> = {
-          'Accept': 'application/vnd.github.v3+json'
-        };
-        
-        if (githubToken) {
-          headers['Authorization'] = `token ${githubToken}`;
-        }
-        
-        const repoResponse = await fetch(`https://api.github.com/repos/${specificRepo}`, {
-          headers
+        const response = await fetch(`https://api.github.com/repos/${specificRepo}`, {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            ...(githubToken ? { 'Authorization': `token ${githubToken}` } : {})
+          }
         });
         
-        if (!repoResponse.ok) {
-          const errorData = await repoResponse.text();
-          if (repoResponse.status === 403) {
-            throw new Error('GitHub API rate limit exceeded. Please try again later or provide a valid GitHub token.');
-          } else if (repoResponse.status === 404) {
-            throw new Error(`Repository ${specificRepo} not found. Please check the repository name.`);
-          }
-          throw new Error(`Failed to fetch repository: ${errorData}`);
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`GitHub API error: ${response.status} - ${errorData}`);
         }
         
-        const repo = await repoResponse.json();
-        if (!repo.full_name) {
-          throw new Error(`Invalid repository data received for ${specificRepo}`);
-        }
-        
+        const repo = await response.json();
         repos = [repo];
       } else {
         repos = await fetchRepositories(githubToken, includePrivateRepos, orgName);
@@ -89,13 +74,7 @@ serve(async (req) => {
         
         await Promise.all(batch.map(async (repo) => {
           try {
-            if (!repo?.full_name) {
-              console.warn(`Skipping invalid repository:`, repo);
-              return;
-            }
-
             console.log(`Processing repository: ${repo.full_name}`);
-            
             const contents = await fetchRepositoryContents(repo, githubToken);
             
             if (!contents?.tree) {
@@ -111,8 +90,6 @@ serve(async (req) => {
                 'cs', 'cpp', 'c', 'h', 'swift', 'kt', 'rs', 'dart'
               ].includes(ext);
             });
-
-            console.log(`Found ${apiFiles.length} potential API files in ${repo.full_name}`);
 
             for (let j = 0; j < apiFiles.length; j += 5) {
               const filesBatch = apiFiles.slice(j, j + 5);
@@ -155,16 +132,11 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+
     } catch (error) {
       console.error('GitHub API Error:', error);
-      let errorMessage = error.message;
-      
-      if (error.message.includes('rate limit')) {
-        errorMessage = 'GitHub API rate limit exceeded. The system will automatically retry with different tokens. Please wait...';
-      }
-      
       return new Response(
-        JSON.stringify({ error: errorMessage }),
+        JSON.stringify({ error: error.message }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500
