@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { githubToken, userId } = await req.json()
+    const { githubToken, userId, specificRepo } = await req.json()
     
     if (!githubToken || !userId) {
       throw new Error('Missing required parameters')
@@ -27,9 +27,27 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get user repositories
-    const repos = await fetchRepositories(githubToken)
-    console.log(`Found ${repos.length} repositories`)
+    let repos = []
+    if (specificRepo) {
+      // Fetch specific repository
+      const repoResponse = await fetch(`https://api.github.com/repos/${specificRepo}`, {
+        headers: {
+          'Authorization': `token ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      })
+      
+      if (!repoResponse.ok) {
+        throw new Error(`Failed to fetch repository: ${repoResponse.statusText}`)
+      }
+      
+      repos = [await repoResponse.json()]
+    } else {
+      // Get all user repositories
+      repos = await fetchRepositories(githubToken)
+    }
+
+    console.log(`Found ${repos.length} repositories to scan`)
 
     let scannedRepos = 0
     const totalRepos = repos.length
