@@ -8,6 +8,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useSession } from '@supabase/auth-helpers-react';
 
 interface APIFinding {
   id: string;
@@ -38,13 +42,36 @@ const getMethodColor = (method: string) => {
 };
 
 const getGitHubLineLink = (repoUrl: string, filePath: string, lineNumber: number) => {
-  // Convert repository URL to raw file URL format
-  // Example: https://github.com/owner/repo -> https://github.com/owner/repo/blob/main/path/to/file#L123
   const baseUrl = repoUrl.replace(/\.git$/, '');
   return `${baseUrl}/blob/main/${filePath}#L${lineNumber}`;
 };
 
 export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps) => {
+  const session = useSession();
+
+  const runOWASPScan = async (finding: APIFinding) => {
+    if (!session?.user?.id) {
+      toast.error('You must be logged in to run security scans');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.functions.invoke('owasp-scan', {
+        body: { 
+          url: finding.api_path,
+          userId: session.user.id
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success(`OWASP security scan initiated for ${finding.api_path}`);
+    } catch (error: any) {
+      console.error('OWASP scan error:', error);
+      toast.error(`Failed to run security scan: ${error.message}`);
+    }
+  };
+
   if (isLoading) {
     return <div className="text-center py-8">Loading findings...</div>;
   }
@@ -67,6 +94,7 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
             <TableHead className="whitespace-nowrap">PII Types</TableHead>
             <TableHead className="whitespace-nowrap">Repository</TableHead>
             <TableHead className="whitespace-nowrap">Location</TableHead>
+            <TableHead className="whitespace-nowrap">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -106,6 +134,15 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
                 >
                   {finding.file_path}:{finding.line_number}
                 </a>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => runOWASPScan(finding)}
+                >
+                  Run Security Scan
+                </Button>
               </TableCell>
             </TableRow>
           ))}

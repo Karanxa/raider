@@ -44,7 +44,7 @@ export const OWASPResults = ({ targetUrl }: { targetUrl: string }) => {
     return (
       <Card className="p-4">
         <p className="text-center text-muted-foreground">
-          No scan results available for this URL yet.
+          No security scan results available for this API yet.
         </p>
       </Card>
     );
