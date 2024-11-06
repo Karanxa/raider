@@ -26,50 +26,62 @@ export const APIFindings = () => {
   const [findings, setFindings] = useState<APIFinding[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id;
-      setUserId(currentUserId);
-      
-      if (currentUserId) {
-        fetchFindings(currentUserId);
+    const fetchFindings = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          toast.error("Please sign in to view API findings");
+          return;
+        }
+
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('github_api_findings')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching findings:', error);
+          toast.error('Failed to fetch API findings: ' + error.message);
+          return;
+        }
+
+        setFindings(data || []);
+        if (data?.length === 0) {
+          toast.info('No API findings found. Try scanning some repositories first.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        toast.error('An error occurred while fetching API findings');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    getUser();
+    fetchFindings();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('github_api_findings_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'github_api_findings' 
+        }, 
+        () => {
+          fetchFindings(); // Refresh data when changes occur
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
-
-  const fetchFindings = async (currentUserId: string) => {
-    setIsLoading(true);
-    try {
-      console.log('Fetching findings for user:', currentUserId);
-      const { data, error } = await supabase
-        .from('github_api_findings')
-        .select('*')
-        .eq('user_id', currentUserId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching findings:', error);
-        toast.error('Error fetching API findings: ' + error.message);
-        throw error;
-      }
-      
-      console.log('Fetched findings:', data);
-      setFindings(data || []);
-      if (data?.length === 0) {
-        toast.info('No API findings found. Try scanning some repositories first.');
-      }
-    } catch (error) {
-      console.error('Error fetching API findings:', error);
-      toast.error('Failed to fetch API findings. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const filteredFindings = findings.filter(finding =>
     finding.api_path.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -87,10 +99,6 @@ export const APIFindings = () => {
     };
     return colors[method] || "bg-gray-500";
   };
-
-  if (!userId) {
-    return <div className="text-center py-8">Please sign in to view API findings.</div>;
-  }
 
   return (
     <div className="space-y-6">

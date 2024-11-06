@@ -31,7 +31,11 @@ export const GitHubScanner = () => {
       });
 
       if (error) throw error;
-      toast.success("GitHub scan initiated successfully. Please wait a moment and refresh the findings below.");
+      
+      toast.success("GitHub scan initiated. Your findings will appear in the API Findings dashboard shortly.");
+      
+      // Clear the token after successful scan
+      setGithubToken("");
     } catch (error) {
       console.error('Error scanning GitHub repos:', error);
       toast.error("Failed to scan GitHub repositories. Please check your token and try again.");
