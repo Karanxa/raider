@@ -1,49 +1,64 @@
-import { getAuthHeaders } from './token-manager.ts';
-import { retryOperation } from './retry-utils.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { API_PATTERNS } from './api-patterns.ts';
 import { detectPIITypes } from './piiPatterns.ts';
 
-const API_PATTERNS = [
-  {
-    regex: /['"`](\/[^'"`\s]*api[^'"`\s]*)[`'"]/g,
-    method: 'GET'
-  },
-  {
-    regex: /\.(get|post|put|delete|patch)\s*\(\s*['"`](\/[^'"`\s]*)[`'"]/gi,
-    method: 'DYNAMIC'
+const BATCH_SIZE = 10;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
+
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Retrying operation, ${retries} attempts remaining`);
+      await sleep(RETRY_DELAY);
+      return retryOperation(operation, retries - 1);
+    }
+    throw error;
   }
-];
+}
 
 export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
   if (!githubToken && includePrivateRepos) {
     throw new Error('GitHub token is required for scanning private repositories');
   }
 
-  initializeTokenPool();
   const repos = [];
   let page = 1;
-  
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  if (githubToken) {
+    headers['Authorization'] = `token ${githubToken}`;
+  }
+
+  let apiUrl: string;
+  if (orgName) {
+    apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
+  } else if (githubToken) {
+    apiUrl = 'https://api.github.com/user/repos';
+  } else {
+    apiUrl = 'https://api.github.com/repositories';
+  }
+
+  console.log(`Using API endpoint: ${apiUrl}`);
+
   while (true) {
     try {
-      console.log(`Fetching page ${page} of repositories`);
-      const headers = getAuthHeaders(githubToken, includePrivateRepos);
+      console.log(`Fetching page ${page}`);
+      const response = await retryOperation(() =>
+        fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
+      );
 
-      let apiUrl: string;
-      if (orgName) {
-        apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
-      } else if (githubToken) {
-        apiUrl = 'https://api.github.com/user/repos';
-      } else {
-        apiUrl = 'https://api.github.com/repositories';
+      if (!response.ok) {
+        throw new Error(`GitHub API error: ${response.status} - ${response.statusText}`);
       }
-
-      const response = await retryOperation(async () => {
-        const res = await fetch(`${apiUrl}?per_page=100&page=${page}`, { headers });
-        if (!res.ok) {
-          const errorData = await res.text();
-          throw new Error(`GitHub API error: ${res.status} - ${errorData}`);
-        }
-        return res;
-      });
 
       const data = await response.json();
       if (!Array.isArray(data) || data.length === 0) break;
@@ -69,60 +84,62 @@ export async function fetchRepositories(githubToken: string | null, includePriva
 
 export async function fetchRepositoryContents(repo: any, githubToken: string | null) {
   const branches = ['main', 'master', 'develop', 'dev'];
-  const headers = getAuthHeaders(githubToken, repo.private);
-  
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json'
+  };
+
+  if (githubToken) {
+    headers['Authorization'] = `token ${githubToken}`;
+  }
+
   for (const branch of branches) {
     try {
-      const response = await retryOperation(async () => {
-        const res = await fetch(
-          `https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`,
-          { headers }
-        );
-        if (!res.ok) {
-          const errorData = await res.text();
-          throw new Error(`GitHub API error: ${res.status} - ${errorData}`);
-        }
-        return res;
-      });
+      const response = await retryOperation(() =>
+        fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, {
+          headers
+        })
+      );
 
-      return await response.json();
+      if (response.ok) {
+        return await response.json();
+      }
     } catch (error) {
       console.error(`Error fetching ${branch} branch:`, error);
-      continue;
     }
   }
 
   throw new Error('No valid branch found');
 }
 
-export async function processFilesBatch(repo: any, files: any[], githubToken: string | null, supabaseClient: any, userId: string) {
-  const headers = getAuthHeaders(githubToken, repo.private);
-  let totalFindings = 0;
-  
-  console.log(`Processing ${files.length} files for repo ${repo.full_name}`);
+export async function fetchFileContent(repo: any, filePath: string, githubToken: string | null) {
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json'
+  };
 
+  if (githubToken) {
+    headers['Authorization'] = `token ${githubToken}`;
+  }
+
+  const response = await retryOperation(() =>
+    fetch(`https://api.github.com/repos/${repo.full_name}/contents/${filePath}`, {
+      headers
+    })
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file content: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function processFilesBatch(repo: any, files: any[], githubToken: string | null, supabaseClient: any, userId: string) {
   const results = await Promise.all(
     files.map(async (file) => {
       try {
-        const response = await retryOperation(async () => {
-          const res = await fetch(
-            `https://api.github.com/repos/${repo.full_name}/contents/${file.path}`,
-            { headers }
-          );
-          if (!res.ok) {
-            throw new Error(`GitHub API error: ${res.status} - ${await res.text()}`);
-          }
-          return res;
-        });
-
-        const fileContent = await response.json();
-        if (!fileContent.content) {
-          console.warn(`No content found for file ${file.path}`);
-          return 0;
-        }
-
+        const fileContent = await fetchFileContent(repo, file.path, githubToken);
         const content = atob(fileContent.content);
-        const findings = [];
+        const findings: any[] = [];
 
         const lines = content.split('\n');
         for (let i = 0; i < lines.length; i++) {
@@ -146,7 +163,6 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
                 findings.push({
                   repository_name: repo.name,
                   repository_url: repo.html_url,
-                  repository_owner: repo.owner?.login || repo.full_name?.split('/')[0] || null,
                   api_path: apiPath,
                   method: method,
                   file_path: file.path,
@@ -161,20 +177,9 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
         }
 
         if (findings.length > 0) {
-          console.log(`Found ${findings.length} API endpoints in ${file.path}`);
-          
-          const { data, error } = await supabaseClient
+          await supabaseClient
             .from('github_api_findings')
-            .insert(findings)
-            .select();
-
-          if (error) {
-            console.error('Error saving findings:', error);
-            throw error;
-          }
-
-          console.log(`Successfully saved ${findings.length} findings to database`);
-          totalFindings += findings.length;
+            .insert(findings);
         }
 
         return findings.length;
