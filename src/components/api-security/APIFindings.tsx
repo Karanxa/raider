@@ -115,10 +115,11 @@ export const APIFindings = () => {
                     {finding.file_path}:{finding.line_number}
                   </TableCell>
                 </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        )}
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 };
