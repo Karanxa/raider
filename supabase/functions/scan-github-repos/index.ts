@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { fetchRepositories, fetchRepositoryContents, fetchFileContent } from './github-api.ts'
+import { API_PATTERNS } from './api-patterns.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,7 +9,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -27,167 +28,97 @@ serve(async (req) => {
     )
 
     // Get user repositories
-    const reposResponse = await fetch('https://api.github.com/user/repos?per_page=100', {
-      headers: {
-        'Authorization': `token ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    })
-    
-    if (!reposResponse.ok) {
-      throw new Error(`GitHub API error: ${reposResponse.statusText}`)
-    }
-    
-    const repos = await reposResponse.json()
+    const repos = await fetchRepositories(githubToken)
     console.log(`Found ${repos.length} repositories`)
 
-    let scannedRepos = 0;
-    const totalRepos = repos.length;
-    const startTime = Date.now();
-
-    // Process each repository
-    for (const repo of repos) {
-      console.log(`Processing repository: ${repo.name}`)
+    let scannedRepos = 0
+    const totalRepos = repos.length
+    const startTime = Date.now()
+    const batchSize = 5 // Process repositories in smaller batches
+    
+    // Process repositories in batches
+    for (let i = 0; i < repos.length; i += batchSize) {
+      const batch = repos.slice(i, i + batchSize)
       
-      try {
-        // Get repository contents
-        const contentsResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/main?recursive=1`, {
-          headers: {
-            'Authorization': `token ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json'
+      await Promise.all(batch.map(async (repo) => {
+        try {
+          console.log(`Processing repository: ${repo.name}`)
+          
+          const contents = await fetchRepositoryContents(repo, githubToken)
+          
+          if (!contents?.tree) {
+            console.warn(`No tree found for repo ${repo.name}`)
+            return
           }
-        })
-        
-        let contents;
-        if (!contentsResponse.ok) {
-          // Try master branch if main doesn't exist
-          const masterResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/master?recursive=1`, {
-            headers: {
-              'Authorization': `token ${githubToken}`,
-              'Accept': 'application/vnd.github.v3+json'
-            }
+          
+          // Filter for potential API-containing files
+          const apiFiles = contents.tree.filter((item: any) => {
+            if (!item?.path) return false
+            const ext = item.path.split('.').pop()?.toLowerCase()
+            return ['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'php', 'java', 'go'].includes(ext)
           })
-          
-          if (!masterResponse.ok) {
-            console.warn(`Skipping repo ${repo.name}: No main or master branch found`)
-            continue
-          }
-          
-          contents = await masterResponse.json()
-        } else {
-          contents = await contentsResponse.json()
-        }
 
-        if (!contents?.tree) {
-          console.warn(`No tree found for repo ${repo.name}`)
-          continue
-        }
-        
-        // Filter for potential API-containing files
-        const apiFiles = contents.tree.filter((item: any) => {
-          if (!item?.path) return false
-          const ext = item.path.split('.').pop()?.toLowerCase()
-          return ['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'php', 'java', 'go'].includes(ext)
-        })
+          console.log(`Found ${apiFiles.length} potential API files in ${repo.name}`)
 
-        console.log(`Found ${apiFiles.length} potential API files in ${repo.name}`)
-
-        // Analyze each file for API endpoints
-        for (const file of apiFiles) {
-          const fileContentResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${file.path}`, {
-            headers: {
-              'Authorization': `token ${githubToken}`,
-              'Accept': 'application/vnd.github.v3+json'
-            }
-          })
-          
-          if (!fileContentResponse.ok) {
-            console.warn(`Skipping file ${file.path}: ${fileContentResponse.statusText}`)
-            continue
-          }
-
-          const fileContent = await fileContentResponse.json()
-          
-          if (!fileContent?.content) {
-            console.warn(`No content found for file ${file.path}`)
-            continue
-          }
-
-          const content = atob(fileContent.content)
-          const lines = content.split('\n')
-          
-          // Enhanced regex patterns for API endpoints
-          const patterns = [
-            { regex: /['"`](\/api\/[^'"`]+)['"`]/g, method: 'GET' },
-            { regex: /['"`](\/v\d+\/[^'"`]+)['"`]/g, method: 'GET' },
-            { regex: /\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
-            { regex: /fetch\(['"`]([^'"`]+)['"`]/g, method: 'GET' },
-            { regex: /axios\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
-            { regex: /@(Get|Post|Put|Delete|Patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
-            { regex: /router\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
-            { regex: /app\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' }
-          ]
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]
-            
-            for (const pattern of patterns) {
-              const matches = [...line.matchAll(pattern.regex)]
+          // Process each file
+          for (const file of apiFiles) {
+            try {
+              const fileContent = await fetchFileContent(repo, file.path, githubToken)
+              const content = atob(fileContent.content)
+              const lines = content.split('\n')
               
-              for (const match of matches) {
-                const apiPath = pattern.method === 'DYNAMIC' ? match[2] : match[1]
-                const method = pattern.method === 'DYNAMIC' ? match[1].toUpperCase() : pattern.method
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i]
                 
-                // Only store if it looks like an API endpoint
-                if (apiPath.includes('/api/') || apiPath.includes('/v1/') || apiPath.includes('/v2/')) {
-                  console.log(`Found API endpoint: ${method} ${apiPath} in ${file.path}`)
+                for (const pattern of API_PATTERNS) {
+                  const matches = [...line.matchAll(pattern.regex)]
                   
-                  // Store the finding
-                  await supabaseClient
-                    .from('github_api_findings')
-                    .insert({
-                      repository_name: repo.name,
-                      repository_url: repo.html_url,
-                      api_path: apiPath,
-                      method: method,
-                      file_path: file.path,
-                      line_number: i + 1,
-                      user_id: userId
-                    })
+                  for (const match of matches) {
+                    const apiPath = pattern.method === 'DYNAMIC' ? match[2] : match[1]
+                    const method = pattern.method === 'DYNAMIC' ? match[1].toUpperCase() : pattern.method
+                    
+                    if (apiPath.includes('/api/') || apiPath.includes('/v1/') || apiPath.includes('/v2/')) {
+                      await supabaseClient
+                        .from('github_api_findings')
+                        .insert({
+                          repository_name: repo.name,
+                          repository_url: repo.html_url,
+                          api_path: apiPath,
+                          method: method,
+                          file_path: file.path,
+                          line_number: i + 1,
+                          user_id: userId
+                        })
+                    }
+                  }
                 }
               }
+            } catch (error) {
+              console.error(`Error processing file ${file.path}:`, error)
             }
           }
+        } catch (error) {
+          console.error(`Error processing repo ${repo.name}:`, error)
         }
-      } catch (error) {
-        console.error(`Error processing repo ${repo.name}:`, error)
-        continue // Continue with next repo even if one fails
-      }
+      }))
 
-      // Update progress after each repository
-      scannedRepos++;
-      const progress = (scannedRepos / totalRepos) * 100;
-      const elapsedTime = Date.now() - startTime;
-      const averageTimePerRepo = elapsedTime / scannedRepos;
-      const remainingRepos = totalRepos - scannedRepos;
-      const estimatedRemainingTime = Math.round((averageTimePerRepo * remainingRepos) / 1000); // Convert to seconds
+      // Update progress after each batch
+      scannedRepos += batch.length
+      const progress = (scannedRepos / totalRepos) * 100
+      const elapsedTime = Date.now() - startTime
+      const averageTimePerRepo = elapsedTime / scannedRepos
+      const remainingRepos = totalRepos - scannedRepos
+      const estimatedRemainingTime = Math.round((averageTimePerRepo * remainingRepos) / 1000)
 
-      // Format time remaining
       const timeRemaining = estimatedRemainingTime > 60 
         ? `${Math.round(estimatedRemainingTime / 60)} minutes`
-        : `${estimatedRemainingTime} seconds`;
+        : `${estimatedRemainingTime} seconds`
 
-      // Broadcast progress
       await supabaseClient.channel('scan-progress').send({
         type: 'broadcast',
         event: 'scan-progress',
-        payload: {
-          progress,
-          timeRemaining,
-          totalRepos,
-          scannedRepos
-        }
-      });
+        payload: { progress, timeRemaining, totalRepos, scannedRepos }
+      })
     }
 
     return new Response(
@@ -200,7 +131,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: 500
       }
     )
   }
