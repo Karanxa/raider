@@ -48,9 +48,6 @@ export const APIFindings = () => {
         }
 
         setFindings(data || []);
-        if (data?.length === 0) {
-          toast.info('No API findings found. Try scanning some repositories first.');
-        }
       } catch (error) {
         console.error('Error:', error);
         toast.error('An error occurred while fetching API findings');
