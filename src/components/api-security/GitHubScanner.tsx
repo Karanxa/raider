@@ -17,15 +17,24 @@ export const GitHubScanner = () => {
 
     setIsScanning(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error("Please sign in to scan repositories");
+        return;
+      }
+
       const { error } = await supabase.functions.invoke('scan-github-repos', {
-        body: { githubToken }
+        body: { 
+          githubToken,
+          userId: session.user.id 
+        }
       });
 
       if (error) throw error;
-      toast.success("GitHub scan initiated successfully");
+      toast.success("GitHub scan initiated successfully. Please wait a moment and refresh the findings below.");
     } catch (error) {
       console.error('Error scanning GitHub repos:', error);
-      toast.error("Failed to scan GitHub repositories");
+      toast.error("Failed to scan GitHub repositories. Please check your token and try again.");
     } finally {
       setIsScanning(false);
     }

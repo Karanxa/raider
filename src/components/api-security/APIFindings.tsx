@@ -43,7 +43,9 @@ export const APIFindings = () => {
   }, []);
 
   const fetchFindings = async (currentUserId: string) => {
+    setIsLoading(true);
     try {
+      console.log('Fetching findings for user:', currentUserId);
       const { data, error } = await supabase
         .from('github_api_findings')
         .select('*')
@@ -51,16 +53,19 @@ export const APIFindings = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Error fetching findings:', error);
         toast.error('Error fetching API findings: ' + error.message);
         throw error;
       }
       
+      console.log('Fetched findings:', data);
       setFindings(data || []);
       if (data?.length === 0) {
         toast.info('No API findings found. Try scanning some repositories first.');
       }
     } catch (error) {
       console.error('Error fetching API findings:', error);
+      toast.error('Failed to fetch API findings. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +89,7 @@ export const APIFindings = () => {
   };
 
   if (!userId) {
-    return <div>Please sign in to view API findings.</div>;
+    return <div className="text-center py-8">Please sign in to view API findings.</div>;
   }
 
   return (
@@ -104,7 +109,7 @@ export const APIFindings = () => {
       />
 
       {isLoading ? (
-        <div>Loading findings...</div>
+        <div className="text-center py-8">Loading findings...</div>
       ) : findings.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No API findings yet. Try scanning some repositories first.

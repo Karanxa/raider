@@ -12,14 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    const { githubToken } = await req.json()
+    const { githubToken, userId } = await req.json()
+    
+    if (!githubToken || !userId) {
+      throw new Error('Missing required parameters')
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('Scanning repositories for user:', userId)
+
     // Get user repositories
-    const reposResponse = await fetch('https://api.github.com/user/repos', {
+    const reposResponse = await fetch('https://api.github.com/user/repos?per_page=100', {
       headers: {
         'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json'
@@ -31,6 +38,7 @@ serve(async (req) => {
     }
     
     const repos = await reposResponse.json()
+    console.log(`Found ${repos.length} repositories`)
 
     // Process each repository
     for (const repo of repos) {
@@ -46,23 +54,36 @@ serve(async (req) => {
         })
         
         if (!contentsResponse.ok) {
-          console.warn(`Skipping repo ${repo.name}: ${contentsResponse.statusText}`)
-          continue
+          // Try master branch if main doesn't exist
+          const masterResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/master?recursive=1`, {
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          })
+          
+          if (!masterResponse.ok) {
+            console.warn(`Skipping repo ${repo.name}: No main or master branch found`)
+            continue
+          }
+          
+          const contents = await masterResponse.json()
+          if (!contents?.tree) {
+            console.warn(`No tree found for repo ${repo.name}`)
+            continue
+          }
         }
 
         const contents = await contentsResponse.json()
         
-        if (!contents?.tree) {
-          console.warn(`No tree found for repo ${repo.name}`)
-          continue
-        }
-
         // Filter for potential API-containing files
         const apiFiles = contents.tree.filter((item: any) => {
           if (!item?.path) return false
           const ext = item.path.split('.').pop()?.toLowerCase()
-          return ['js', 'ts', 'py', 'rb', 'php', 'java', 'go'].includes(ext)
+          return ['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'php', 'java', 'go'].includes(ext)
         })
+
+        console.log(`Found ${apiFiles.length} potential API files in ${repo.name}`)
 
         // Analyze each file for API endpoints
         for (const file of apiFiles) {
@@ -88,12 +109,16 @@ serve(async (req) => {
           const content = atob(fileContent.content)
           const lines = content.split('\n')
           
-          // Simple regex patterns for API endpoints
+          // Enhanced regex patterns for API endpoints
           const patterns = [
             { regex: /['"`](\/api\/[^'"`]+)['"`]/g, method: 'GET' },
-            { regex: /\.(get|post|put|delete|patch)\(['"`](\/[^'"`]+)['"`]/gi, method: 'DYNAMIC' },
-            { regex: /fetch\(['"`](\/api\/[^'"`]+)['"`]/g, method: 'GET' },
-            { regex: /axios\.(get|post|put|delete|patch)\(['"`](\/[^'"`]+)['"`]/gi, method: 'DYNAMIC' }
+            { regex: /['"`](\/v\d+\/[^'"`]+)['"`]/g, method: 'GET' },
+            { regex: /\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
+            { regex: /fetch\(['"`]([^'"`]+)['"`]/g, method: 'GET' },
+            { regex: /axios\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
+            { regex: /@(Get|Post|Put|Delete|Patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
+            { regex: /router\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' },
+            { regex: /app\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi, method: 'DYNAMIC' }
           ]
 
           for (let i = 0; i < lines.length; i++) {
@@ -103,21 +128,26 @@ serve(async (req) => {
               const matches = [...line.matchAll(pattern.regex)]
               
               for (const match of matches) {
-                const apiPath = match[1]
+                const apiPath = pattern.method === 'DYNAMIC' ? match[2] : match[1]
                 const method = pattern.method === 'DYNAMIC' ? match[1].toUpperCase() : pattern.method
                 
-                // Store the finding
-                await supabaseClient
-                  .from('github_api_findings')
-                  .insert({
-                    repository_name: repo.name,
-                    repository_url: repo.html_url,
-                    api_path: apiPath,
-                    method: method,
-                    file_path: file.path,
-                    line_number: i + 1,
-                    user_id: req.headers.get('x-user-id')
-                  })
+                // Only store if it looks like an API endpoint
+                if (apiPath.includes('/api/') || apiPath.includes('/v1/') || apiPath.includes('/v2/')) {
+                  console.log(`Found API endpoint: ${method} ${apiPath} in ${file.path}`)
+                  
+                  // Store the finding
+                  await supabaseClient
+                    .from('github_api_findings')
+                    .insert({
+                      repository_name: repo.name,
+                      repository_url: repo.html_url,
+                      api_path: apiPath,
+                      method: method,
+                      file_path: file.path,
+                      line_number: i + 1,
+                      user_id: userId
+                    })
+                }
               }
             }
           }
