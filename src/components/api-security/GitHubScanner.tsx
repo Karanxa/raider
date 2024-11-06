@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { useSession } from "@supabase/auth-helpers-react";
 
 export const GitHubScanner = () => {
   const [githubToken, setGithubToken] = useState("");
@@ -19,8 +20,14 @@ export const GitHubScanner = () => {
   const [totalRepos, setTotalRepos] = useState(0);
   const [scannedRepos, setScannedRepos] = useState(0);
   const [includePrivateRepos, setIncludePrivateRepos] = useState(false);
+  const session = useSession();
 
   const handleScan = async (scanType: 'all' | 'specific' | 'org') => {
+    if (!session?.user?.id) {
+      toast.error("Please sign in to scan repositories");
+      return;
+    }
+
     if (includePrivateRepos && !githubToken) {
       toast.error("GitHub token is required for scanning private repositories");
       return;
@@ -43,12 +50,6 @@ export const GitHubScanner = () => {
     setScannedRepos(0);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        toast.error("Please sign in to scan repositories");
-        return;
-      }
-
       const channel = supabase
         .channel('scan-progress')
         .on('broadcast', { event: 'scan-progress' }, (payload) => {
@@ -60,27 +61,28 @@ export const GitHubScanner = () => {
         })
         .subscribe();
 
-      const { error } = await supabase.functions.invoke('scan-github-repos', {
+      const { data, error } = await supabase.functions.invoke('scan-github-repos', {
         body: { 
           githubToken: includePrivateRepos ? githubToken : null,
           userId: session.user.id,
           specificRepo: scanType === 'specific' ? specificRepo : null,
           orgName: scanType === 'org' ? orgName : null,
-          includePrivateRepos
+          includePrivateRepos,
+          scanType
         }
       });
 
       if (error) throw error;
       
-      toast.success("GitHub scan completed. Your findings will appear in the API Findings dashboard shortly.");
+      toast.success("GitHub scan completed successfully");
       
       setGithubToken("");
       setSpecificRepo("");
       setOrgName("");
-      supabase.removeChannel(channel);
-    } catch (error) {
+      channel.unsubscribe();
+    } catch (error: any) {
       console.error('Error scanning GitHub repos:', error);
-      toast.error("Failed to scan GitHub repositories. Please try again.");
+      toast.error(error.message || "Failed to scan GitHub repositories");
     } finally {
       setIsScanning(false);
       setProgress(0);
