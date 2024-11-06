@@ -37,6 +37,13 @@ const getMethodColor = (method: string) => {
   return colors[method] || "bg-gray-500";
 };
 
+const getGitHubLineLink = (repoUrl: string, filePath: string, lineNumber: number) => {
+  // Convert repository URL to raw file URL format
+  // Example: https://github.com/owner/repo -> https://github.com/owner/repo/blob/main/path/to/file#L123
+  const baseUrl = repoUrl.replace(/\.git$/, '');
+  return `${baseUrl}/blob/main/${filePath}#L${lineNumber}`;
+};
+
 export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps) => {
   if (isLoading) {
     return <div className="text-center py-8">Loading findings...</div>;
@@ -58,7 +65,7 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
             <TableHead className="whitespace-nowrap">Method</TableHead>
             <TableHead className="whitespace-nowrap">API Path</TableHead>
             <TableHead className="whitespace-nowrap">Repository</TableHead>
-            <TableHead className="whitespace-nowrap">File Location</TableHead>
+            <TableHead className="whitespace-nowrap">Location</TableHead>
             <TableHead className="whitespace-nowrap">PII Types</TableHead>
           </TableRow>
         </TableHeader>
@@ -79,17 +86,17 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
                 </div>
               </TableCell>
               <TableCell className="whitespace-nowrap">
+                {finding.repository_name}
+              </TableCell>
+              <TableCell className="whitespace-nowrap">
                 <a
-                  href={finding.repository_url}
+                  href={getGitHubLineLink(finding.repository_url, finding.file_path, finding.line_number)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:underline"
                 >
-                  {finding.repository_name}
+                  {finding.file_path}:{finding.line_number}
                 </a>
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {finding.file_path}:{finding.line_number}
               </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
