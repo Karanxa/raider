@@ -27,6 +27,9 @@ export async function processRepoFiles(repo: any, files: any[], githubToken: str
         const content = atob(fileContent.content);
         const findings: any[] = [];
 
+        // Extract owner from repo URL or full_name
+        const repoOwner = repo.owner?.login || repo.full_name?.split('/')[0] || 'unknown';
+
         const lines = content.split('\n');
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
@@ -48,6 +51,7 @@ export async function processRepoFiles(repo: any, files: any[], githubToken: str
                 findings.push({
                   repository_name: repo.name,
                   repository_url: repo.html_url,
+                  repository_owner: repoOwner,
                   api_path: apiPath,
                   method: method,
                   file_path: file.path,
