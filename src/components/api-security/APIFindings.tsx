@@ -10,7 +10,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
 
 interface APIFinding {
@@ -27,20 +26,28 @@ export const APIFindings = () => {
   const [findings, setFindings] = useState<APIFinding[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const auth = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auth?.user?.id) {
-      fetchFindings();
-    }
-  }, [auth?.user?.id]);
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+      setUserId(currentUserId);
+      
+      if (currentUserId) {
+        fetchFindings(currentUserId);
+      }
+    };
 
-  const fetchFindings = async () => {
+    getUser();
+  }, []);
+
+  const fetchFindings = async (currentUserId: string) => {
     try {
       const { data, error } = await supabase
         .from('github_api_findings')
         .select('*')
-        .eq('user_id', auth?.user?.id)
+        .eq('user_id', currentUserId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -76,7 +83,7 @@ export const APIFindings = () => {
     return colors[method] || "bg-gray-500";
   };
 
-  if (!auth?.user?.id) {
+  if (!userId) {
     return <div>Please sign in to view API findings.</div>;
   }
 
