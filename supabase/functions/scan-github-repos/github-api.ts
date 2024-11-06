@@ -34,32 +34,54 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     headers['Authorization'] = `token ${githubToken}`;
   }
 
-  let apiUrl = includePrivateRepos 
-    ? 'https://api.github.com/user/repos'
-    : 'https://api.github.com/repositories';
-
-  if (orgName) {
-    apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
-  }
+  let apiUrl = orgName 
+    ? `https://api.github.com/orgs/${orgName}/repos`
+    : includePrivateRepos 
+      ? 'https://api.github.com/user/repos'
+      : 'https://api.github.com/repositories';
 
   while (true) {
-    const response = await retryOperation(() =>
-      fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
-    );
+    try {
+      const response = await retryOperation(() =>
+        fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
+      );
 
-    if (!response.ok) {
-      throw new Error(`GitHub API error: ${response.statusText}`);
+      if (!response.ok) {
+        console.error(`Failed to fetch repositories: ${response.statusText}`);
+        throw new Error(`GitHub API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.length === 0) break;
+
+      // For public repositories endpoint, we need to fetch full repository details
+      const processedRepos = await Promise.all(
+        data.map(async (repo: any) => {
+          if (!repo.full_name && repo.name) {
+            // If we only have the name (common with public repos endpoint), fetch full details
+            const fullRepoResponse = await fetch(`https://api.github.com/repos/${repo.owner.login}/${repo.name}`, {
+              headers
+            });
+            if (fullRepoResponse.ok) {
+              return await fullRepoResponse.json();
+            }
+            console.warn(`Could not fetch full details for repo ${repo.name}`);
+            return null;
+          }
+          return repo;
+        })
+      );
+
+      const validRepos = processedRepos.filter((repo): repo is any => 
+        repo !== null && (!includePrivateRepos || !repo.private)
+      );
+
+      repos.push(...validRepos);
+      page++;
+    } catch (error) {
+      console.error('Error fetching repositories:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    if (data.length === 0) break;
-
-    const filteredRepos = includePrivateRepos 
-      ? data 
-      : data.filter((repo: any) => !repo.private);
-
-    repos.push(...filteredRepos);
-    page++;
   }
 
   return repos;

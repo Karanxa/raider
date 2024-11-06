@@ -50,9 +50,18 @@ serve(async (req) => {
         throw new Error(`Failed to fetch repository: ${repoResponse.statusText}`)
       }
       
-      repos = [await repoResponse.json()]
+      const repo = await repoResponse.json()
+      if (!repo.full_name) {
+        throw new Error(`Invalid repository data received for ${specificRepo}`)
+      }
+      
+      repos = [repo]
     } else {
       repos = await fetchRepositories(githubToken, includePrivateRepos, orgName)
+    }
+
+    if (!repos.length) {
+      throw new Error('No repositories found to scan')
     }
 
     console.log(`Found ${repos.length} repositories to scan`)
@@ -67,12 +76,17 @@ serve(async (req) => {
       
       await Promise.all(batch.map(async (repo) => {
         try {
-          console.log(`Processing repository: ${repo.name}`)
+          if (!repo?.full_name) {
+            console.warn(`Skipping invalid repository:`, repo)
+            return
+          }
+
+          console.log(`Processing repository: ${repo.full_name}`)
           
           const contents = await fetchRepositoryContents(repo, githubToken)
           
           if (!contents?.tree) {
-            console.warn(`No tree found for repo ${repo.name}`)
+            console.warn(`No tree found for repo ${repo.full_name}`)
             return
           }
           
@@ -85,7 +99,7 @@ serve(async (req) => {
             ].includes(ext)
           })
 
-          console.log(`Found ${apiFiles.length} potential API files in ${repo.name}`)
+          console.log(`Found ${apiFiles.length} potential API files in ${repo.full_name}`)
 
           for (let j = 0; j < apiFiles.length; j += BATCH_SIZE) {
             const filesBatch = apiFiles.slice(j, j + BATCH_SIZE)
@@ -93,7 +107,7 @@ serve(async (req) => {
             totalFindings += findingsCount
           }
         } catch (error) {
-          console.error(`Error processing repo ${repo.name}:`, error)
+          console.error(`Error processing repo ${repo?.full_name || 'unknown'}:`, error)
         }
       }))
 
