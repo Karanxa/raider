@@ -18,6 +18,7 @@ export type Database = {
           owasp_category: string
           recommendation: string | null
           severity: string
+          target_url: string | null
           updated_at: string | null
           user_id: string
           vulnerability_type: string
@@ -30,6 +31,7 @@ export type Database = {
           owasp_category: string
           recommendation?: string | null
           severity: string
+          target_url?: string | null
           updated_at?: string | null
           user_id: string
           vulnerability_type: string
@@ -42,6 +44,7 @@ export type Database = {
           owasp_category?: string
           recommendation?: string | null
           severity?: string
+          target_url?: string | null
           updated_at?: string | null
           user_id?: string
           vulnerability_type?: string
