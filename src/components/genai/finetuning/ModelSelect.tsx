@@ -22,11 +22,12 @@ export const ModelSelect = ({
     <div className="space-y-4">
       <div>
         <Label>Base Model</Label>
-        <Select value={modelName} onValueChange={setModelName}>
+        <Select value={modelName || "select-model"} onValueChange={setModelName}>
           <SelectTrigger>
             <SelectValue placeholder="Select a model" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="select-model">Select a model</SelectItem>
             <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
             <SelectItem value="llama-2">LLaMA 2</SelectItem>
             <SelectItem value="mistral">Mistral</SelectItem>
@@ -36,11 +37,12 @@ export const ModelSelect = ({
 
       <div>
         <Label>Dataset Type</Label>
-        <Select value={datasetType} onValueChange={setDatasetType}>
+        <Select value={datasetType || "select-dataset"} onValueChange={setDatasetType}>
           <SelectTrigger>
             <SelectValue placeholder="Select dataset type" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="select-dataset">Select dataset type</SelectItem>
             <SelectItem value="text">Text</SelectItem>
             <SelectItem value="code">Code</SelectItem>
             <SelectItem value="conversation">Conversation</SelectItem>
@@ -50,11 +52,12 @@ export const ModelSelect = ({
 
       <div>
         <Label>Task Type</Label>
-        <Select value={taskType} onValueChange={setTaskType}>
+        <Select value={taskType || "select-task"} onValueChange={setTaskType}>
           <SelectTrigger>
             <SelectValue placeholder="Select task type" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="select-task">Select task type</SelectItem>
             <SelectItem value="classification">Classification</SelectItem>
             <SelectItem value="generation">Generation</SelectItem>
             <SelectItem value="completion">Completion</SelectItem>
