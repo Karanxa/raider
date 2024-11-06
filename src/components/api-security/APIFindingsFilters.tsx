@@ -35,9 +35,12 @@ export const APIFindingsFilters = ({
             <SelectValue placeholder="Select owner" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Owners</SelectItem>
+            <SelectItem value="_all">All Owners</SelectItem>
             {owners.map((owner) => (
-              <SelectItem key={owner} value={owner || "unknown"}>
+              <SelectItem 
+                key={owner} 
+                value={owner || "_unknown"}
+              >
                 {owner || "Unknown Owner"}
               </SelectItem>
             ))}
