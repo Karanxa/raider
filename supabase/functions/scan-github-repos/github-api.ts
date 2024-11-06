@@ -1,5 +1,17 @@
-import { getAuthHeaders, initializeTokenPool } from './token-manager.ts';
+import { getAuthHeaders } from './token-manager.ts';
 import { retryOperation } from './retry-utils.ts';
+import { detectPIITypes } from './piiPatterns.ts';
+
+const API_PATTERNS = [
+  {
+    regex: /['"`](\/[^'"`\s]*api[^'"`\s]*)[`'"]/g,
+    method: 'GET'
+  },
+  {
+    regex: /\.(get|post|put|delete|patch)\s*\(\s*['"`](\/[^'"`\s]*)[`'"]/gi,
+    method: 'DYNAMIC'
+  }
+];
 
 export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
   if (!githubToken && includePrivateRepos) {
@@ -85,7 +97,10 @@ export async function fetchRepositoryContents(repo: any, githubToken: string | n
 
 export async function processFilesBatch(repo: any, files: any[], githubToken: string | null, supabaseClient: any, userId: string) {
   const headers = getAuthHeaders(githubToken, repo.private);
+  let totalFindings = 0;
   
+  console.log(`Processing ${files.length} files for repo ${repo.full_name}`);
+
   const results = await Promise.all(
     files.map(async (file) => {
       try {
@@ -95,8 +110,7 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
             { headers }
           );
           if (!res.ok) {
-            const errorData = await res.text();
-            throw new Error(`GitHub API error: ${res.status} - ${errorData}`);
+            throw new Error(`GitHub API error: ${res.status} - ${await res.text()}`);
           }
           return res;
         });
@@ -108,7 +122,7 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
         }
 
         const content = atob(fileContent.content);
-        const findings: any[] = [];
+        const findings = [];
 
         const lines = content.split('\n');
         for (let i = 0; i < lines.length; i++) {
@@ -132,7 +146,7 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
                 findings.push({
                   repository_name: repo.name,
                   repository_url: repo.html_url,
-                  repository_owner: repo.owner?.login || repo.full_name?.split('/')[0] || 'unknown',
+                  repository_owner: repo.owner?.login || repo.full_name?.split('/')[0] || null,
                   api_path: apiPath,
                   method: method,
                   file_path: file.path,
@@ -147,9 +161,20 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
         }
 
         if (findings.length > 0) {
-          await supabaseClient
+          console.log(`Found ${findings.length} API endpoints in ${file.path}`);
+          
+          const { data, error } = await supabaseClient
             .from('github_api_findings')
-            .insert(findings);
+            .insert(findings)
+            .select();
+
+          if (error) {
+            console.error('Error saving findings:', error);
+            throw error;
+          }
+
+          console.log(`Successfully saved ${findings.length} findings to database`);
+          totalFindings += findings.length;
         }
 
         return findings.length;
