@@ -16,7 +16,7 @@ export const ChatSupport = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! I\'m your Simrata support assistant. How can I help you today?' }
+    { role: 'assistant', content: 'Hello! I\'m your support assistant. How can I help you today?' }
   ]);
   const [currentMessage, setCurrentMessage] = useState('');
 
@@ -77,7 +77,7 @@ export const ChatSupport = () => {
       minimized ? 'h-[60px]' : 'h-[500px]'
     }`}>
       <div className="flex items-center justify-between border-b p-4">
-        <h3 className="font-semibold">Simrata Support</h3>
+        <h3 className="font-semibold">Support Chat</h3>
         <div className="flex gap-2">
           <Button
             variant="ghost"
