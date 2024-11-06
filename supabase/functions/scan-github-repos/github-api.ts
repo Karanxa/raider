@@ -8,6 +8,22 @@ const BATCH_SIZE = 10;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+// Token rotation setup
+const GITHUB_TOKENS = [
+  Deno.env.get('GITHUB_TOKEN_1'),
+  Deno.env.get('GITHUB_TOKEN_2'),
+  Deno.env.get('GITHUB_TOKEN_3'),
+  Deno.env.get('GITHUB_TOKEN_4'),
+  Deno.env.get('GITHUB_TOKEN_5'),
+].filter(Boolean);
+
+let currentTokenIndex = 0;
+
+function getNextToken() {
+  currentTokenIndex = (currentTokenIndex + 1) % GITHUB_TOKENS.length;
+  return GITHUB_TOKENS[currentTokenIndex];
+}
+
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -16,35 +32,37 @@ async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETR
   try {
     return await operation();
   } catch (error) {
-    if (retries > 0) {
-      console.log(`Retrying operation, ${retries} attempts remaining`);
-      await sleep(RETRY_DELAY);
-      return retryOperation(operation, retries - 1);
+    if (error.status === 403 || error.status === 429) {
+      console.log('Rate limit hit, switching token...');
+      if (retries > 0) {
+        await sleep(RETRY_DELAY);
+        return retryOperation(operation, retries - 1);
+      }
     }
     throw error;
   }
 }
 
-export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
+export async function fetchRepositories(userGithubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
   const repos = [];
   let page = 1;
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
+  
+  // Use user token if provided, otherwise use system tokens
+  const getAuthHeaders = () => {
+    const token = userGithubToken || getNextToken();
+    return {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `token ${token}`
+    };
   };
-
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
-  }
 
   // Determine the appropriate API endpoint based on the scan type
   let apiUrl: string;
   if (orgName) {
     apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
-  } else if (githubToken) {
-    // If we have a token, use the authenticated user's repos endpoint
+  } else if (userGithubToken) {
     apiUrl = 'https://api.github.com/user/repos';
   } else {
-    // Fallback to public repositories
     apiUrl = 'https://api.github.com/repositories';
   }
 
@@ -53,13 +71,18 @@ export async function fetchRepositories(githubToken: string | null, includePriva
   while (true) {
     try {
       console.log(`Fetching page ${page}`);
-      const response = await retryOperation(() =>
-        fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
-      );
-
-      if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status} - ${response.statusText}`);
-      }
+      const response = await retryOperation(async () => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${apiUrl}?per_page=100&page=${page}`, { headers });
+        
+        if (!res.ok) {
+          const error = new Error(`GitHub API error: ${res.status} - ${res.statusText}`);
+          (error as any).status = res.status;
+          throw error;
+        }
+        
+        return res;
+      });
 
       const data = await response.json();
       if (!Array.isArray(data) || data.length === 0) break;
@@ -84,23 +107,33 @@ export async function fetchRepositories(githubToken: string | null, includePriva
   return repos;
 }
 
-export async function fetchRepositoryContents(repo: any, githubToken: string | null) {
+export async function fetchRepositoryContents(repo: any, userGithubToken: string | null) {
   const branches = ['main', 'master', 'develop', 'dev'];
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
+  
+  const getAuthHeaders = () => {
+    const token = userGithubToken || getNextToken();
+    return {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `token ${token}`
+    };
   };
-
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
-  }
 
   for (const branch of branches) {
     try {
-      const response = await retryOperation(() =>
-        fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, {
+      const response = await retryOperation(async () => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, {
           headers
-        })
-      );
+        });
+        
+        if (!res.ok) {
+          const error = new Error(`GitHub API error: ${res.status} - ${res.statusText}`);
+          (error as any).status = res.status;
+          throw error;
+        }
+        
+        return res;
+      });
 
       if (response.ok) {
         return await response.json();
@@ -113,24 +146,29 @@ export async function fetchRepositoryContents(repo: any, githubToken: string | n
   throw new Error('No valid branch found');
 }
 
-export async function fetchFileContent(repo: any, filePath: string, githubToken: string | null) {
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
+export async function fetchFileContent(repo: any, filePath: string, userGithubToken: string | null) {
+  const getAuthHeaders = () => {
+    const token = userGithubToken || getNextToken();
+    return {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `token ${token}`
+    };
   };
 
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
-  }
-
-  const response = await retryOperation(() =>
-    fetch(`https://api.github.com/repos/${repo.full_name}/contents/${filePath}`, {
+  const response = await retryOperation(async () => {
+    const headers = getAuthHeaders();
+    const res = await fetch(`https://api.github.com/repos/${repo.full_name}/contents/${filePath}`, {
       headers
-    })
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch file content: ${response.statusText}`);
-  }
+    });
+    
+    if (!res.ok) {
+      const error = new Error(`Failed to fetch file content: ${res.statusText}`);
+      (error as any).status = res.status;
+      throw error;
+    }
+    
+    return res;
+  });
 
   return await response.json();
 }
