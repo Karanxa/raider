@@ -34,6 +34,7 @@ serve(async (req) => {
         throw new Error('Repository name is required for specific scan')
       }
 
+      console.log(`Fetching specific repository: ${specificRepo}`);
       const headers: Record<string, string> = {
         'Accept': 'application/vnd.github.v3+json'
       }

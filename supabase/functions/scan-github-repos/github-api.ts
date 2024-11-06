@@ -34,48 +34,57 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     headers['Authorization'] = `token ${githubToken}`;
   }
 
-  let apiUrl = orgName 
+  // Determine the appropriate API endpoint
+  const apiUrl = orgName 
     ? `https://api.github.com/orgs/${orgName}/repos`
-    : includePrivateRepos 
-      ? 'https://api.github.com/user/repos'
-      : 'https://api.github.com/repositories';
+    : 'https://api.github.com/repositories';
 
   while (true) {
     try {
+      console.log(`Fetching page ${page} from ${apiUrl}`);
       const response = await retryOperation(() =>
         fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
       );
 
       if (!response.ok) {
-        console.error(`Failed to fetch repositories: ${response.statusText}`);
-        throw new Error(`GitHub API error: ${response.statusText}`);
+        throw new Error(`GitHub API error: ${response.status} - ${response.statusText}`);
       }
 
       const data = await response.json();
-      if (data.length === 0) break;
+      if (!Array.isArray(data) || data.length === 0) break;
 
-      // For public repositories endpoint, we need to fetch full repository details
+      // Process each repository to ensure we have complete data
       const processedRepos = await Promise.all(
         data.map(async (repo: any) => {
-          if (!repo.full_name && repo.name) {
-            // If we only have the name (common with public repos endpoint), fetch full details
-            const fullRepoResponse = await fetch(`https://api.github.com/repos/${repo.owner.login}/${repo.name}`, {
-              headers
-            });
-            if (fullRepoResponse.ok) {
+          try {
+            if (!repo.full_name) {
+              // Fetch complete repository data if we don't have full_name
+              const fullRepoUrl = repo.url || `https://api.github.com/repositories/${repo.id}`;
+              const fullRepoResponse = await fetch(fullRepoUrl, { headers });
+              
+              if (!fullRepoResponse.ok) {
+                console.warn(`Failed to fetch full repo data for ${repo.name || 'unknown repo'}`);
+                return null;
+              }
+              
               return await fullRepoResponse.json();
             }
-            console.warn(`Could not fetch full details for repo ${repo.name}`);
+            return repo;
+          } catch (error) {
+            console.error(`Error processing repository:`, error);
             return null;
           }
-          return repo;
         })
       );
 
+      // Filter out null results and private repos if not requested
       const validRepos = processedRepos.filter((repo): repo is any => 
-        repo !== null && (!includePrivateRepos || !repo.private)
+        repo !== null && 
+        repo.full_name && 
+        (!includePrivateRepos ? !repo.private : true)
       );
 
+      console.log(`Found ${validRepos.length} valid repositories on page ${page}`);
       repos.push(...validRepos);
       page++;
     } catch (error) {
