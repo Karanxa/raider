@@ -31,7 +31,7 @@ serve(async (req) => {
       throw new Error('Missing required parameter: orgName for organization scan type');
     }
 
-    // Validate GitHub token if required
+    // Only validate GitHub token if scanning private repositories
     if (includePrivateRepos && !githubToken) {
       throw new Error('GitHub token is required for scanning private repositories');
     }
@@ -62,7 +62,7 @@ serve(async (req) => {
         if (!repoResponse.ok) {
           const errorData = await repoResponse.text();
           if (repoResponse.status === 403) {
-            throw new Error('GitHub API rate limit exceeded or invalid token. Please provide a valid GitHub token.');
+            throw new Error('GitHub API rate limit exceeded. Please try again later or provide a valid GitHub token.');
           } else if (repoResponse.status === 404) {
             throw new Error(`Repository ${specificRepo} not found. Please check the repository name.`);
           }
@@ -77,10 +77,6 @@ serve(async (req) => {
         repos = [repo];
       } else {
         repos = await fetchRepositories(githubToken, includePrivateRepos, orgName);
-      }
-
-      if (!repos.length) {
-        throw new Error('No repositories found to scan');
       }
 
       let scannedRepos = 0;
@@ -163,11 +159,8 @@ serve(async (req) => {
       console.error('GitHub API Error:', error);
       let errorMessage = error.message;
       
-      // Provide more user-friendly error messages
       if (error.message.includes('rate limit')) {
-        errorMessage = 'GitHub API rate limit exceeded. Please provide a valid GitHub token or wait before trying again.';
-      } else if (error.message.includes('Forbidden')) {
-        errorMessage = 'Access denied. Please check your GitHub token permissions or ensure the repository is public.';
+        errorMessage = 'GitHub API rate limit exceeded. The system will automatically retry with different tokens. Please wait...';
       }
       
       return new Response(

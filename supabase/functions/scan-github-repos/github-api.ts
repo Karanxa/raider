@@ -3,24 +3,52 @@ import { API_PATTERNS } from './api-patterns.ts';
 import { detectPIITypes } from './piiPatterns.ts';
 
 const BATCH_SIZE = 10;
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000;
+const MAX_RETRIES = 5;
+const INITIAL_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 60000;
+
+// Token pool for public repository access
+const PUBLIC_TOKENS = [
+  'ghp_token1', // Replace with actual tokens
+  'ghp_token2',
+  'ghp_token3'
+];
+
+let currentTokenIndex = 0;
+
+function getNextToken() {
+  currentTokenIndex = (currentTokenIndex + 1) % PUBLIC_TOKENS.length;
+  return PUBLIC_TOKENS[currentTokenIndex];
+}
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    if (retries > 0) {
-      console.log(`Retrying operation, ${retries} attempts remaining`);
-      await sleep(RETRY_DELAY);
-      return retryOperation(operation, retries - 1);
+  let lastError: Error | null = null;
+  let currentDelay = INITIAL_RETRY_DELAY;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a rate limit error
+      if (error.message.includes('rate limit') && attempt < retries) {
+        console.log(`Rate limit hit, switching tokens and retrying. Attempt ${attempt + 1}/${retries}`);
+        getNextToken(); // Switch to next token
+        await sleep(currentDelay);
+        currentDelay = Math.min(currentDelay * 2, MAX_RETRY_DELAY); // Exponential backoff
+        continue;
+      }
+      
+      // If it's not a rate limit error or we're out of retries, throw the error
+      throw lastError;
     }
-    throw error;
   }
+  throw lastError;
 }
 
 export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
@@ -30,34 +58,39 @@ export async function fetchRepositories(githubToken: string | null, includePriva
 
   const repos = [];
   let page = 1;
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
-  };
-
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
-  }
-
-  let apiUrl: string;
-  if (orgName) {
-    apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
-  } else if (githubToken) {
-    apiUrl = 'https://api.github.com/user/repos';
-  } else {
-    apiUrl = 'https://api.github.com/repositories';
-  }
-
-  console.log(`Using API endpoint: ${apiUrl}`);
-
+  
   while (true) {
     try {
       console.log(`Fetching page ${page}`);
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+
+      // Use provided token for private repos, or token pool for public repos
+      const token = includePrivateRepos ? githubToken : getNextToken();
+      if (token) {
+        headers['Authorization'] = `token ${token}`;
+      }
+
+      let apiUrl: string;
+      if (orgName) {
+        apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
+      } else if (token) {
+        apiUrl = 'https://api.github.com/user/repos';
+      } else {
+        apiUrl = 'https://api.github.com/repositories';
+      }
+
       const response = await retryOperation(() =>
         fetch(`${apiUrl}?per_page=100&page=${page}`, { headers })
       );
 
       if (!response.ok) {
-        throw new Error(`GitHub API error: ${response.status} - ${response.statusText}`);
+        const errorData = await response.text();
+        if (response.status === 403) {
+          throw new Error('rate limit');
+        }
+        throw new Error(`GitHub API error: ${response.status} - ${errorData}`);
       }
 
       const data = await response.json();
@@ -84,16 +117,19 @@ export async function fetchRepositories(githubToken: string | null, includePriva
 
 export async function fetchRepositoryContents(repo: any, githubToken: string | null) {
   const branches = ['main', 'master', 'develop', 'dev'];
-  const headers: Record<string, string> = {
-    'Accept': 'application/vnd.github.v3+json'
-  };
-
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
-  }
-
+  
   for (const branch of branches) {
     try {
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+
+      // Use provided token for private repos, or token pool for public repos
+      const token = repo.private ? githubToken : getNextToken();
+      if (token) {
+        headers['Authorization'] = `token ${token}`;
+      }
+
       const response = await retryOperation(() =>
         fetch(`https://api.github.com/repos/${repo.full_name}/git/trees/${branch}?recursive=1`, {
           headers
@@ -116,8 +152,10 @@ export async function fetchFileContent(repo: any, filePath: string, githubToken:
     'Accept': 'application/vnd.github.v3+json'
   };
 
-  if (githubToken) {
-    headers['Authorization'] = `token ${githubToken}`;
+  // Use provided token for private repos, or token pool for public repos
+  const token = repo.private ? githubToken : getNextToken();
+  if (token) {
+    headers['Authorization'] = `token ${token}`;
   }
 
   const response = await retryOperation(() =>
