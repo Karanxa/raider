@@ -64,9 +64,9 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
           <TableRow>
             <TableHead className="whitespace-nowrap">Method</TableHead>
             <TableHead className="whitespace-nowrap">API Path</TableHead>
+            <TableHead className="whitespace-nowrap">PII Types</TableHead>
             <TableHead className="whitespace-nowrap">Repository</TableHead>
             <TableHead className="whitespace-nowrap">Location</TableHead>
-            <TableHead className="whitespace-nowrap">PII Types</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -78,11 +78,20 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
                 </Badge>
               </TableCell>
               <TableCell className="font-mono min-w-[200px]">
+                {finding.api_path}
+              </TableCell>
+              <TableCell>
                 <div className="flex items-center gap-2">
-                  {finding.api_path}
                   {finding.pii_classification && (
                     <AlertTriangle className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                   )}
+                  <div className="flex flex-wrap gap-1">
+                    {finding.pii_types?.map((type) => (
+                      <Badge key={type} variant="outline" className="bg-yellow-500/10 whitespace-nowrap">
+                        {type}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </TableCell>
               <TableCell className="whitespace-nowrap">
@@ -97,15 +106,6 @@ export const APIFindingsTable = ({ findings, isLoading }: APIFindingsTableProps)
                 >
                   {finding.file_path}:{finding.line_number}
                 </a>
-              </TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {finding.pii_types?.map((type) => (
-                    <Badge key={type} variant="outline" className="bg-yellow-500/10 whitespace-nowrap">
-                      {type}
-                    </Badge>
-                  ))}
-                </div>
               </TableCell>
             </TableRow>
           ))}
