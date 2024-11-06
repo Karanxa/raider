@@ -1,5 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface APIFinding {
   id: string;
@@ -15,9 +17,10 @@ interface APIFinding {
 
 interface APIFindingsTableProps {
   findings: APIFinding[];
+  onDelete: (id: string) => Promise<void>;
 }
 
-export const APIFindingsTable = ({ findings }: APIFindingsTableProps) => {
+export const APIFindingsTable = ({ findings, onDelete }: APIFindingsTableProps) => {
   return (
     <Table>
       <TableHeader>
@@ -29,6 +32,7 @@ export const APIFindingsTable = ({ findings }: APIFindingsTableProps) => {
           <TableHead>Description</TableHead>
           <TableHead>PII</TableHead>
           <TableHead>Created</TableHead>
+          <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -58,6 +62,15 @@ export const APIFindingsTable = ({ findings }: APIFindingsTableProps) => {
               )}
             </TableCell>
             <TableCell>{new Date(finding.created_at).toLocaleDateString()}</TableCell>
+            <TableCell>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(finding.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

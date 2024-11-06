@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@supabase/auth-helpers-react";
 import { Card } from "@/components/ui/card";
 import { APIFindingsFilters } from "./APIFindingsFilters";
 import { APIFindingsTable } from "./APIFindingsTable";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { 
   Pagination, 
   PaginationContent, 
@@ -18,9 +21,11 @@ const ITEMS_PER_PAGE = 10;
 
 export const APIFindings = () => {
   const session = useSession();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOwner, setSelectedOwner] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: findings = [], isLoading } = useQuery({
     queryKey: ['api-findings', session?.user?.id],
@@ -62,6 +67,28 @@ export const APIFindings = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleDeleteAll = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase
+        .from('github_api_findings')
+        .delete()
+        .eq('user_id', session.user.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+      toast.success('All findings deleted successfully');
+    } catch (error) {
+      console.error('Error deleting findings:', error);
+      toast.error('Failed to delete findings');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -69,11 +96,22 @@ export const APIFindings = () => {
   return (
     <Card className="p-6">
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">API Findings</h2>
-          <p className="text-muted-foreground">
-            View and analyze API endpoints discovered in GitHub repositories
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">API Findings</h2>
+            <p className="text-muted-foreground">
+              View and analyze API endpoints discovered in GitHub repositories
+            </p>
+          </div>
+          <Button 
+            variant="destructive" 
+            onClick={handleDeleteAll}
+            disabled={isDeleting || findings.length === 0}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete All
+          </Button>
         </div>
 
         <APIFindingsFilters
@@ -84,7 +122,25 @@ export const APIFindings = () => {
           owners={owners}
         />
 
-        <APIFindingsTable findings={paginatedFindings} />
+        <APIFindingsTable 
+          findings={paginatedFindings} 
+          onDelete={async (id) => {
+            try {
+              const { error } = await supabase
+                .from('github_api_findings')
+                .delete()
+                .eq('id', id);
+
+              if (error) throw error;
+
+              queryClient.invalidateQueries({ queryKey: ['api-findings'] });
+              toast.success('Finding deleted successfully');
+            } catch (error) {
+              console.error('Error deleting finding:', error);
+              toast.error('Failed to delete finding');
+            }
+          }}
+        />
 
         {totalPages > 1 && (
           <Pagination className="mt-4">
