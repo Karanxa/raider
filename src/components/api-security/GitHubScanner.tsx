@@ -71,7 +71,19 @@ export const GitHubScanner = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extract error message from the response body if available
+        let errorMessage = error.message;
+        try {
+          const errorBody = JSON.parse(error.message);
+          if (errorBody.error) {
+            errorMessage = errorBody.error;
+          }
+        } catch {
+          // If parsing fails, use the original error message
+        }
+        throw new Error(errorMessage);
+      }
 
       toast.success("GitHub scan completed successfully");
       channel.unsubscribe();
