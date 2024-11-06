@@ -1,4 +1,4 @@
-import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings } from "lucide-react";
+import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings, Search, List } from "lucide-react";
 
 export interface TabItem {
   value: string;
@@ -15,18 +15,12 @@ interface CategoryConfig {
 
 export const categoryConfigs: CategoryConfig[] = [
   {
-    value: "web",
-    label: "Web Security",
+    value: "api-security",
+    label: "API Security",
     icon: <Shield className="h-4 w-4" />,
     tabs: [
-      { value: "recon", label: "Domain Recon", icon: <FileCode className="h-4 w-4" /> },
-      { value: "recon-results", label: "Recon Results", icon: <Database className="h-4 w-4" /> },
-      { value: "nuclei", label: "Nuclei Scanner", icon: <AlertTriangle className="h-4 w-4" /> },
-      { value: "nuclei-results", label: "Nuclei Results", icon: <Database className="h-4 w-4" /> },
-      { value: "postman", label: "Postman Collections", icon: <Package className="h-4 w-4" /> },
-      { value: "turbo-intruder", label: "Turbo Intruder", icon: <AlertTriangle className="h-4 w-4" /> },
-      { value: "ip-intelligence", label: "IP Intelligence", icon: <Shield className="h-4 w-4" /> },
-      { value: "xss", label: "XSS Payloads", icon: <AlertTriangle className="h-4 w-4" /> },
+      { value: "scan", label: "GitHub Scan", icon: <Search className="h-4 w-4" /> },
+      { value: "findings", label: "API Findings", icon: <List className="h-4 w-4" /> },
     ],
   },
   {
