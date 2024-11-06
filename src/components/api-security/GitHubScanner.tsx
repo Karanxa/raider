@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 export const GitHubScanner = () => {
   const [githubToken, setGithubToken] = useState("");
   const [specificRepo, setSpecificRepo] = useState("");
+  const [orgName, setOrgName] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export const GitHubScanner = () => {
   const [scannedRepos, setScannedRepos] = useState(0);
   const [includePrivateRepos, setIncludePrivateRepos] = useState(false);
 
-  const handleScan = async (scanType: 'all' | 'specific') => {
+  const handleScan = async (scanType: 'all' | 'specific' | 'org') => {
     if (includePrivateRepos && !githubToken) {
       toast.error("GitHub token is required for scanning private repositories");
       return;
@@ -27,6 +28,11 @@ export const GitHubScanner = () => {
 
     if (scanType === 'specific' && !specificRepo) {
       toast.error("Please enter a repository name");
+      return;
+    }
+
+    if (scanType === 'org' && !orgName) {
+      toast.error("Please enter an organization name");
       return;
     }
 
@@ -59,6 +65,7 @@ export const GitHubScanner = () => {
           githubToken: includePrivateRepos ? githubToken : null,
           userId: session.user.id,
           specificRepo: scanType === 'specific' ? specificRepo : null,
+          orgName: scanType === 'org' ? orgName : null,
           includePrivateRepos
         }
       });
@@ -69,6 +76,7 @@ export const GitHubScanner = () => {
       
       setGithubToken("");
       setSpecificRepo("");
+      setOrgName("");
       supabase.removeChannel(channel);
     } catch (error) {
       console.error('Error scanning GitHub repos:', error);
@@ -92,7 +100,8 @@ export const GitHubScanner = () => {
       <Card className="p-6">
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">Scan All Repositories</TabsTrigger>
+            <TabsTrigger value="all">Scan Public Repositories</TabsTrigger>
+            <TabsTrigger value="org">Scan Organization</TabsTrigger>
             <TabsTrigger value="specific">Scan Specific Repository</TabsTrigger>
           </TabsList>
 
@@ -127,6 +136,25 @@ export const GitHubScanner = () => {
             </Button>
           </TabsContent>
 
+          <TabsContent value="org" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="org-name">Organization Name</Label>
+              <Input
+                id="org-name"
+                type="text"
+                placeholder="organization-name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter the GitHub organization name (e.g., microsoft)
+              </p>
+            </div>
+            <Button onClick={() => handleScan('org')} disabled={isScanning}>
+              {isScanning ? "Scanning..." : "Start Scan"}
+            </Button>
+          </TabsContent>
+
           <TabsContent value="specific" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="repo-name">Repository Name</Label>
@@ -141,7 +169,6 @@ export const GitHubScanner = () => {
                 Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
               </p>
             </div>
-
             <Button onClick={() => handleScan('specific')} disabled={isScanning}>
               {isScanning ? "Scanning..." : "Start Scan"}
             </Button>

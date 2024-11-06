@@ -23,7 +23,7 @@ async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETR
   }
 }
 
-export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean) {
+export async function fetchRepositories(githubToken: string | null, includePrivateRepos: boolean, orgName?: string | null) {
   const repos = [];
   let page = 1;
   const headers: Record<string, string> = {
@@ -34,9 +34,14 @@ export async function fetchRepositories(githubToken: string | null, includePriva
     headers['Authorization'] = `token ${githubToken}`;
   }
 
-  const apiUrl = includePrivateRepos 
+  let apiUrl = includePrivateRepos 
     ? 'https://api.github.com/user/repos'
     : 'https://api.github.com/repositories';
+
+  // If organization name is provided, use the organization repos endpoint
+  if (orgName) {
+    apiUrl = `https://api.github.com/orgs/${orgName}/repos`;
+  }
 
   while (true) {
     const response = await retryOperation(() =>

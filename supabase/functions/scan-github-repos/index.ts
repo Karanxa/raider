@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { githubToken, userId, specificRepo, includePrivateRepos } = await req.json()
+    const { githubToken, userId, specificRepo, orgName, includePrivateRepos } = await req.json()
     
     if (!userId) {
       throw new Error('Missing required parameters')
@@ -52,7 +52,7 @@ serve(async (req) => {
       
       repos = [await repoResponse.json()]
     } else {
-      repos = await fetchRepositories(githubToken, includePrivateRepos)
+      repos = await fetchRepositories(githubToken, includePrivateRepos, orgName)
     }
 
     console.log(`Found ${repos.length} repositories to scan`)
