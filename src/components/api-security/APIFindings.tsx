@@ -23,7 +23,7 @@ export const APIFindings = () => {
   const session = useSession();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOwner, setSelectedOwner] = useState("");
+  const [selectedOwner, setSelectedOwner] = useState("_all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -77,7 +77,9 @@ export const APIFindings = () => {
       finding.api_path.toLowerCase().includes(searchTerm.toLowerCase()) ||
       finding.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesOwner = !selectedOwner || finding.repository_owner === selectedOwner;
+    const matchesOwner = selectedOwner === "_all" || 
+      (selectedOwner === "_unknown" && !finding.repository_owner) ||
+      finding.repository_owner === selectedOwner;
 
     return matchesSearch && matchesOwner;
   });
