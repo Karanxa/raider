@@ -56,14 +56,13 @@ export const CategorySelect = ({
       ) : (
         <div className="space-y-2">
           <Label>Select Attack Category</Label>
-          <Select value={value || "select-category"} onValueChange={onValueChange}>
+          <Select value={value} onValueChange={onValueChange}>
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="select-category">Select a category</SelectItem>
               {CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category.toLowerCase()}>
+                <SelectItem key={category} value={category}>
                   {category}
                 </SelectItem>
               ))}
