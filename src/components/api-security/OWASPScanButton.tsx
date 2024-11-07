@@ -34,7 +34,7 @@ export const OWASPScanButton = () => {
         })
         .subscribe();
 
-      const { error } = await supabase.functions.invoke('owasp-scan', {
+      const { data, error } = await supabase.functions.invoke('owasp-scan', {
         body: { 
           userId: session.user.id,
           verbose: true
@@ -44,13 +44,13 @@ export const OWASPScanButton = () => {
       if (error) throw error;
 
       toast.success("OWASP scan completed successfully");
+      setProgress(100);
       channel.unsubscribe();
     } catch (error: any) {
       console.error('OWASP scan error:', error);
       toast.error(error.message || "Failed to complete OWASP scan");
     } finally {
       setScanning(false);
-      setProgress(100);
     }
   };
 
