@@ -45,6 +45,12 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
     });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setModelWeights(e.target.files[0]);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -113,7 +119,7 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
           <Label>Model Weights File</Label>
           <Input
             type="file"
-            onChange={(e) => setModelWeights(e.files?.[0] || null)}
+            onChange={handleFileChange}
             required={accessMethod === "weights"}
           />
         </div>
