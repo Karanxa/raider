@@ -11,6 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
+interface OWASPResultsProps {
+  targetUrl: string | null;
+}
+
 interface OWASPResult {
   id: string;
   vulnerability_type: string;
@@ -20,7 +24,7 @@ interface OWASPResult {
   owasp_category: string;
 }
 
-export const OWASPResults = ({ targetUrl }: { targetUrl: string }) => {
+export const OWASPResults = ({ targetUrl }: OWASPResultsProps) => {
   const { data: results, isLoading } = useQuery({
     queryKey: ['owasp-results', targetUrl],
     queryFn: async () => {

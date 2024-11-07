@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,38 +29,43 @@ serve(async (req) => {
       )
     }
 
-    // Perform the OWASP scan logic here
-    // For now, we'll just return a mock response
-    const scanResults = {
-      vulnerabilities: [
-        {
-          vulnerability_type: "SQL Injection",
-          severity: "high",
-          description: "Potential SQL injection vulnerability detected",
-          recommendation: "Use parameterized queries",
-          owasp_category: "Injection"
-        }
-      ]
-    }
-
-    // Insert results into the database
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { error: dbError } = await supabaseClient
-      .from('api_security_issues')
-      .insert(scanResults.vulnerabilities.map(vuln => ({
+    // Mock OWASP scan results for demonstration
+    const mockVulnerabilities = [
+      {
         user_id: userId,
         target_url: url,
-        ...vuln
-      })))
+        vulnerability_type: "SQL Injection",
+        severity: "high",
+        description: "Potential SQL injection vulnerability detected in API endpoint",
+        recommendation: "Use parameterized queries and input validation",
+        owasp_category: "Injection"
+      },
+      {
+        user_id: userId,
+        target_url: url,
+        vulnerability_type: "XSS",
+        severity: "medium",
+        description: "Cross-site scripting vulnerability found in response",
+        recommendation: "Implement proper output encoding",
+        owasp_category: "Cross-Site Scripting"
+      }
+    ]
 
-    if (dbError) throw dbError
+    // Insert results into database
+    const { error: insertError } = await supabaseClient
+      .from('api_security_issues')
+      .insert(mockVulnerabilities)
+
+    if (insertError) throw insertError
 
     return new Response(
-      JSON.stringify({ success: true, data: scanResults }),
+      JSON.stringify({ success: true, data: mockVulnerabilities }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -69,7 +75,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('OWASP scan error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
