@@ -59,12 +59,4 @@ export const categoryConfigs: CategoryConfig[] = [
       { value: "dashboard", label: "APK Dashboard", icon: <Database className="h-4 w-4" /> },
     ],
   },
-  {
-    value: "bounty",
-    label: "Bounty",
-    icon: <Target className="h-4 w-4" />,
-    tabs: [
-      { value: "reporting", label: "Reporting", icon: <FileCode className="h-4 w-4" /> },
-    ],
-  },
 ];

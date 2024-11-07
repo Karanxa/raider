@@ -1,9 +1,9 @@
-# project_id = ""
+project_id = "facextdabmrqllgdzkms"
 
 [functions.analyze-apk]
 verify_jwt = true
 
-[functions.scan-github-repos]
+[functions.ip-intelligence]
 verify_jwt = true
 
 [functions.send-notification]

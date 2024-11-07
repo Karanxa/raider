@@ -14,7 +14,6 @@ import NucleiScanner from "@/components/NucleiScanner";
 import NucleiResults from "@/components/NucleiResults";
 import Datasets from "@/components/Datasets";
 import PromptAugmentation from "@/components/PromptAugmentation";
-import BountyReporting from "@/components/bounty/BountyReporting";
 import PostmanDashboard from "@/components/postman/PostmanDashboard";
 import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGenerator";
 import XSSPayloads from "@/components/xss/XSSPayloads";
@@ -56,7 +55,6 @@ const Index = () => {
       case "prompt-augmentation": return <PromptAugmentation />;
       case "upload": return <ApkUpload />;
       case "dashboard": return <ApkDashboard />;
-      case "reporting": return <BountyReporting />;
       case "finetuning": return <FineTuning />;
       case "github-scan": return <GitHubScanner />;
       case "owasp-scan": return <OWASPScanner />;
