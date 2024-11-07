@@ -4,8 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, HelpCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const ATTACK_DESCRIPTIONS = {
   "model-extraction": "Attempts to steal model parameters and architecture through repeated queries",
@@ -18,6 +24,21 @@ const ATTACK_DESCRIPTIONS = {
   "model-stealing": "Tries to replicate model functionality through black-box access",
   "transferability": "Tests if attacks successful on one model work on another"
 } as const;
+
+const INPUT_EXAMPLES = {
+  api: {
+    endpoint: "https://api.openai.com/v1/completions",
+    description: "The full URL of your model's API endpoint"
+  },
+  local: {
+    path: "/path/to/model/directory or model.safetensors",
+    description: "Local filesystem path to your model files"
+  },
+  sampleInput: {
+    text: 'What is the capital of France?',
+    description: "A representative example of inputs your model typically processes"
+  }
+};
 
 interface SecurityTestFormProps {
   onSubmit: (data: {
@@ -63,10 +84,29 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
     }
   };
 
+  const LabelWithTooltip = ({ label, description }: { label: string; description: string }) => (
+    <div className="flex items-center gap-2">
+      <Label>{label}</Label>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">{description}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label>Model Access Method</Label>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <LabelWithTooltip 
+          label="Model Access Method" 
+          description="How do you want to access the model for testing?"
+        />
         <RadioGroup value={accessMethod} onValueChange={setAccessMethod} className="flex flex-col space-y-2">
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="api" id="api" />
@@ -90,18 +130,24 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
       {accessMethod === "api" && (
         <>
           <div className="space-y-2">
-            <Label>Model Endpoint URL</Label>
+            <LabelWithTooltip 
+              label="Model Endpoint URL" 
+              description={INPUT_EXAMPLES.api.description}
+            />
             <Input
               type="url"
               value={modelEndpoint}
               onChange={(e) => setModelEndpoint(e.target.value)}
-              placeholder="https://api.example.com/v1/predict"
+              placeholder={INPUT_EXAMPLES.api.endpoint}
               required={accessMethod === "api"}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>API Key</Label>
+            <LabelWithTooltip 
+              label="API Key" 
+              description="Your authentication key for accessing the model API"
+            />
             <Input
               type="password"
               value={apiKey}
@@ -115,12 +161,15 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
 
       {accessMethod === "local" && (
         <div className="space-y-2">
-          <Label>Local Model Path</Label>
+          <LabelWithTooltip 
+            label="Local Model Path" 
+            description={INPUT_EXAMPLES.local.description}
+          />
           <Input
             type="text"
             value={localModelPath}
             onChange={(e) => setLocalModelPath(e.target.value)}
-            placeholder="/path/to/model"
+            placeholder={INPUT_EXAMPLES.local.path}
             required={accessMethod === "local"}
           />
         </div>
@@ -128,18 +177,25 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
 
       {accessMethod === "weights" && (
         <div className="space-y-2">
-          <Label>Model Weights File</Label>
+          <LabelWithTooltip 
+            label="Model Weights File" 
+            description="Upload your model weights file (supported formats: .safetensors, .bin, .pt, .pth)"
+          />
           <Input
             type="file"
             onChange={handleFileChange}
             required={accessMethod === "weights"}
+            accept=".safetensors,.bin,.pt,.pth"
           />
         </div>
       )}
 
       {accessMethod === "architecture" && (
         <div className="space-y-2">
-          <Label>Model Architecture (JSON)</Label>
+          <LabelWithTooltip 
+            label="Model Architecture (JSON)" 
+            description="Paste your model's architecture configuration in JSON format"
+          />
           <Textarea
             value={modelArchitecture}
             onChange={(e) => setModelArchitecture(e.target.value)}
@@ -151,7 +207,10 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
       )}
 
       <div className="space-y-2">
-        <Label>Test Type</Label>
+        <LabelWithTooltip 
+          label="Test Type" 
+          description="Select the type of security test to perform"
+        />
         <Select value={testType} onValueChange={setTestType} required>
           <SelectTrigger>
             <SelectValue placeholder="Select test type" />
@@ -170,14 +229,20 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
       </div>
 
       <div className="space-y-2">
-        <Label>Sample Input</Label>
+        <LabelWithTooltip 
+          label="Sample Input" 
+          description="Provide a typical input that your model processes"
+        />
         <Textarea
           value={sampleInput}
           onChange={(e) => setSampleInput(e.target.value)}
-          placeholder="Enter a sample input to test with"
+          placeholder={INPUT_EXAMPLES.sampleInput.text}
           className="min-h-[100px]"
           required
         />
+        <p className="text-sm text-muted-foreground">
+          This will be used to test the model's behavior and identify potential vulnerabilities.
+        </p>
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
