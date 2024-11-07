@@ -10,6 +10,7 @@ import { useScanLogic } from "./llm-scanner/useScanLogic";
 import { toast } from "sonner";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PromptWithCategory {
   prompt: string;
@@ -18,6 +19,7 @@ interface PromptWithCategory {
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [customEndpoint, setCustomEndpoint] = useState("");
   const [curlCommand, setCurlCommand] = useState("");
@@ -54,7 +56,7 @@ const LLMScanner = () => {
       curlCommand,
       promptPlaceholder,
       customHeaders,
-      "",
+      selectedModel,
       10,
       categories,
       label
@@ -69,6 +71,21 @@ const LLMScanner = () => {
             selectedProvider={selectedProvider}
             onProviderChange={setSelectedProvider}
           />
+
+          {selectedProvider === "openai" && (
+            <div className="space-y-2">
+              <Label>Model</Label>
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o-mini">GPT-4O Mini (Faster)</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4O (More Powerful)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {selectedProvider === "custom" && (
             <CustomProviderSettings
@@ -119,7 +136,7 @@ const LLMScanner = () => {
       <ScheduleScanner
         prompt={promptText}
         provider={selectedProvider}
-        model=""
+        model={selectedModel}
         customEndpoint={customEndpoint}
         curlCommand={curlCommand}
         promptPlaceholder={promptPlaceholder}
