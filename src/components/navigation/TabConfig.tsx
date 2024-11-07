@@ -49,6 +49,7 @@ export const categoryConfigs: CategoryConfig[] = [
       { value: "datasets", label: "Datasets", icon: <Database className="h-4 w-4" /> },
       { value: "prompt-augmentation", label: "Prompt Augmentation", icon: <FileCode className="h-4 w-4" /> },
       { value: "finetuning", label: "Fine-tuning", icon: <Settings className="h-4 w-4" /> },
+      { value: "model-security", label: "Model Security", icon: <Shield className="h-4 w-4" /> },
     ],
   },
   {

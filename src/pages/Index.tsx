@@ -27,6 +27,7 @@ import { FineTuning } from "@/components/genai/finetuning/FineTuning";
 import { GitHubScanner } from "@/components/api-security/GitHubScanner";
 import { OWASPScanner } from "@/components/api-security/OWASPScanner";
 import { SecurityDashboard } from "@/components/api-security/SecurityDashboard";
+import { ModelSecurityTester } from "@/components/genai/model-security/ModelSecurityTester";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -64,6 +65,7 @@ const Index = () => {
       case "github-scan": return <GitHubScanner />;
       case "owasp-scan": return <OWASPScanner />;
       case "scan-results": return <SecurityDashboard />;
+      case "model-security": return <ModelSecurityTester />;
       default: return null;
     }
   };
