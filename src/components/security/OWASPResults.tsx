@@ -20,20 +20,18 @@ interface OWASPResult {
   owasp_category: string;
 }
 
-export const OWASPResults = ({ targetUrl }: { targetUrl: string }) => {
+export const OWASPResults = () => {
   const { data: results, isLoading } = useQuery({
-    queryKey: ['owasp-results', targetUrl],
+    queryKey: ['owasp-results'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('api_security_issues')
         .select('*')
-        .eq('target_url', targetUrl)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as OWASPResult[];
     },
-    enabled: !!targetUrl,
   });
 
   if (isLoading) {
@@ -44,7 +42,7 @@ export const OWASPResults = ({ targetUrl }: { targetUrl: string }) => {
     return (
       <Card className="p-4">
         <p className="text-center text-muted-foreground">
-          No security scan results available for this API yet.
+          No security scan results available yet.
         </p>
       </Card>
     );

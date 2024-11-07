@@ -15,7 +15,7 @@ export const SecurityDashboard = () => {
       </TabsContent>
       
       <TabsContent value="vulnerabilities">
-        <OWASPResults targetUrl={null} />
+        <OWASPResults />
       </TabsContent>
     </Tabs>
   );
