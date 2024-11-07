@@ -1,6 +1,7 @@
 import { useState } from "react";
-import TurboIntruderForm, { TurboIntruderFormValues } from "./TurboIntruderForm";
+import TurboIntruderForm from "./TurboIntruderForm";
 import ScriptDisplay from "./ScriptDisplay";
+import { TurboIntruderFormValues } from "./types";
 
 const TurboIntruderGenerator = () => {
   const [generatedScript, setGeneratedScript] = useState<string>("");
