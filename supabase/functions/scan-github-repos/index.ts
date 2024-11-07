@@ -50,6 +50,8 @@ serve(async (req) => {
     async function scanFile(file: GitHubFile) {
       if (!file.download_url) return;
       
+      console.log(`Scanning file: ${file.path}`);
+      
       const response = await fetch(file.download_url);
       const content = await response.text();
       
@@ -60,6 +62,8 @@ serve(async (req) => {
         /\.(get|post|put|delete|patch)\(['"`]([^'"`]+)['"`]/gi,
         /fetch\(['"`]([^'"`]+)['"`]/g,
         /axios\.[a-z]+\(['"`]([^'"`]+)['"`]/g,
+        /url:\s*['"`]([^'"`]+)['"`]/g,
+        /endpoint:\s*['"`]([^'"`]+)['"`]/g,
       ];
 
       const findings: Array<{
@@ -81,11 +85,14 @@ serve(async (req) => {
               path = match[2];
             }
 
-            findings.push({
-              path,
-              method,
-              lineNumber: index + 1,
-            });
+            // Filter out non-API paths
+            if (path.includes('/api/') || path.includes('http')) {
+              findings.push({
+                path,
+                method,
+                lineNumber: index + 1,
+              });
+            }
           }
         });
       });
@@ -94,6 +101,8 @@ serve(async (req) => {
     }
 
     async function scanDirectory(path = '') {
+      console.log(`Scanning directory: ${path}`);
+      
       const response = await fetch(
         `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
         {
@@ -119,6 +128,8 @@ serve(async (req) => {
           const findings = await scanFile(item);
           
           if (findings && findings.length > 0) {
+            console.log(`Found ${findings.length} API endpoints in ${item.path}`);
+            
             for (const finding of findings) {
               await supabaseAdmin
                 .from('github_api_findings')

@@ -40,7 +40,7 @@ export const GitHubScanner = () => {
     setProgress(0);
 
     try {
-      const { error } = await supabase.functions.invoke('scan-github-repos', {
+      const { data, error } = await supabase.functions.invoke('scan-github-repos', {
         body: { 
           repository_url: repositoryUrl,
           userId: session.user.id
@@ -49,13 +49,37 @@ export const GitHubScanner = () => {
 
       if (error) throw error;
 
-      toast.success("GitHub repository scan completed successfully");
-      setProgress(100);
-      setRepositoryUrl("");
+      // Start polling for results
+      const startTime = Date.now();
+      const pollInterval = setInterval(async () => {
+        const { data: findings } = await supabase
+          .from('github_api_findings')
+          .select('*')
+          .eq('repository_url', repositoryUrl)
+          .eq('user_id', session.user.id);
+        
+        if (findings && findings.length > 0) {
+          clearInterval(pollInterval);
+          setProgress(100);
+          toast.success(`Scan completed! Found ${findings.length} API endpoints`);
+          setRepositoryUrl("");
+          setScanning(false);
+        }
+
+        // Timeout after 2 minutes
+        if (Date.now() - startTime > 120000) {
+          clearInterval(pollInterval);
+          setScanning(false);
+          toast.error("Scan timed out. Please try again.");
+        }
+
+        // Update progress
+        setProgress((prev) => Math.min(prev + 10, 90));
+      }, 3000);
+
     } catch (error: any) {
       console.error('GitHub scan error:', error);
       toast.error(error.message || "Failed to scan GitHub repository");
-    } finally {
       setScanning(false);
     }
   };
@@ -97,7 +121,7 @@ export const GitHubScanner = () => {
             <div className="space-y-2">
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground text-center">
-                Scanning repository for API endpoints...
+                Scanning repository for API endpoints... {progress}%
               </p>
             </div>
           )}

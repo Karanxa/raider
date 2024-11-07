@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@supabase/auth-helpers-react";
 import {
   Table,
   TableBody,
@@ -28,17 +29,23 @@ interface APIFinding {
 }
 
 export const APIFindings = () => {
+  const session = useSession();
+
   const { data: findings, isLoading } = useQuery({
     queryKey: ['github-api-findings'],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+      
       const { data, error } = await supabase
         .from('github_api_findings')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as APIFinding[];
     },
+    enabled: !!session?.user?.id,
   });
 
   if (isLoading) {
