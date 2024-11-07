@@ -1,19 +1,18 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useSession } from '@supabase/auth-helpers-react';
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ProviderSelect } from "./llm-scanner/ProviderSelect";
 import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
 import { PromptInput } from "./llm-scanner/PromptInput";
 import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
-import { useSession } from '@supabase/auth-helpers-react';
 import { useScanLogic } from "./llm-scanner/useScanLogic";
-import { useNavigate } from "react-router-dom";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { AttackCategorySelect } from "./llm-scanner/AttackCategorySelect";
 
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
@@ -26,6 +25,7 @@ const LLMScanner = () => {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [qps, setQps] = useState<number>(10);
   const [scanLabel, setScanLabel] = useState<string>("");
+  const [attackCategory, setAttackCategory] = useState<string>("");
   const session = useSession();
   const navigate = useNavigate();
   const { getApiKey } = useApiKeys();
@@ -44,6 +44,61 @@ const LLMScanner = () => {
       setQps(value);
     } else {
       toast.error("QPS must be greater than 0");
+    }
+  };
+
+  const handleScan = async () => {
+    if (!attackCategory && !prompts.length) {
+      toast.error("Please select an attack category");
+      return;
+    }
+
+    try {
+      if (selectedProvider !== "custom") {
+        const storedApiKey = getApiKey(selectedProvider);
+        if (!storedApiKey) {
+          toast.error(`Please add your ${selectedProvider} API key in Settings`);
+          return;
+        }
+        await processPrompts(
+          prompts,
+          prompt,
+          selectedProvider,
+          storedApiKey,
+          customEndpoint,
+          curlCommand,
+          promptPlaceholder,
+          customHeaders,
+          selectedModel,
+          qps,
+          scanLabel,
+          attackCategory
+        );
+      } else {
+        await processPrompts(
+          prompts,
+          prompt,
+          selectedProvider,
+          "",
+          customEndpoint,
+          curlCommand,
+          promptPlaceholder,
+          customHeaders,
+          selectedModel,
+          qps,
+          scanLabel,
+          attackCategory
+        );
+      }
+      
+      if (prompts.length > 0) {
+        toast.success("Batch scan completed successfully");
+      } else {
+        toast.success("Scan completed successfully");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to complete scan");
     }
   };
 
@@ -78,6 +133,13 @@ const LLMScanner = () => {
             onPromptsFromCSV={setPrompts}
           />
 
+          {!prompts.length && (
+            <AttackCategorySelect
+              value={attackCategory}
+              onValueChange={setAttackCategory}
+            />
+          )}
+
           <div className="space-y-2">
             <Label>Scan Label (Optional)</Label>
             <Input
@@ -108,53 +170,7 @@ const LLMScanner = () => {
           )}
 
           <Button
-            onClick={async () => {
-              try {
-                if (selectedProvider !== "custom") {
-                  const storedApiKey = getApiKey(selectedProvider);
-                  if (!storedApiKey) {
-                    toast.error(`Please add your ${selectedProvider} API key in Settings`);
-                    return;
-                  }
-                  await processPrompts(
-                    prompts,
-                    prompt,
-                    selectedProvider,
-                    storedApiKey,
-                    customEndpoint,
-                    curlCommand,
-                    promptPlaceholder,
-                    customHeaders,
-                    selectedModel,
-                    qps,
-                    scanLabel
-                  );
-                } else {
-                  await processPrompts(
-                    prompts,
-                    prompt,
-                    selectedProvider,
-                    "",
-                    customEndpoint,
-                    curlCommand,
-                    promptPlaceholder,
-                    customHeaders,
-                    selectedModel,
-                    qps,
-                    scanLabel
-                  );
-                }
-                
-                if (prompts.length > 0) {
-                  toast.success("Batch scan completed successfully");
-                } else {
-                  toast.success("Scan completed successfully");
-                }
-              } catch (error) {
-                console.error(error);
-                toast.error("Failed to complete scan");
-              }
-            }}
+            onClick={handleScan}
             disabled={scanning}
             className="w-full"
           >

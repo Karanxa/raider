@@ -12,7 +12,8 @@ export const handleSingleScan = async (
   userId: string,
   scanType: 'manual' | 'batch',
   batchId?: string | null,
-  label?: string
+  label?: string,
+  attackCategory?: string
 ) => {
   if (selectedProvider === "custom") {
     return await handleCustomProviderScan(
@@ -24,7 +25,8 @@ export const handleSingleScan = async (
       userId,
       scanType,
       batchId,
-      label
+      label,
+      attackCategory
     );
   }
 
@@ -36,7 +38,8 @@ export const handleSingleScan = async (
     userId,
     scanType,
     batchId,
-    label
+    label,
+    attackCategory
   );
 };
 
@@ -49,7 +52,8 @@ const handleCustomProviderScan = async (
   userId: string,
   scanType: 'manual' | 'batch',
   batchId?: string | null,
-  label?: string
+  label?: string,
+  attackCategory?: string
 ) => {
   try {
     let response;
@@ -103,7 +107,8 @@ const handleCustomProviderScan = async (
       batch_id: batchId || null,
       label: label || null,
       response_status: response.status,
-      raw_response: data
+      raw_response: data,
+      attack_category: attackCategory || null
     });
 
     return result;
@@ -121,7 +126,8 @@ const handleStandardProviderScan = async (
   userId: string,
   scanType: 'manual' | 'batch',
   batchId?: string | null,
-  label?: string
+  label?: string,
+  attackCategory?: string
 ) => {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -130,7 +136,7 @@ const handleStandardProviderScan = async (
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: model || "gpt-4-mini",
+      model: model || "gpt-4o-mini",
       messages: [
         { role: 'system', content: 'You are a helpful assistant that generates content based on user prompts.' },
         { role: 'user', content: prompt }
@@ -151,7 +157,8 @@ const handleStandardProviderScan = async (
     batch_id: batchId || null,
     label: label || null,
     response_status: response.status,
-    raw_response: data
+    raw_response: data,
+    attack_category: attackCategory || null
   });
 
   return generatedText;
