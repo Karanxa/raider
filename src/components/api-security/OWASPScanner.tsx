@@ -58,14 +58,17 @@ export const OWASPScanner = () => {
 
       clearInterval(interval);
 
-      if (error) throw error;
+      if (error) {
+        console.error('OWASP scan error:', error);
+        throw new Error(error.message || "Failed to complete OWASP scan");
+      }
 
       if (data?.success) {
         setProgress(100);
-        toast.success(data.message || "OWASP scan completed successfully");
+        toast.success(`Scan completed: ${data.message}`);
         setShowResults(true);
       } else {
-        throw new Error("Scan failed to complete");
+        throw new Error(data?.error || "Scan failed to complete");
       }
     } catch (error: any) {
       console.error('OWASP scan error:', error);

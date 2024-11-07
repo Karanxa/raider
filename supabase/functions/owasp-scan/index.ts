@@ -7,6 +7,8 @@ const corsHeaders = {
 }
 
 async function performSecurityCheck(url: string) {
+  console.log('Starting security check for URL:', url);
+  
   try {
     const response = await fetch(url, {
       method: 'GET',
@@ -14,16 +16,16 @@ async function performSecurityCheck(url: string) {
     });
 
     const vulnerabilities = [];
-    
-    // Check for security headers
     const headers = response.headers;
+    
+    // Security Headers Check
     if (!headers.get('x-frame-options')) {
       vulnerabilities.push({
-        vulnerability_type: "Missing Security Headers",
+        vulnerability_type: "Missing X-Frame-Options",
         severity: "medium",
         description: "X-Frame-Options header is missing, potentially exposing the site to clickjacking attacks",
         recommendation: "Add X-Frame-Options header with DENY or SAMEORIGIN value",
-        owasp_category: "Security Misconfiguration"
+        owasp_category: "A05:2021 – Security Misconfiguration"
       });
     }
 
@@ -33,7 +35,7 @@ async function performSecurityCheck(url: string) {
         severity: "high",
         description: "HTTP Strict Transport Security header is missing, potentially exposing the site to protocol downgrade attacks",
         recommendation: "Implement HSTS with appropriate max-age",
-        owasp_category: "Security Misconfiguration"
+        owasp_category: "A05:2021 – Security Misconfiguration"
       });
     }
 
@@ -43,25 +45,26 @@ async function performSecurityCheck(url: string) {
         severity: "high",
         description: "Content Security Policy header is missing, increasing risk of XSS attacks",
         recommendation: "Implement a strict Content Security Policy",
-        owasp_category: "Cross-Site Scripting (XSS)"
+        owasp_category: "A03:2021 – Injection"
       });
     }
 
-    // Check for SSL/TLS
+    // SSL/TLS Check
     if (!url.startsWith('https://')) {
       vulnerabilities.push({
         vulnerability_type: "Insecure Protocol",
         severity: "critical",
-        description: "The API endpoint is not using HTTPS",
-        recommendation: "Enable HTTPS for all API endpoints",
-        owasp_category: "Sensitive Data Exposure"
+        description: "The endpoint is not using HTTPS",
+        recommendation: "Enable HTTPS for all endpoints",
+        owasp_category: "A02:2021 – Cryptographic Failures"
       });
     }
 
+    console.log('Found vulnerabilities:', vulnerabilities);
     return vulnerabilities;
   } catch (error) {
-    console.error('Error scanning URL:', error);
-    throw new Error('Failed to scan URL: ' + error.message);
+    console.error('Error during security check:', error);
+    throw new Error(`Failed to scan URL: ${error.message}`);
   }
 }
 
@@ -71,11 +74,12 @@ serve(async (req) => {
     return new Response(null, {
       status: 204,
       headers: corsHeaders
-    })
+    });
   }
 
   try {
-    const { url, userId } = await req.json()
+    const { url, userId } = await req.json();
+    console.log('Received scan request for URL:', url, 'from user:', userId);
 
     if (!url || !userId) {
       return new Response(
@@ -84,30 +88,39 @@ serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
+    }
+
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL format' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    console.log('Starting OWASP scan for URL:', url);
+    );
     
-    // Perform the actual security checks
     const vulnerabilities = await performSecurityCheck(url);
     
-    console.log('Found vulnerabilities:', vulnerabilities);
-
     // Insert results into database
     const { error: insertError } = await supabaseClient
       .from('api_security_issues')
       .insert(vulnerabilities.map(vuln => ({
         user_id: userId,
         target_url: url,
-        ...vuln
-      })))
+        ...vuln,
+        finding_id: crypto.randomUUID() // Generate a UUID for finding_id
+      })));
 
     if (insertError) {
       console.error('Error inserting results:', insertError);
@@ -117,23 +130,26 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: vulnerabilities,
-        message: `Found ${vulnerabilities.length} potential security issues`
+        message: `Found ${vulnerabilities.length} potential security issues`,
+        data: vulnerabilities
       }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
 
   } catch (error) {
-    console.error('OWASP scan error:', error)
+    console.error('OWASP scan error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        details: error.toString()
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
   }
-})
+});
