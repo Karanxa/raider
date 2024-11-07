@@ -1,18 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { XSS_CATEGORIES } from "./constants";
 import { XSSPayloadList } from "./XSSPayloadList";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { Copy, Eraser, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import PayloadObfuscator from "./PayloadObfuscator";
+import { SearchAndFilter } from "./components/SearchAndFilter";
+import { SelectionActions } from "./components/SelectionActions";
 
 const StaticXSSPayloads = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -83,67 +79,19 @@ const StaticXSSPayloads = () => {
   return (
     <Card className="p-6">
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label>Category</Label>
-            <Select 
-              value={selectedCategory} 
-              onValueChange={(value) => {
-                setSelectedCategory(value);
-                setSearchTerm("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {XSS_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category.toLowerCase()}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Search</Label>
-            <Input
-              placeholder="Search payloads, descriptions, or tags..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </div>
+        <SearchAndFilter
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        />
 
-        {selectedPayloads.length > 0 && (
-          <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={copySelectedPayloads}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Selected ({selectedPayloads.length})
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowObfuscator(true)}
-            >
-              <Wand2 className="h-4 w-4 mr-2" />
-              Obfuscate Selected
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearSelection}
-            >
-              <Eraser className="h-4 w-4 mr-2" />
-              Clear Selection
-            </Button>
-          </div>
-        )}
+        <SelectionActions
+          selectedPayloads={selectedPayloads}
+          onCopy={copySelectedPayloads}
+          onObfuscate={() => setShowObfuscator(true)}
+          onClear={clearSelection}
+        />
 
         {showObfuscator && selectedPayloads.length > 0 && (
           <PayloadObfuscator originalPayload={selectedPayloads.join('\n')} />
