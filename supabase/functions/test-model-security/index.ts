@@ -7,44 +7,138 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface TestResult {
+  success: boolean;
+  vulnerabilities: Array<{
+    name: string;
+    severity: string;
+    description: string;
+    recommendation?: string;
+  }>;
+}
+
+async function testModelExtraction(endpoint: string, apiKey: string, sampleInput: string): Promise<TestResult> {
+  const results = [];
+  // Test for model extraction vulnerabilities
+  try {
+    // Make multiple queries with similar inputs to detect potential extraction
+    const queries = Array(10).fill(sampleInput).map((input, i) => 
+      input + " " + "variation" + i
+    );
+    
+    const responses = await Promise.all(queries.map(query => 
+      fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input: query }),
+      })
+    ));
+
+    // Analyze response patterns
+    const responseTexts = await Promise.all(responses.map(r => r.text()));
+    const uniqueResponses = new Set(responseTexts);
+    
+    if (uniqueResponses.size < responses.length * 0.5) {
+      results.push({
+        name: "Model Extraction Vulnerability",
+        severity: "High",
+        description: "Model shows signs of vulnerability to extraction attacks",
+        recommendation: "Implement rate limiting and query monitoring"
+      });
+    }
+  } catch (error) {
+    console.error("Model extraction test error:", error);
+  }
+  
+  return {
+    success: true,
+    vulnerabilities: results
+  };
+}
+
+async function testMembershipInference(endpoint: string, apiKey: string, sampleInput: string): Promise<TestResult> {
+  const results = [];
+  try {
+    // Test for membership inference by analyzing confidence scores
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ input: sampleInput }),
+    });
+
+    const data = await response.json();
+    
+    // Check if model returns confidence scores
+    if (data.confidence || data.probability || data.scores) {
+      results.push({
+        name: "Membership Inference Risk",
+        severity: "High",
+        description: "Model exposes confidence scores that could be used for membership inference",
+        recommendation: "Consider using differential privacy techniques"
+      });
+    }
+  } catch (error) {
+    console.error("Membership inference test error:", error);
+  }
+
+  return {
+    success: true,
+    vulnerabilities: results
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { modelEndpoint, apiKey, testType, sampleInput, accessMethod, userId, modelArchitecture, localModelPath } = await req.json();
+    const { modelEndpoint, apiKey, testType, sampleInput, accessMethod, userId } = await req.json();
 
     if (!userId) {
       throw new Error('User ID is required');
     }
 
-    // Initialize test results
-    const results = {
-      overallRisk: "Low",
-      vulnerabilities: [],
-      recommendations: []
+    let testResults: TestResult = {
+      success: false,
+      vulnerabilities: []
     };
 
-    // Test for different types of vulnerabilities based on access method
-    switch (accessMethod) {
-      case "api":
-        await testAPIEndpoint(modelEndpoint, apiKey, testType, sampleInput, results);
+    // Run appropriate test based on test type
+    switch (testType) {
+      case "model-extraction":
+        testResults = await testModelExtraction(modelEndpoint, apiKey, sampleInput);
         break;
-      case "local":
-        await testLocalModel(localModelPath, testType, sampleInput, results);
+      case "membership-inference":
+        testResults = await testMembershipInference(modelEndpoint, apiKey, sampleInput);
         break;
-      case "architecture":
-        await testModelArchitecture(modelArchitecture, testType, sampleInput, results);
-        break;
-      default:
-        throw new Error('Invalid access method');
+      // Add other test implementations here
     }
 
-    // Calculate overall risk based on vulnerabilities
-    results.overallRisk = calculateOverallRisk(results.vulnerabilities);
+    // Calculate overall risk level
+    const riskLevels = {
+      'Critical': 4,
+      'High': 3,
+      'Medium': 2,
+      'Low': 1
+    };
 
-    // Store test results in the database
+    const avgRisk = testResults.vulnerabilities.reduce((acc, vuln) => 
+      acc + (riskLevels[vuln.severity as keyof typeof riskLevels] || 0), 0
+    ) / (testResults.vulnerabilities.length || 1);
+
+    let overallRisk = 'Low';
+    if (avgRisk >= 3.5) overallRisk = 'Critical';
+    else if (avgRisk >= 2.5) overallRisk = 'High';
+    else if (avgRisk >= 1.5) overallRisk = 'Medium';
+
+    // Store results in database
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -56,16 +150,20 @@ serve(async (req) => {
         user_id: userId,
         model_endpoint: modelEndpoint,
         test_type: testType,
-        risk_level: results.overallRisk,
-        vulnerabilities: results.vulnerabilities,
-        recommendations: results.recommendations,
+        risk_level: overallRisk,
+        vulnerabilities: testResults.vulnerabilities,
+        recommendations: testResults.vulnerabilities.map(v => v.recommendation).filter(Boolean),
         test_status: 'completed'
       });
 
     if (dbError) throw dbError;
 
     return new Response(
-      JSON.stringify(results),
+      JSON.stringify({
+        overallRisk,
+        vulnerabilities: testResults.vulnerabilities,
+        recommendations: testResults.vulnerabilities.map(v => v.recommendation).filter(Boolean)
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -79,94 +177,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Test implementation functions
-async function testAPIEndpoint(endpoint: string, apiKey: string, testType: string, sampleInput: string, results: any) {
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ input: sampleInput }),
-    });
-
-    if (!response.ok) {
-      results.vulnerabilities.push({
-        name: "API Access Vulnerability",
-        severity: "High",
-        description: "API endpoint returned an error response",
-        recommendation: "Verify API endpoint and authentication"
-      });
-    }
-
-    // Add specific test based on test type
-    switch (testType) {
-      case "model-extraction":
-        results.vulnerabilities.push({
-          name: "Model Extraction Risk",
-          severity: "Medium",
-          description: "Model may be vulnerable to extraction attacks",
-          recommendation: "Implement rate limiting and query monitoring"
-        });
-        break;
-      case "membership-inference":
-        results.vulnerabilities.push({
-          name: "Membership Inference Risk",
-          severity: "High",
-          description: "Model shows signs of memorization",
-          recommendation: "Apply differential privacy techniques"
-        });
-        break;
-      // Add other test types as needed
-    }
-  } catch (error) {
-    results.vulnerabilities.push({
-      name: "Connection Error",
-      severity: "Critical",
-      description: `Failed to connect to API: ${error.message}`,
-      recommendation: "Verify endpoint accessibility and network connection"
-    });
-  }
-}
-
-async function testLocalModel(path: string, testType: string, sampleInput: string, results: any) {
-  results.vulnerabilities.push({
-    name: "Local Model Security",
-    severity: "Medium",
-    description: "Local model access requires additional security measures",
-    recommendation: "Implement access controls and encryption for local model files"
-  });
-}
-
-async function testModelArchitecture(architecture: string, testType: string, sampleInput: string, results: any) {
-  results.vulnerabilities.push({
-    name: "Architecture Analysis",
-    severity: "Low",
-    description: "Static analysis of model architecture completed",
-    recommendation: "Review model architecture for potential vulnerabilities"
-  });
-}
-
-function calculateOverallRisk(vulnerabilities: any[]): string {
-  const severityScores = {
-    'Critical': 4,
-    'High': 3,
-    'Medium': 2,
-    'Low': 1
-  };
-
-  if (vulnerabilities.length === 0) return 'Low';
-
-  const totalScore = vulnerabilities.reduce((acc, vuln) => {
-    return acc + (severityScores[vuln.severity as keyof typeof severityScores] || 0);
-  }, 0);
-
-  const avgScore = totalScore / vulnerabilities.length;
-
-  if (avgScore >= 3.5) return 'Critical';
-  if (avgScore >= 2.5) return 'High';
-  if (avgScore >= 1.5) return 'Medium';
-  return 'Low';
-}

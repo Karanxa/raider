@@ -7,6 +7,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+const ATTACK_DESCRIPTIONS = {
+  "model-extraction": "Attempts to steal model parameters and architecture through repeated queries",
+  "membership-inference": "Tests if it's possible to determine if specific data was used in training",
+  "adversarial-examples": "Generates inputs designed to fool the model's predictions",
+  "model-inversion": "Attempts to reconstruct training data from model outputs",
+  "poisoning": "Tests model's resilience against contaminated training data",
+  "evasion": "Attempts to bypass model's security controls and filters",
+  "backdoor": "Checks for hidden behaviors triggered by specific inputs",
+  "model-stealing": "Tries to replicate model functionality through black-box access",
+  "transferability": "Tests if attacks successful on one model work on another"
+} as const;
+
 interface SecurityTestFormProps {
   onSubmit: (data: {
     modelEndpoint: string;
@@ -145,28 +157,16 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
             <SelectValue placeholder="Select test type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="model-extraction">Model Extraction Attack</SelectItem>
-            <SelectItem value="membership-inference">Membership Inference</SelectItem>
-            <SelectItem value="adversarial-examples">Adversarial Examples</SelectItem>
-            <SelectItem value="model-inversion">Model Inversion</SelectItem>
-            <SelectItem value="poisoning">Data Poisoning</SelectItem>
-            <SelectItem value="evasion">Evasion Attack</SelectItem>
-            <SelectItem value="backdoor">Backdoor Attack</SelectItem>
-            <SelectItem value="model-stealing">Model Stealing</SelectItem>
-            <SelectItem value="transferability">Transferability Attack</SelectItem>
+            {Object.entries(ATTACK_DESCRIPTIONS).map(([key, description]) => (
+              <SelectItem key={key} value={key}>
+                <div className="flex flex-col">
+                  <span className="font-medium">{key}</span>
+                  <span className="text-sm text-muted-foreground">{description}</span>
+                </div>
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
-        <p className="text-sm text-muted-foreground mt-1">
-          {testType === "model-extraction" && "Tests if the model can be extracted through repeated queries"}
-          {testType === "membership-inference" && "Tests if it's possible to determine if data was in training set"}
-          {testType === "adversarial-examples" && "Tests model robustness against perturbed inputs"}
-          {testType === "model-inversion" && "Tests if training data can be reconstructed from the model"}
-          {testType === "poisoning" && "Tests resistance to training data manipulation"}
-          {testType === "evasion" && "Tests if model classifications can be evaded"}
-          {testType === "backdoor" && "Tests for hidden functionalities in the model"}
-          {testType === "model-stealing" && "Tests if model functionality can be replicated"}
-          {testType === "transferability" && "Tests if attacks transfer between models"}
-        </p>
       </div>
 
       <div className="space-y-2">
