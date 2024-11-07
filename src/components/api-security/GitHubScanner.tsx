@@ -44,45 +44,57 @@ export const GitHubScanner = () => {
         body: { 
           repository_url: repositoryUrl,
           userId: session.user.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('GitHub scan error:', error);
+        toast.error(error.message || "Failed to scan GitHub repository");
+        setScanning(false);
+        return;
+      }
 
-      // Poll for results with exponential backoff
       let attempts = 0;
-      const maxAttempts = 20; // Maximum polling attempts
+      const maxAttempts = 20;
+      const pollInterval = 3000; // 3 seconds
+
       const pollForResults = async () => {
-        const { data: findings } = await supabase
-          .from('github_api_findings')
-          .select('*')
-          .eq('repository_url', repositoryUrl)
-          .eq('user_id', session.user.id);
-        
-        if (findings && findings.length > 0) {
-          setProgress(100);
-          toast.success(`Scan completed! Found ${findings.length} API endpoints`);
-          setRepositoryUrl("");
+        try {
+          const { data: findings, error: fetchError } = await supabase
+            .from('github_api_findings')
+            .select('*')
+            .eq('repository_url', repositoryUrl)
+            .eq('user_id', session.user.id);
+          
+          if (fetchError) throw fetchError;
+          
+          if (findings && findings.length > 0) {
+            setProgress(100);
+            toast.success(`Scan completed! Found ${findings.length} API endpoints`);
+            setRepositoryUrl("");
+            setScanning(false);
+            return;
+          }
+
+          attempts++;
+          if (attempts >= maxAttempts) {
+            setScanning(false);
+            toast.error("Scan timed out. Please try again later.");
+            return;
+          }
+
+          setProgress(Math.min((attempts / maxAttempts) * 90, 90));
+          setTimeout(pollForResults, pollInterval);
+        } catch (error) {
+          console.error('Polling error:', error);
           setScanning(false);
-          return;
+          toast.error("Error checking scan results");
         }
-
-        attempts++;
-        if (attempts >= maxAttempts) {
-          setScanning(false);
-          toast.error("Scan timed out. The repository might be too large or there might be connection issues.");
-          return;
-        }
-
-        // Update progress based on attempts
-        setProgress(Math.min((attempts / maxAttempts) * 90, 90));
-
-        // Exponential backoff with a maximum of 10 seconds
-        const delay = Math.min(1000 * Math.pow(1.5, attempts), 10000);
-        setTimeout(pollForResults, delay);
       };
 
-      // Start polling
       pollForResults();
 
     } catch (error: any) {
