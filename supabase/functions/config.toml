@@ -1,4 +1,7 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions.owasp-scan]
+[functions.llm-operations]
+verify_jwt = true
+
+[functions.security-scanner]
 verify_jwt = true

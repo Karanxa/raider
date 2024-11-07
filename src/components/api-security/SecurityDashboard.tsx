@@ -5,7 +5,7 @@ export const SecurityDashboard = () => {
   return (
     <Tabs defaultValue="findings" className="space-y-4">
       <TabsList>
-        <TabsTrigger value="findings">API Findings</TabsTrigger>
+        <TabsTrigger value="findings">API Security Findings</TabsTrigger>
       </TabsList>
       
       <TabsContent value="findings">
