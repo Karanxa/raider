@@ -16,9 +16,9 @@ serve(async (req) => {
   try {
     const { repository_url, userId } = await req.json();
     
-    if (!repository_url || !userId) {
+    if (!repository_url) {
       return new Response(
-        JSON.stringify({ error: 'Repository URL and userId are required' }),
+        JSON.stringify({ error: 'Repository URL is required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -35,14 +35,9 @@ serve(async (req) => {
       throw new Error('GitHub token not configured');
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
     const batchProcessor = new BatchProcessor();
     const processedPaths = new Set<string>();
-    const maxDepth = 5;
+    const maxDepth = 5; // Limit directory depth
 
     async function scanDirectory(path = '', depth = 0) {
       if (depth >= maxDepth || processedPaths.has(path)) {
@@ -55,9 +50,11 @@ serve(async (req) => {
       try {
         const contents = await fetchGitHubContent(owner, repo, path, githubToken);
         
+        // Process files in batches
         const files = contents.filter((item: any) => item.type === 'file');
         await batchProcessor.processBatch(files, userId, { owner, repo, url: repository_url });
 
+        // Process subdirectories with concurrency limit
         const directories = contents.filter((item: any) => item.type === 'dir');
         const concurrencyLimit = 3;
         
@@ -67,15 +64,17 @@ serve(async (req) => {
             batch.map(dir => scanDirectory(dir.path, depth + 1))
           );
         }
+
       } catch (error) {
         console.error(`Error scanning directory ${path}:`, error);
       }
     }
 
+    // Start the scan from root directory
     await scanDirectory();
 
     return new Response(
-      JSON.stringify({ message: 'Repository scan initiated successfully' }),
+      JSON.stringify({ message: 'Repository scan completed successfully' }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200

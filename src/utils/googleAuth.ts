@@ -5,8 +5,6 @@ export interface GoogleTokens {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
-  scope?: string;
-  token_type?: string;
 }
 
 export const storeGoogleTokens = async (tokens: GoogleTokens, userId: string) => {
@@ -30,21 +28,4 @@ export const getStoredGoogleTokens = async (userId: string): Promise<GoogleToken
 
   if (error || !data) return null;
   return data.google_oauth_tokens as unknown as GoogleTokens;
-};
-
-export const refreshGoogleToken = async (userId: string): Promise<GoogleTokens | null> => {
-  try {
-    const { data: { tokens }, error } = await supabase.functions.invoke('refresh-google-token', {
-      body: { userId }
-    });
-
-    if (error) throw error;
-    if (!tokens) return null;
-
-    await storeGoogleTokens(tokens, userId);
-    return tokens;
-  } catch (error) {
-    console.error('Error refreshing Google token:', error);
-    return null;
-  }
 };

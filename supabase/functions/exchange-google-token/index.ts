@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,13 +19,13 @@ serve(async (req) => {
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-    const redirectUri = "postmessage"; // Special value for Google OAuth2 popup flow
+    const redirectUri = "https://preview--raider.gptengineer.run/";
 
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth credentials not configured');
     }
 
-    // Exchange the code for tokens
+    // Exchange the authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -48,24 +47,6 @@ serve(async (req) => {
     }
 
     const tokens = await tokenResponse.json();
-
-    // Store tokens in integration_settings table
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { error: updateError } = await supabaseClient
-      .from('integration_settings')
-      .upsert({
-        user_id: userId,
-        google_oauth_tokens: tokens,
-        updated_at: new Date().toISOString()
-      });
-
-    if (updateError) {
-      throw new Error(`Failed to store tokens: ${updateError.message}`);
-    }
 
     return new Response(
       JSON.stringify({ tokens }),

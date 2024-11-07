@@ -4,19 +4,34 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
 import { storeGoogleTokens } from "@/utils/googleAuth";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+type CredentialResponse = {
+  credential: string;
+};
+
 export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
   const session = useSession();
 
-  const handleGoogleSuccess = async (response: any) => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     if (!session?.user?.id) {
       toast.error("Please login to continue");
       return;
     }
 
+    if (!GOOGLE_CLIENT_ID) {
+      console.error('Google Client ID is not configured');
+      toast.error("Google Client ID is not configured");
+      return;
+    }
+
     try {
+      console.log("Attempting Google authentication...");
+      
+      // Exchange the credential for tokens
       const { data, error } = await supabase.functions.invoke('exchange-google-token', {
         body: { 
-          code: response.credential,
+          code: credentialResponse.credential,
           userId: session.user.id
         }
       });
@@ -28,11 +43,16 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       }
 
       if (!data?.tokens) {
+        console.error('No tokens received');
         toast.error("No tokens received from Google");
         return;
       }
 
+      console.log("Successfully received Google tokens");
+
+      // Store the tokens
       await storeGoogleTokens(data.tokens, session.user.id);
+
       toast.success("Successfully connected to Google Colab");
       onAuthSuccess();
     } catch (error) {
@@ -40,6 +60,14 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
       toast.error("Failed to connect to Google Colab");
     }
   };
+
+  if (!GOOGLE_CLIENT_ID) {
+    return (
+      <div className="text-center text-red-500">
+        Google Client ID is not configured. Please check your environment variables.
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center mb-6">
@@ -49,11 +77,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
           console.error("Google Sign In Failed");
           toast.error("Google Sign In Failed");
         }}
-        type="standard"
-        theme="filled_blue"
-        text="signin_with"
-        shape="rectangular"
-        width={250}
+        useOneTap
       />
     </div>
   );

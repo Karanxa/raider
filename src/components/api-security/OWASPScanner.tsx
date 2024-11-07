@@ -28,6 +28,7 @@ export const OWASPScanner = () => {
       return;
     }
 
+    // Basic URL validation
     try {
       new URL(targetUrl);
     } catch {
@@ -44,9 +45,6 @@ export const OWASPScanner = () => {
         body: { 
           url: targetUrl,
           userId: session.user.id
-        },
-        headers: {
-          'Content-Type': 'application/json',
         }
       });
 

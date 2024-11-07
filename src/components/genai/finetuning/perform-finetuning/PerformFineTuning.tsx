@@ -3,9 +3,9 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { NotebookInterface } from "./NotebookInterface";
-import { GoogleAuthButton } from "../GoogleAuthButton";
+import { storeGoogleTokens } from "@/utils/googleAuth";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -14,12 +14,30 @@ export const PerformFineTuning = () => {
   const session = useSession();
   const [script, setScript] = useState<string | null>(null);
 
-  const handleAuthSuccess = async () => {
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (!session?.user?.id) {
+      toast.error("Please login to continue");
+      return;
+    }
+
     try {
+      // Exchange the credential for tokens using our edge function
+      const { data, error } = await supabase.functions.invoke('exchange-google-token', {
+        body: { 
+          credential: credentialResponse.credential,
+          userId: session.user.id
+        }
+      });
+
+      if (error) throw error;
+
+      // Store the tokens
+      await storeGoogleTokens(data.tokens, session.user.id);
+
       // Initialize Colab session
       const { error: initError } = await supabase.functions.invoke('init-colab-session', {
         body: { 
-          userId: session?.user?.id
+          userId: session.user.id
         }
       });
 
@@ -29,7 +47,7 @@ export const PerformFineTuning = () => {
       const { data: jobData, error: fetchError } = await supabase
         .from('finetuning_jobs')
         .select('colab_script')
-        .eq('user_id', session?.user?.id)
+        .eq('user_id', session.user.id)
         .eq('status', 'generated')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -71,7 +89,12 @@ export const PerformFineTuning = () => {
                 <p className="text-sm text-muted-foreground">
                   Sign in with your Google account to use Colab's GPU resources
                 </p>
-                <GoogleAuthButton onAuthSuccess={handleAuthSuccess} />
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => toast.error("Google Sign In Failed")}
+                  />
+                </div>
               </div>
             ) : script ? (
               <NotebookInterface 

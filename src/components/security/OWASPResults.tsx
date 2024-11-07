@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@supabase/auth-helpers-react";
 import {
   Table,
   TableBody,
@@ -21,41 +20,24 @@ interface OWASPResult {
   vulnerability_type: string;
   severity: string;
   description: string;
-  recommendation: string | null;
+  recommendation: string;
   owasp_category: string;
-  finding_id: string;
-  target_url: string;
 }
 
 export const OWASPResults = ({ targetUrl }: OWASPResultsProps) => {
-  const session = useSession();
-
   const { data: results, isLoading } = useQuery({
     queryKey: ['owasp-results', targetUrl],
     queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const query = supabase
+      const { data, error } = await supabase
         .from('api_security_issues')
-        .select(`
-          *,
-          github_api_findings!inner (
-            repository_name,
-            api_path,
-            method
-          )
-        `)
-        .eq('user_id', session.user.id);
+        .select('*')
+        .eq('target_url', targetUrl)
+        .order('created_at', { ascending: false });
 
-      if (targetUrl) {
-        query.eq('target_url', targetUrl);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data as OWASPResult[];
     },
-    enabled: !!session?.user?.id,
+    enabled: !!targetUrl,
   });
 
   if (isLoading) {
@@ -66,7 +48,7 @@ export const OWASPResults = ({ targetUrl }: OWASPResultsProps) => {
     return (
       <Card className="p-4">
         <p className="text-center text-muted-foreground">
-          No security vulnerabilities found yet. Run an OWASP scan on your API endpoints to detect issues.
+          No security scan results available for this API yet.
         </p>
       </Card>
     );
@@ -76,7 +58,6 @@ export const OWASPResults = ({ targetUrl }: OWASPResultsProps) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>API Endpoint</TableHead>
           <TableHead>Category</TableHead>
           <TableHead>Severity</TableHead>
           <TableHead>Description</TableHead>
@@ -86,9 +67,6 @@ export const OWASPResults = ({ targetUrl }: OWASPResultsProps) => {
       <TableBody>
         {results.map((result) => (
           <TableRow key={result.id}>
-            <TableCell className="font-mono text-sm">
-              {result.target_url}
-            </TableCell>
             <TableCell>{result.owasp_category}</TableCell>
             <TableCell>
               <Badge
