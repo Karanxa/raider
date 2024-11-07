@@ -1,9 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { analyzeFileContent, isRelevantFile } from './fileAnalyzer.ts';
 import { fetchFileContent } from './githubApi.ts';
+import { performSecurityCheck } from './securityChecker.ts';
 
 const BATCH_SIZE = 5;
-const BATCH_DELAY = 1000; // 1 second delay between batches
+const BATCH_DELAY = 1000;
 
 interface GitHubFile {
   name: string;
@@ -59,7 +60,45 @@ export class BatchProcessor {
         const findings = analyzeFileContent(content, file.path);
 
         if (findings.length > 0) {
-          await this.saveFindingsToDatabase(findings, file, userId, repoInfo);
+          // Save API findings
+          const apiFindings = await Promise.all(findings.map(finding =>
+            this.supabaseAdmin
+              .from('github_api_findings')
+              .insert({
+                user_id: userId,
+                repository_name: repoInfo.repo,
+                repository_url: repoInfo.url,
+                repository_owner: repoInfo.owner,
+                api_path: finding.path,
+                method: finding.method,
+                file_path: file.path,
+                line_number: finding.lineNumber,
+              })
+              .select()
+          ));
+
+          // Perform security checks for each API endpoint
+          for (const finding of findings) {
+            if (finding.path.startsWith('http')) {
+              const securityIssues = await performSecurityCheck(finding.path);
+              
+              // Save security issues
+              await Promise.all(securityIssues.map(issue =>
+                this.supabaseAdmin
+                  .from('api_security_issues')
+                  .insert({
+                    user_id: userId,
+                    finding_id: apiFindings[0].data[0].id,
+                    vulnerability_type: issue.vulnerability_type,
+                    severity: issue.severity,
+                    description: issue.description,
+                    recommendation: issue.recommendation,
+                    owasp_category: issue.owasp_category,
+                    target_url: finding.path
+                  })
+              ));
+            }
+          }
         }
       } catch (error) {
         console.error(`Error processing file ${file.path}:`, error);
@@ -67,29 +106,5 @@ export class BatchProcessor {
     });
 
     await Promise.all(batchPromises);
-  }
-
-  private async saveFindingsToDatabase(
-    findings: any[],
-    file: GitHubFile,
-    userId: string,
-    repoInfo: { owner: string; repo: string; url: string }
-  ) {
-    const { owner, repo, url } = repoInfo;
-    
-    await Promise.all(findings.map(finding =>
-      this.supabaseAdmin
-        .from('github_api_findings')
-        .insert({
-          user_id: userId,
-          repository_name: repo,
-          repository_url: url,
-          repository_owner: owner,
-          api_path: finding.path,
-          method: finding.method,
-          file_path: file.path,
-          line_number: finding.lineNumber,
-        })
-    ));
   }
 }
