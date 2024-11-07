@@ -59,34 +59,7 @@ export class BatchProcessor {
         const findings = analyzeFileContent(content, file.path);
 
         if (findings.length > 0) {
-          // Save findings and trigger OWASP scans
-          await Promise.all(findings.map(async finding => {
-            // First save the finding
-            const { data: savedFinding, error: findingError } = await this.supabaseAdmin
-              .from('github_api_findings')
-              .insert({
-                user_id: userId,
-                repository_name: repoInfo.repo,
-                repository_url: repoInfo.url,
-                repository_owner: repoInfo.owner,
-                api_path: finding.path,
-                method: finding.method,
-                file_path: file.path,
-                line_number: finding.lineNumber,
-              })
-              .select()
-              .single();
-
-            if (findingError) throw findingError;
-
-            // Then trigger OWASP scan
-            await this.supabaseAdmin.functions.invoke('owasp-scan', {
-              body: { 
-                findingId: savedFinding.id,
-                userId: userId
-              }
-            });
-          }));
+          await this.saveFindingsToDatabase(findings, file, userId, repoInfo);
         }
       } catch (error) {
         console.error(`Error processing file ${file.path}:`, error);
@@ -94,5 +67,29 @@ export class BatchProcessor {
     });
 
     await Promise.all(batchPromises);
+  }
+
+  private async saveFindingsToDatabase(
+    findings: any[],
+    file: GitHubFile,
+    userId: string,
+    repoInfo: { owner: string; repo: string; url: string }
+  ) {
+    const { owner, repo, url } = repoInfo;
+    
+    await Promise.all(findings.map(finding =>
+      this.supabaseAdmin
+        .from('github_api_findings')
+        .insert({
+          user_id: userId,
+          repository_name: repo,
+          repository_url: url,
+          repository_owner: owner,
+          api_path: finding.path,
+          method: finding.method,
+          file_path: file.path,
+          line_number: finding.lineNumber,
+        })
+    ));
   }
 }
