@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { OWASPResults } from "@/components/security/OWASPResults";
+import { Loader2 } from "lucide-react";
 
 export const OWASPScanner = () => {
   const [targetUrl, setTargetUrl] = useState("");
@@ -27,19 +28,20 @@ export const OWASPScanner = () => {
       return;
     }
 
+    // Basic URL validation
+    try {
+      new URL(targetUrl);
+    } catch {
+      toast.error("Please enter a valid URL");
+      return;
+    }
+
     setScanning(true);
     setProgress(0);
     setShowResults(false);
 
     try {
-      const channel = supabase
-        .channel('scan-progress')
-        .on('broadcast', { event: 'scan-progress' }, (payload) => {
-          setProgress(payload.payload.progress);
-        })
-        .subscribe();
-
-      const { error } = await supabase.functions.invoke('owasp-scan', {
+      const { data, error } = await supabase.functions.invoke('owasp-scan', {
         body: { 
           url: targetUrl,
           userId: session.user.id
@@ -48,15 +50,18 @@ export const OWASPScanner = () => {
 
       if (error) throw error;
 
-      toast.success("OWASP scan completed successfully");
-      setShowResults(true);
-      channel.unsubscribe();
+      if (data?.success) {
+        toast.success("OWASP scan completed successfully");
+        setShowResults(true);
+        setProgress(100);
+      } else {
+        throw new Error("Scan failed to complete");
+      }
     } catch (error: any) {
       console.error('OWASP scan error:', error);
       toast.error(error.message || "Failed to complete OWASP scan");
     } finally {
       setScanning(false);
-      setProgress(0);
     }
   };
 
@@ -71,6 +76,7 @@ export const OWASPScanner = () => {
               placeholder="https://example.com"
               value={targetUrl}
               onChange={(e) => setTargetUrl(e.target.value)}
+              disabled={scanning}
             />
           </div>
 
@@ -79,7 +85,14 @@ export const OWASPScanner = () => {
             disabled={scanning}
             className="w-full"
           >
-            {scanning ? "Scanning..." : "Start OWASP Scan"}
+            {scanning ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Scanning...
+              </>
+            ) : (
+              "Start OWASP Scan"
+            )}
           </Button>
 
           {scanning && (
