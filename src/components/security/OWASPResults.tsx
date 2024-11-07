@@ -53,6 +53,7 @@ export const OWASPResults = () => {
       <TableHeader>
         <TableRow>
           <TableHead>Category</TableHead>
+          <TableHead>Type</TableHead>
           <TableHead>Severity</TableHead>
           <TableHead>Description</TableHead>
           <TableHead>Recommendation</TableHead>
@@ -62,6 +63,7 @@ export const OWASPResults = () => {
         {results.map((result) => (
           <TableRow key={result.id}>
             <TableCell>{result.owasp_category}</TableCell>
+            <TableCell>{result.vulnerability_type}</TableCell>
             <TableCell>
               <Badge
                 variant={
