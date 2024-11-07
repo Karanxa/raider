@@ -106,7 +106,7 @@ export const OWASPScanner = () => {
         </div>
       </Card>
 
-      {showResults && <OWASPResults targetUrl={targetUrl} />}
+      {showResults && <OWASPResults />}
     </div>
   );
 };
