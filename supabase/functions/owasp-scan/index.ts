@@ -16,11 +16,11 @@ serve(async (req) => {
   }
 
   try {
-    const { findingId, userId } = await req.json();
+    const { url, userId, findingId } = await req.json();
 
-    if (!findingId || !userId) {
+    if ((!url && !findingId) || !userId) {
       return new Response(
-        JSON.stringify({ error: 'Finding ID and userId are required' }),
+        JSON.stringify({ error: 'URL/findingId and userId are required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -28,7 +28,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Starting OWASP scan for finding ${findingId}`);
+    console.log(`Starting OWASP scan for ${findingId ? `finding ${findingId}` : url}`);
 
     // Create Supabase client
     const supabaseClient = createClient(
@@ -36,49 +36,53 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch the API finding details
-    const { data: finding, error: findingError } = await supabaseClient
-      .from('github_api_findings')
-      .select('*')
-      .eq('id', findingId)
-      .single();
+    let targetUrl = url;
+    if (findingId) {
+      // Fetch the API finding details
+      const { data: finding, error: findingError } = await supabaseClient
+        .from('github_api_findings')
+        .select('*')
+        .eq('id', findingId)
+        .single();
 
-    if (findingError) throw findingError;
-    if (!finding) throw new Error('API finding not found');
+      if (findingError) throw findingError;
+      if (!finding) throw new Error('API finding not found');
 
-    console.log(`Found API finding: ${finding.api_path}`);
+      targetUrl = finding.api_path;
+      console.log(`Found API finding: ${targetUrl}`);
+    }
 
     // Generate vulnerabilities based on the API endpoint characteristics
     const vulnerabilities = [
       {
         vulnerability_type: "SQL Injection",
         severity: "high",
-        description: `Potential SQL injection vulnerability detected in endpoint: ${finding.api_path}`,
+        description: `Potential SQL injection vulnerability detected in endpoint: ${targetUrl}`,
         recommendation: "Use parameterized queries and input validation",
         owasp_category: "Injection",
         user_id: userId,
         finding_id: findingId,
-        target_url: finding.api_path
+        target_url: targetUrl
       },
       {
         vulnerability_type: "Authentication",
         severity: "medium",
-        description: `Missing or weak authentication controls in endpoint: ${finding.api_path}`,
+        description: `Missing or weak authentication controls in endpoint: ${targetUrl}`,
         recommendation: "Implement proper authentication mechanisms",
         owasp_category: "Broken Authentication",
         user_id: userId,
         finding_id: findingId,
-        target_url: finding.api_path
+        target_url: targetUrl
       },
       {
         vulnerability_type: "Authorization",
         severity: "critical",
-        description: `Potential authorization bypass in endpoint: ${finding.api_path}`,
+        description: `Potential authorization bypass in endpoint: ${targetUrl}`,
         recommendation: "Implement proper authorization checks",
         owasp_category: "Broken Access Control",
         user_id: userId,
         finding_id: findingId,
-        target_url: finding.api_path
+        target_url: targetUrl
       }
     ];
 
