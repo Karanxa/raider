@@ -3,11 +3,14 @@ project_id = "facextdabmrqllgdzkms"
 [functions.nuclei-scan]
 verify_jwt = true
 
+[functions.domain-recon]
+verify_jwt = true
+
 [functions.ip-intelligence]
 verify_jwt = true
 
 [functions.analyze-apk]
 verify_jwt = true
 
-[functions.send-notification]
+[functions.scan-github-repos]
 verify_jwt = true

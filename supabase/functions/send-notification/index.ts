@@ -23,15 +23,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: settings } = await supabaseAdmin
+    // Get user's notification settings
+    const { data: settings, error: settingsError } = await supabaseAdmin
       .from('notification_settings')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
+    if (settingsError) {
+      console.error('Error fetching notification settings:', settingsError);
+      throw new Error('Failed to fetch notification settings');
+    }
+
+    // If no settings found, return early with a success response
     if (!settings) {
+      console.log('No notification settings found for user:', userId);
       return new Response(
-        JSON.stringify({ message: 'No notification settings found' }), 
+        JSON.stringify({ message: 'No notification settings configured' }), 
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -70,22 +78,42 @@ serve(async (req) => {
     }
 
     if (settings.notification_type === 'slack' && settings.slack_webhook_url) {
-      const response = await fetch(settings.slack_webhook_url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: message }),
-      });
-      notificationSent = response.ok;
+      try {
+        const slackRes = await fetch(settings.slack_webhook_url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: message,
+          }),
+        });
+
+        if (slackRes.ok) {
+          notificationSent = true;
+        } else {
+          console.error('Failed to send Slack notification:', await slackRes.text());
+        }
+      } catch (error) {
+        console.error('Error sending Slack notification:', error);
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: notificationSent }), 
+      JSON.stringify({ 
+        success: notificationSent,
+        message: notificationSent ? 'Notification sent successfully' : 'Failed to send notification'
+      }), 
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    console.error('Error in send-notification function:', error);
     return new Response(
       JSON.stringify({ error: error.message }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   }
 });

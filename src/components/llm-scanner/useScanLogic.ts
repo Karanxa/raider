@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Session } from "@supabase/supabase-js";
-import { handleSingleScan } from "./scanUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { handleSingleScan } from "./scanUtils";
 
 export const useScanLogic = (session: Session | null) => {
   const [scanning, setScanning] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
+  const [batchId, setBatchId] = useState<string | null>(null);
 
   const processPrompts = async (
     prompts: string[],
@@ -18,7 +22,6 @@ export const useScanLogic = (session: Session | null) => {
     customHeaders: string,
     selectedModel: string,
     qps: number,
-    categories: string[],
     label?: string
   ) => {
     if (!session?.user?.id) {
@@ -36,16 +39,15 @@ export const useScanLogic = (session: Session | null) => {
       return;
     }
 
-    if (selectedProvider === "openai" && !apiKey) {
-      toast.error("Please provide your OpenAI API key in Settings");
-      return;
-    }
-
     setScanning(true);
+    setResult(null);
     setCurrentPromptIndex(0);
 
     try {
       if (prompts.length > 0) {
+        const newBatchId = uuidv4();
+        setBatchId(newBatchId);
+        
         for (let i = 0; i < prompts.length; i++) {
           setCurrentPromptIndex(i);
           
@@ -60,7 +62,7 @@ export const useScanLogic = (session: Session | null) => {
             selectedModel,
             session.user.id,
             'batch',
-            null,
+            newBatchId,
             label
           );
 
@@ -68,9 +70,8 @@ export const useScanLogic = (session: Session | null) => {
             await new Promise(resolve => setTimeout(resolve, 1000 / qps));
           }
         }
-        toast.success("Batch scan completed successfully");
       } else {
-        await handleSingleScan(
+        const result = await handleSingleScan(
           singlePrompt,
           selectedProvider,
           apiKey,
@@ -84,11 +85,11 @@ export const useScanLogic = (session: Session | null) => {
           null,
           label
         );
-        toast.success("Scan completed successfully");
+        setResult(result);
       }
     } catch (error) {
       console.error("Scan error:", error);
-      toast.error("Error during scan: " + error.message);
+      throw error;
     } finally {
       setScanning(false);
     }
@@ -96,7 +97,9 @@ export const useScanLogic = (session: Session | null) => {
 
   return {
     scanning,
+    result,
     currentPromptIndex,
     processPrompts,
+    batchId,
   };
 };

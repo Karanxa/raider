@@ -1,178 +1,199 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { ProviderSelect } from "./llm-scanner/ProviderSelect";
-import { PromptInput } from "./llm-scanner/PromptInput";
 import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
-import { CategorySelect } from "./llm-scanner/CategorySelect";
+import { PromptInput } from "./llm-scanner/PromptInput";
 import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
+import { useSession } from '@supabase/auth-helpers-react';
 import { useScanLogic } from "./llm-scanner/useScanLogic";
+import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useApiKeys } from "@/hooks/useApiKeys";
 
-interface PromptWithCategory {
-  prompt: string;
-  category: string;
-}
-
 const LLMScanner = () => {
-  const [selectedProvider, setSelectedProvider] = useState("");
-  const [selectedModel, setSelectedModel] = useState("");
-  const [customEndpoint, setCustomEndpoint] = useState("");
-  const [curlCommand, setCurlCommand] = useState("");
-  const [promptPlaceholder, setPromptPlaceholder] = useState("");
-  const [customHeaders, setCustomHeaders] = useState("");
-  const [promptText, setPromptText] = useState("");
-  const [category, setCategory] = useState("");
-  const [prompts, setPrompts] = useState<PromptWithCategory[]>([]);
-  const [label, setLabel] = useState("");
-  const [scanType, setScanType] = useState<"single" | "batch">("single");
-  
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [customEndpoint, setCustomEndpoint] = useState<string>("");
+  const [customHeaders, setCustomHeaders] = useState<string>("");
+  const [curlCommand, setCurlCommand] = useState<string>("");
+  const [promptPlaceholder, setPromptPlaceholder] = useState<string>("{{PROMPT}}");
+  const [prompt, setPrompt] = useState<string>("");
+  const [prompts, setPrompts] = useState<string[]>([]);
+  const [qps, setQps] = useState<number>(10);
+  const [scanLabel, setScanLabel] = useState<string>("");
   const session = useSession();
-  const { scanning, processPrompts } = useScanLogic(session);
+  const navigate = useNavigate();
   const { getApiKey } = useApiKeys();
 
-  const handleScan = async () => {
-    if (scanType === "single" && !category) {
-      toast.error("Please select an attack category");
-      return;
+  const { scanning, result, currentPromptIndex, processPrompts, batchId } = useScanLogic(session);
+
+  const handleViewResults = () => {
+    if (batchId) {
+      navigate('/results', { state: { batchId } });
     }
+  };
 
-    const apiKey = getApiKey("openai");
-    if (selectedProvider === "openai" && !apiKey) {
-      toast.error("Please configure your OpenAI API key in Settings");
-      return;
+  const handleQpsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(event.target.value);
+    if (value > 0) {
+      setQps(value);
+    } else {
+      toast.error("QPS must be greater than 0");
     }
-
-    const promptsList = scanType === "batch" && prompts.length > 0 
-      ? prompts.map(p => p.prompt)
-      : [promptText];
-    
-    const categories = scanType === "batch" && prompts.length > 0
-      ? prompts.map(p => p.category)
-      : [category];
-
-    await processPrompts(
-      promptsList,
-      promptText,
-      selectedProvider,
-      apiKey || "",
-      customEndpoint,
-      curlCommand,
-      promptPlaceholder,
-      customHeaders,
-      selectedModel,
-      10,
-      categories,
-      label
-    );
   };
 
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label>Scan Type</Label>
-            <RadioGroup
-              value={scanType}
-              onValueChange={(value) => setScanType(value as "single" | "batch")}
-              className="flex space-x-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="single" id="single" />
-                <Label htmlFor="single">Single Prompt</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="batch" id="batch" />
-                <Label htmlFor="batch">Batch Scan (CSV)</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
+        <div className="space-y-4">
           <ProviderSelect
             selectedProvider={selectedProvider}
+            selectedModel={selectedModel}
             onProviderChange={setSelectedProvider}
+            onModelChange={setSelectedModel}
           />
-
-          {selectedProvider === "openai" && (
-            <div className="space-y-2">
-              <Label>Model</Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gpt-4o-mini">GPT-4O Mini (Faster)</SelectItem>
-                  <SelectItem value="gpt-4o">GPT-4O (More Powerful)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {selectedProvider === "custom" && (
             <CustomProviderSettings
               customEndpoint={customEndpoint}
+              customHeaders={customHeaders}
               curlCommand={curlCommand}
               promptPlaceholder={promptPlaceholder}
-              customHeaders={customHeaders}
               onEndpointChange={setCustomEndpoint}
+              onHeadersChange={setCustomHeaders}
               onCurlCommandChange={setCurlCommand}
               onPromptPlaceholderChange={setPromptPlaceholder}
-              onHeadersChange={setCustomHeaders}
-              requiresApiKey={false}
-            />
-          )}
-
-          {scanType === "single" && (
-            <CategorySelect 
-              category={category}
-              onCategoryChange={setCategory}
+              requiresApiKey={!curlCommand}
             />
           )}
 
           <PromptInput
-            prompt={promptText}
-            onPromptChange={setPromptText}
+            prompt={prompt}
+            onPromptChange={setPrompt}
             onPromptsFromCSV={setPrompts}
-            scanType={scanType}
           />
 
           <div className="space-y-2">
-            <Label>Label (Optional)</Label>
+            <Label>Scan Label (Optional)</Label>
             <Input
+              type="text"
+              value={scanLabel}
+              onChange={(e) => setScanLabel(e.target.value)}
               placeholder="Enter a label for this scan"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
             />
+            <p className="text-sm text-muted-foreground">
+              If provided, all prompts in this scan will be tagged with this label
+            </p>
           </div>
 
-          <div className="flex justify-end">
-            <button
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
-              onClick={handleScan}
-              disabled={scanning}
+          {prompts.length > 0 && (
+            <div className="space-y-2">
+              <Label>Queries Per Second (QPS)</Label>
+              <Input
+                type="number"
+                min="1"
+                value={qps}
+                onChange={handleQpsChange}
+                placeholder="Enter QPS rate (e.g., 10)"
+              />
+              <p className="text-sm text-muted-foreground">
+                Limit the rate of API requests per second
+              </p>
+            </div>
+          )}
+
+          <Button
+            onClick={async () => {
+              try {
+                if (selectedProvider !== "custom") {
+                  const storedApiKey = getApiKey(selectedProvider);
+                  if (!storedApiKey) {
+                    toast.error(`Please add your ${selectedProvider} API key in Settings`);
+                    return;
+                  }
+                  await processPrompts(
+                    prompts,
+                    prompt,
+                    selectedProvider,
+                    storedApiKey,
+                    customEndpoint,
+                    curlCommand,
+                    promptPlaceholder,
+                    customHeaders,
+                    selectedModel,
+                    qps,
+                    scanLabel
+                  );
+                } else {
+                  await processPrompts(
+                    prompts,
+                    prompt,
+                    selectedProvider,
+                    "",
+                    customEndpoint,
+                    curlCommand,
+                    promptPlaceholder,
+                    customHeaders,
+                    selectedModel,
+                    qps,
+                    scanLabel
+                  );
+                }
+                
+                if (prompts.length > 0) {
+                  toast.success("Batch scan completed successfully");
+                } else {
+                  toast.success("Scan completed successfully");
+                }
+              } catch (error) {
+                console.error(error);
+                toast.error("Failed to complete scan");
+              }
+            }}
+            disabled={scanning}
+            className="w-full"
+          >
+            {scanning ? (
+              prompts.length > 0 
+                ? `Processing prompt ${currentPromptIndex + 1} of ${prompts.length}...` 
+                : "Scanning..."
+            ) : (
+              "Start LLM Scan"
+            )}
+          </Button>
+
+          {batchId ? (
+            <Button 
+              variant="secondary" 
+              className="w-full"
+              onClick={handleViewResults}
             >
-              {scanning ? "Scanning..." : "Start Scan"}
-            </button>
-          </div>
+              View Batch Results
+            </Button>
+          ) : result && (
+            <Card className="p-4 mt-4">
+              <h3 className="font-semibold mb-2">Scan Results</h3>
+              <div className="whitespace-pre-wrap text-sm">{result}</div>
+            </Card>
+          )}
+
+          <ScheduleScanner
+            prompt={prompt}
+            provider={selectedProvider}
+            model={selectedModel}
+            customEndpoint={customEndpoint}
+            curlCommand={curlCommand}
+            promptPlaceholder={promptPlaceholder}
+            customHeaders={customHeaders}
+            apiKey={getApiKey(selectedProvider) || ""}
+          />
         </div>
       </Card>
-
-      <ScheduleScanner
-        prompt={promptText}
-        provider={selectedProvider}
-        model={selectedModel}
-        customEndpoint={customEndpoint}
-        curlCommand={curlCommand}
-        promptPlaceholder={promptPlaceholder}
-        customHeaders={customHeaders}
-        apiKey={getApiKey("openai") || ""}
-      />
     </div>
   );
 };

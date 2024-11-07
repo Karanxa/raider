@@ -14,10 +14,6 @@ export const handleSingleScan = async (
   batchId?: string | null,
   label?: string
 ) => {
-  if (!apiKey && selectedProvider === "openai") {
-    throw new Error("OpenAI API key is required");
-  }
-
   if (selectedProvider === "custom") {
     return await handleCustomProviderScan(
       prompt,
@@ -64,7 +60,8 @@ const handleCustomProviderScan = async (
       const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g);
       if (headerMatches) {
         headerMatches.forEach(match => {
-          const [key, value] = match.slice(4, -1).split(': ');
+          const headerContent = match.slice(4, -1);
+          const [key, value] = headerContent.split(': ');
           if (key && value) {
             headers[key] = value;
           }
@@ -94,10 +91,6 @@ const handleCustomProviderScan = async (
       });
     }
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
     const data = await response.json();
     const result = typeof data === "string" ? data : JSON.stringify(data, null, 2);
     
@@ -106,8 +99,8 @@ const handleCustomProviderScan = async (
       result,
       provider: 'custom',
       scan_type: scanType,
-      batch_id: batchId || null,
       user_id: userId,
+      batch_id: batchId || null,
       label: label || null,
       response_status: response.status,
       raw_response: data
@@ -137,18 +130,13 @@ const handleStandardProviderScan = async (
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: model || "gpt-4o-mini",
+      model: model || "gpt-4-mini",
       messages: [
         { role: 'system', content: 'You are a helpful assistant that generates content based on user prompts.' },
         { role: 'user', content: prompt }
       ],
     }),
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'OpenAI API error');
-  }
 
   const data = await response.json();
   const generatedText = data.choices[0].message.content;
@@ -159,8 +147,8 @@ const handleStandardProviderScan = async (
     provider,
     model,
     scan_type: scanType,
-    batch_id: batchId || null,
     user_id: userId,
+    batch_id: batchId || null,
     label: label || null,
     response_status: response.status,
     raw_response: data

@@ -1,139 +1,167 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useSession } from "@supabase/auth-helpers-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const GitHubScanner = () => {
-  const [repositoryUrl, setRepositoryUrl] = useState("");
-  const [scanning, setScanning] = useState(false);
+  const [githubToken, setGithubToken] = useState("");
+  const [specificRepo, setSpecificRepo] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const session = useSession();
+  const [timeRemaining, setTimeRemaining] = useState<string | null>(null);
+  const [totalRepos, setTotalRepos] = useState(0);
+  const [scannedRepos, setScannedRepos] = useState(0);
 
-  const validateGitHubUrl = (url: string) => {
-    const githubPattern = /^https:\/\/github\.com\/[\w-]+\/[\w-]+$/;
-    return githubPattern.test(url);
-  };
-
-  const handleScan = async () => {
-    if (!session?.user?.id) {
-      toast.error("Please sign in to use the scanner");
+  const handleScan = async (scanType: 'all' | 'specific') => {
+    if (!githubToken) {
+      toast.error("Please enter your GitHub token");
       return;
     }
 
-    if (!repositoryUrl) {
-      toast.error("Please enter a repository URL");
+    if (scanType === 'specific' && !specificRepo) {
+      toast.error("Please enter a repository name");
       return;
     }
 
-    if (!validateGitHubUrl(repositoryUrl)) {
-      toast.error("Please enter a valid GitHub repository URL");
-      return;
-    }
-
-    setScanning(true);
+    setIsScanning(true);
     setProgress(0);
+    setTimeRemaining(null);
+    setTotalRepos(0);
+    setScannedRepos(0);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast.error("Please sign in to scan repositories");
+        return;
+      }
+
+      const channel = supabase
+        .channel('scan-progress')
+        .on('broadcast', { event: 'scan-progress' }, (payload) => {
+          const { progress, timeRemaining, totalRepos, scannedRepos } = payload.payload;
+          setProgress(progress);
+          setTimeRemaining(timeRemaining);
+          setTotalRepos(totalRepos);
+          setScannedRepos(scannedRepos);
+        })
+        .subscribe();
+
       const { error } = await supabase.functions.invoke('scan-github-repos', {
         body: { 
-          repository_url: repositoryUrl,
-          userId: session.user.id
+          githubToken,
+          userId: session.user.id,
+          specificRepo: scanType === 'specific' ? specificRepo : null
         }
       });
 
       if (error) throw error;
-
-      // Poll for results with exponential backoff
-      let attempts = 0;
-      const maxAttempts = 20; // Maximum polling attempts
-      const pollForResults = async () => {
-        const { data: findings } = await supabase
-          .from('github_api_findings')
-          .select('*')
-          .eq('repository_url', repositoryUrl)
-          .eq('user_id', session.user.id);
-        
-        if (findings && findings.length > 0) {
-          setProgress(100);
-          toast.success(`Scan completed! Found ${findings.length} API endpoints`);
-          setRepositoryUrl("");
-          setScanning(false);
-          return;
-        }
-
-        attempts++;
-        if (attempts >= maxAttempts) {
-          setScanning(false);
-          toast.error("Scan timed out. The repository might be too large or there might be connection issues.");
-          return;
-        }
-
-        // Update progress based on attempts
-        setProgress(Math.min((attempts / maxAttempts) * 90, 90));
-
-        // Exponential backoff with a maximum of 10 seconds
-        const delay = Math.min(1000 * Math.pow(1.5, attempts), 10000);
-        setTimeout(pollForResults, delay);
-      };
-
-      // Start polling
-      pollForResults();
-
-    } catch (error: any) {
-      console.error('GitHub scan error:', error);
-      toast.error(error.message || "Failed to scan GitHub repository");
-      setScanning(false);
+      
+      toast.success("GitHub scan completed. Your findings will appear in the API Findings dashboard shortly.");
+      
+      setGithubToken("");
+      setSpecificRepo("");
+      supabase.removeChannel(channel);
+    } catch (error) {
+      console.error('Error scanning GitHub repos:', error);
+      toast.error("Failed to scan GitHub repositories. Please check your token and try again.");
+    } finally {
+      setIsScanning(false);
+      setProgress(0);
+      setTimeRemaining(null);
     }
   };
 
   return (
     <div className="space-y-6">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold tracking-tight">GitHub API Scanner</h2>
+        <p className="text-muted-foreground">
+          Scan your GitHub repositories to discover API endpoints and analyze their security.
+        </p>
+      </div>
+
       <Card className="p-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="repository-url">GitHub Repository URL</Label>
-            <Input
-              id="repository-url"
-              placeholder="https://github.com/username/repository"
-              value={repositoryUrl}
-              onChange={(e) => setRepositoryUrl(e.target.value)}
-              disabled={scanning}
-            />
-            <p className="text-sm text-muted-foreground">
-              Enter the URL of a public GitHub repository to scan for API endpoints
-            </p>
-          </div>
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all">Scan All Repositories</TabsTrigger>
+            <TabsTrigger value="specific">Scan Specific Repository</TabsTrigger>
+          </TabsList>
 
-          <Button 
-            onClick={handleScan} 
-            disabled={scanning}
-            className="w-full"
-          >
-            {scanning ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Scanning Repository...
-              </>
-            ) : (
-              "Start GitHub Scan"
-            )}
-          </Button>
-
-          {scanning && (
+          <TabsContent value="all" className="space-y-4">
             <div className="space-y-2">
-              <Progress value={progress} className="w-full" />
-              <p className="text-sm text-muted-foreground text-center">
-                Scanning repository for API endpoints... {progress}%
+              <Label htmlFor="github-token-all">GitHub Personal Access Token</Label>
+              <Input
+                id="github-token-all"
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Token requires 'repo' scope. Create one in GitHub Settings → Developer settings → Personal access tokens
               </p>
             </div>
-          )}
-        </div>
+
+            <Button onClick={() => handleScan('all')} disabled={isScanning}>
+              {isScanning ? "Scanning..." : "Start Scan"}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="specific" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="github-token-specific">GitHub Personal Access Token</Label>
+              <Input
+                id="github-token-specific"
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="repo-name">Repository Name</Label>
+              <Input
+                id="repo-name"
+                type="text"
+                placeholder="owner/repository"
+                value={specificRepo}
+                onChange={(e) => setSpecificRepo(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter the repository name in the format owner/repository (e.g., octocat/Hello-World)
+              </p>
+            </div>
+
+            <Button onClick={() => handleScan('specific')} disabled={isScanning}>
+              {isScanning ? "Scanning..." : "Start Scan"}
+            </Button>
+          </TabsContent>
+        </Tabs>
+
+        {isScanning && (
+          <div className="space-y-2 mt-4">
+            <div className="flex justify-between text-sm">
+              <span>Scanning Progress</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="w-full" />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>
+                {scannedRepos} of {totalRepos} repositories scanned
+              </span>
+              {timeRemaining && (
+                <span>Estimated time remaining: {timeRemaining}</span>
+              )}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -9,56 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      api_security_issues: {
-        Row: {
-          created_at: string | null
-          description: string
-          finding_id: string
-          id: string
-          owasp_category: string
-          recommendation: string | null
-          severity: string
-          target_url: string | null
-          updated_at: string | null
-          user_id: string
-          vulnerability_type: string
-        }
-        Insert: {
-          created_at?: string | null
-          description: string
-          finding_id: string
-          id?: string
-          owasp_category: string
-          recommendation?: string | null
-          severity: string
-          target_url?: string | null
-          updated_at?: string | null
-          user_id: string
-          vulnerability_type: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string
-          finding_id?: string
-          id?: string
-          owasp_category?: string
-          recommendation?: string | null
-          severity?: string
-          target_url?: string | null
-          updated_at?: string | null
-          user_id?: string
-          vulnerability_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "api_security_issues_finding_id_fkey"
-            columns: ["finding_id"]
-            isOneToOne: false
-            referencedRelation: "github_api_findings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       apk_analysis: {
         Row: {
           activities: Json | null
@@ -119,6 +69,48 @@ export type Database = {
           user_id?: string
           version_code?: string | null
           version_name?: string | null
+        }
+        Relationships: []
+      }
+      bounty_reports: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          impact: string
+          proof_of_concept: string | null
+          recommendations: string | null
+          severity: string
+          status: string | null
+          steps_to_reproduce: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          impact: string
+          proof_of_concept?: string | null
+          recommendations?: string | null
+          severity: string
+          status?: string | null
+          steps_to_reproduce: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          impact?: string
+          proof_of_concept?: string | null
+          recommendations?: string | null
+          severity?: string
+          status?: string | null
+          steps_to_reproduce?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -272,7 +264,6 @@ export type Database = {
           pii_classification: boolean | null
           pii_types: string[] | null
           repository_name: string
-          repository_owner: string | null
           repository_url: string
           user_id: string
         }
@@ -287,7 +278,6 @@ export type Database = {
           pii_classification?: boolean | null
           pii_types?: string[] | null
           repository_name: string
-          repository_owner?: string | null
           repository_url: string
           user_id: string
         }
@@ -302,7 +292,6 @@ export type Database = {
           pii_classification?: boolean | null
           pii_types?: string[] | null
           repository_name?: string
-          repository_owner?: string | null
           repository_url?: string
           user_id?: string
         }
@@ -431,42 +420,6 @@ export type Database = {
           result?: string
           scan_type?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      model_security_tests: {
-        Row: {
-          created_at: string | null
-          id: string
-          model_endpoint: string
-          recommendations: Json
-          risk_level: string
-          test_status: string
-          test_type: string
-          user_id: string
-          vulnerabilities: Json
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          model_endpoint: string
-          recommendations?: Json
-          risk_level: string
-          test_status?: string
-          test_type: string
-          user_id: string
-          vulnerabilities?: Json
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          model_endpoint?: string
-          recommendations?: Json
-          risk_level?: string
-          test_status?: string
-          test_type?: string
-          user_id?: string
-          vulnerabilities?: Json
         }
         Relationships: []
       }

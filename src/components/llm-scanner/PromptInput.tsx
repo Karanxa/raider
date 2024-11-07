@@ -6,25 +6,17 @@ import { Upload } from "lucide-react";
 import { useState } from "react";
 import Papa from "papaparse";
 import { toast } from "sonner";
-import { ADVERSARIAL_CATEGORIES } from "./CategorySelect";
-
-interface PromptWithCategory {
-  prompt: string;
-  category: string;
-}
 
 interface PromptInputProps {
   prompt: string;
   onPromptChange: (value: string) => void;
-  onPromptsFromCSV: (prompts: PromptWithCategory[]) => void;
-  scanType: "single" | "batch";
+  onPromptsFromCSV: (prompts: string[]) => void;
 }
 
 export const PromptInput = ({
   prompt,
   onPromptChange,
   onPromptsFromCSV,
-  scanType,
 }: PromptInputProps) => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -36,25 +28,11 @@ export const PromptInput = ({
     Papa.parse(file, {
       complete: (results) => {
         const prompts = results.data
-          .filter((row: any) => row.prompts && row.category)
-          .map((row: any) => ({
-            prompt: row.prompts.toString(),
-            category: row.category.toString()
-          }));
+          .filter((row: any) => row.prompts)
+          .map((row: any) => row.prompts.toString());
 
         if (prompts.length === 0) {
-          toast.error("No valid prompts found in CSV file. Make sure you have 'prompts' and 'category' columns.");
-          setIsUploading(false);
-          return;
-        }
-
-        // Validate categories
-        const invalidCategories = prompts.filter(
-          p => !ADVERSARIAL_CATEGORIES.includes(p.category as any)
-        );
-
-        if (invalidCategories.length > 0) {
-          toast.error("Some categories in the CSV are invalid. Please check the allowed categories.");
+          toast.error("No valid prompts found in CSV file. Make sure you have a 'prompts' column.");
           setIsUploading(false);
           return;
         }
@@ -69,10 +47,10 @@ export const PromptInput = ({
     });
   };
 
-  if (scanType === "single") {
-    return (
+  return (
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Prompt</Label>
+        <Label>Single Prompt</Label>
         <Textarea
           placeholder="Enter your prompt for scanning"
           value={prompt}
@@ -80,13 +58,9 @@ export const PromptInput = ({
           className="min-h-[100px]"
         />
       </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
+      
       <div className="space-y-2">
-        <Label>Upload CSV with Prompts</Label>
+        <Label>Or Upload CSV with Prompts</Label>
         <div className="flex items-center gap-2">
           <Input
             type="file"
@@ -107,7 +81,7 @@ export const PromptInput = ({
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          CSV must have "prompts" and "category" columns. Valid categories: {ADVERSARIAL_CATEGORIES.join(", ")}
+          CSV must have a "prompts" column
         </p>
       </div>
     </div>
