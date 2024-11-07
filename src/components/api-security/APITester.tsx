@@ -1,45 +1,38 @@
 import { useState } from "react";
-import { useSession } from "@supabase/auth-helpers-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from '@supabase/auth-helpers-react';
 
-interface APIThreat {
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  title: string;
+interface SecurityFinding {
+  severity: 'high' | 'medium' | 'low';
+  issue: string;
   description: string;
   recommendation: string;
 }
 
 export const APITester = () => {
   const [curlCommand, setCurlCommand] = useState("");
-  const [analyzing, setAnalyzing] = useState(false);
-  const [threats, setThreats] = useState<APIThreat[]>([]);
+  const [findings, setFindings] = useState<SecurityFinding[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const session = useSession();
 
-  const handleAnalyze = async () => {
+  const analyzeCurl = async () => {
     if (!session?.user?.id) {
-      toast.error("Please sign in to use the API tester");
+      toast.error("Please login to use this feature");
       return;
     }
 
-    if (!curlCommand) {
+    if (!curlCommand.trim()) {
       toast.error("Please enter a curl command");
       return;
     }
 
-    setAnalyzing(true);
-    setThreats([]);
-
+    setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-api', {
         body: { 
@@ -50,82 +43,92 @@ export const APITester = () => {
 
       if (error) throw error;
 
-      if (data?.threats) {
-        setThreats(data.threats);
-        toast.success("API analysis completed");
-      }
-    } catch (error: any) {
+      setFindings(data.findings);
+      toast.success("API analysis completed");
+    } catch (error) {
       console.error('API analysis error:', error);
-      toast.error(error.message || "Failed to analyze API");
+      toast.error("Failed to analyze API");
     } finally {
-      setAnalyzing(false);
+      setIsAnalyzing(false);
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-blue-500';
-      default: return 'bg-gray-500';
+      case 'high':
+        return 'text-red-500';
+      case 'medium':
+        return 'text-yellow-500';
+      case 'low':
+        return 'text-blue-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'high':
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      case 'medium':
+        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      case 'low':
+        return <CheckCircle2 className="h-5 w-5 text-blue-500" />;
+      default:
+        return null;
     }
   };
 
   return (
     <div className="space-y-6">
       <Card className="p-6">
+        <h2 className="text-2xl font-bold mb-4">API Security Tester</h2>
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">API Tester</h3>
-          <p className="text-sm text-muted-foreground">
-            Enter a curl command to analyze potential security threats in your API endpoints.
-          </p>
-          <div className="space-y-2">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Enter curl command
+            </label>
             <Textarea
-              placeholder="Enter your curl command here..."
+              placeholder="curl 'https://api.example.com/v1/data' -H 'Authorization: Bearer xyz'"
               value={curlCommand}
               onChange={(e) => setCurlCommand(e.target.value)}
-              className="min-h-[100px] font-mono"
-              disabled={analyzing}
+              className="min-h-[100px] font-mono text-sm"
             />
           </div>
-
+          
           <Button 
-            onClick={handleAnalyze} 
-            disabled={analyzing}
+            onClick={analyzeCurl} 
+            disabled={isAnalyzing}
             className="w-full"
           >
-            {analyzing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analyzing API...
-              </>
-            ) : (
-              "Analyze API"
-            )}
+            {isAnalyzing ? "Analyzing..." : "Analyze API Security"}
           </Button>
         </div>
       </Card>
 
-      {threats.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Analysis Results</h3>
-          {threats.map((threat, index) => (
-            <Alert key={index} variant="destructive">
-              <div className="flex items-center gap-2">
-                <AlertTitle>{threat.title}</AlertTitle>
-                <Badge className={`${getSeverityColor(threat.severity)} text-white`}>
-                  {threat.severity}
-                </Badge>
-              </div>
-              <AlertDescription className="mt-2 space-y-2">
-                <p>{threat.description}</p>
-                <p className="font-semibold">Recommendation:</p>
-                <p>{threat.recommendation}</p>
-              </AlertDescription>
-            </Alert>
-          ))}
-        </div>
+      {findings.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-xl font-semibold mb-4">Security Analysis Results</h3>
+          <div className="space-y-4">
+            {findings.map((finding, index) => (
+              <Alert key={index} variant="default" className="relative">
+                <div className="flex items-start gap-4">
+                  {getSeverityIcon(finding.severity)}
+                  <div className="flex-1">
+                    <h4 className={`font-medium mb-1 ${getSeverityColor(finding.severity)}`}>
+                      {finding.issue}
+                    </h4>
+                    <AlertDescription className="mt-2 space-y-2">
+                      <p className="text-sm text-muted-foreground">{finding.description}</p>
+                      <p className="text-sm font-medium">Recommendation:</p>
+                      <p className="text-sm text-muted-foreground">{finding.recommendation}</p>
+                    </AlertDescription>
+                  </div>
+                </div>
+              </Alert>
+            ))}
+          </div>
+        </Card>
       )}
     </div>
   );
