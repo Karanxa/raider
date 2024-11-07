@@ -1,4 +1,4 @@
-project_id = "facextdabmrqllgdzkms"
+# project_id = ""
 
 [functions.analyze-apk]
 verify_jwt = true

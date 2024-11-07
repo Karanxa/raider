@@ -1,4 +1,4 @@
-import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings, Lock } from "lucide-react";
+import { FileCode, Shield, Package, AlertTriangle, Database, Brain, Target, Smartphone, Settings } from "lucide-react";
 
 export interface TabItem {
   value: string;
@@ -14,16 +14,6 @@ interface CategoryConfig {
 }
 
 export const categoryConfigs: CategoryConfig[] = [
-  {
-    value: "api-security",
-    label: "API Security",
-    icon: <Lock className="h-4 w-4" />,
-    tabs: [
-      { value: "github-scan", label: "GitHub Scanner", icon: <FileCode className="h-4 w-4" /> },
-      { value: "owasp-scan", label: "OWASP Scanner", icon: <Shield className="h-4 w-4" /> },
-      { value: "scan-results", label: "Scan Results", icon: <Database className="h-4 w-4" /> },
-    ],
-  },
   {
     value: "web",
     label: "Web Security",

@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 
 interface OWASPResult {
   id: string;
@@ -29,7 +28,7 @@ export const OWASPResults = ({ targetUrl }: { targetUrl: string }) => {
         .from('api_security_issues')
         .select('*')
         .eq('target_url', targetUrl)
-        .order('severity', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as OWASPResult[];
@@ -38,94 +37,50 @@ export const OWASPResults = ({ targetUrl }: { targetUrl: string }) => {
   });
 
   if (isLoading) {
-    return (
-      <Card className="p-4">
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </Card>
-    );
+    return <div className="text-center py-4">Loading results...</div>;
   }
 
   if (!results?.length) {
     return (
-      <Card className="p-6">
-        <div className="flex flex-col items-center justify-center text-center space-y-2">
-          <CheckCircle className="h-12 w-12 text-green-500" />
-          <h3 className="text-lg font-semibold">No Security Issues Found</h3>
-          <p className="text-sm text-muted-foreground">
-            The scan completed successfully but no security vulnerabilities were detected.
-          </p>
-        </div>
+      <Card className="p-4">
+        <p className="text-center text-muted-foreground">
+          No security scan results available for this API yet.
+        </p>
       </Card>
     );
   }
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-        return 'bg-red-500';
-      case 'high':
-        return 'bg-orange-500';
-      case 'medium':
-        return 'bg-yellow-500';
-      case 'low':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-      case 'high':
-        return <AlertTriangle className="h-4 w-4" />;
-      case 'medium':
-        return <AlertTriangle className="h-4 w-4" />;
-      default:
-        return <XCircle className="h-4 w-4" />;
-    }
-  };
-
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Security Scan Results</h3>
-          <Badge variant="outline">
-            {results.length} {results.length === 1 ? 'Issue' : 'Issues'} Found
-          </Badge>
-        </div>
-
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Severity</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Recommendation</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {results.map((result) => (
-              <TableRow key={result.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getSeverityIcon(result.severity)}
-                    <Badge className={`${getSeverityColor(result.severity)}`}>
-                      {result.severity}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">{result.owasp_category}</TableCell>
-                <TableCell className="max-w-md">{result.description}</TableCell>
-                <TableCell className="max-w-md">{result.recommendation}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Category</TableHead>
+          <TableHead>Severity</TableHead>
+          <TableHead>Description</TableHead>
+          <TableHead>Recommendation</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {results.map((result) => (
+          <TableRow key={result.id}>
+            <TableCell>{result.owasp_category}</TableCell>
+            <TableCell>
+              <Badge
+                variant={
+                  result.severity === 'critical' ? 'destructive' :
+                  result.severity === 'high' ? 'destructive' :
+                  result.severity === 'medium' ? 'default' :
+                  'secondary'
+                }
+              >
+                {result.severity}
+              </Badge>
+            </TableCell>
+            <TableCell className="max-w-md">{result.description}</TableCell>
+            <TableCell className="max-w-md">{result.recommendation}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 };

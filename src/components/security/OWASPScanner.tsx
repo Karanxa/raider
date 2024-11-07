@@ -13,7 +13,6 @@ export const OWASPScanner = () => {
   const [targetUrl, setTargetUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [showResults, setShowResults] = useState(false);
   const session = useSession();
 
   const handleScan = async () => {
@@ -29,7 +28,6 @@ export const OWASPScanner = () => {
 
     setScanning(true);
     setProgress(0);
-    setShowResults(false);
 
     try {
       const channel = supabase
@@ -49,7 +47,6 @@ export const OWASPScanner = () => {
       if (error) throw error;
 
       toast.success("OWASP scan completed successfully");
-      setShowResults(true);
       channel.unsubscribe();
     } catch (error: any) {
       console.error('OWASP scan error:', error);
@@ -93,7 +90,7 @@ export const OWASPScanner = () => {
         </div>
       </Card>
 
-      {showResults && <OWASPResults targetUrl={targetUrl} />}
+      <OWASPResults targetUrl={targetUrl} />
     </div>
   );
 };
