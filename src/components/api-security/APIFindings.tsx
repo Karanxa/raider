@@ -1,17 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@supabase/auth-helpers-react";
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export const APIFindings = () => {
   const session = useSession();
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
+  const [expandedRows, setExpandedRows] = useState<string[]>([]);
 
   const { data: findings, isLoading } = useQuery({
     queryKey: ['api-findings'],
@@ -64,6 +66,12 @@ export const APIFindings = () => {
     PATCH: "secondary"
   };
 
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => 
+      prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
+    );
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center p-8">Loading findings...</div>;
   }
@@ -103,54 +111,88 @@ export const APIFindings = () => {
         </Select>
       </div>
 
-      <div className="grid gap-6">
-        {filteredFindings?.map((finding) => (
-          <Card key={finding.id} className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[30px]"></TableHead>
+            <TableHead>Repository</TableHead>
+            <TableHead>API Path</TableHead>
+            <TableHead>Method</TableHead>
+            <TableHead>File Location</TableHead>
+            <TableHead>Issues</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredFindings?.map((finding) => (
+            <>
+              <TableRow 
+                key={finding.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => toggleRow(finding.id)}
+              >
+                <TableCell>
+                  {expandedRows.includes(finding.id) ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </TableCell>
+                <TableCell>
                   {finding.repository_owner}/{finding.repository_name}
-                </h3>
-                <Badge variant={methodColors[finding.method] as any || "secondary"}>
-                  {finding.method}
-                </Badge>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  API Path: <a 
+                </TableCell>
+                <TableCell>
+                  <a 
                     href={`${finding.repository_url}/blob/main/${finding.file_path}#L${finding.line_number}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {finding.api_path}
                   </a>
-                </p>
-                <p className="text-sm text-muted-foreground">File: {finding.file_path}</p>
-                <p className="text-sm text-muted-foreground">Line: {finding.line_number}</p>
-              </div>
-
-              {finding.api_security_issues?.map((issue, index) => (
-                <div key={index} className="mt-4 p-4 bg-muted rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold">{issue.vulnerability_type}</p>
-                    <Badge variant={severityColors[issue.severity.toLowerCase()] as any || "secondary"}>
-                      {issue.severity}
-                    </Badge>
-                  </div>
-                  <p className="text-sm mt-1">{issue.description}</p>
-                  {issue.recommendation && (
-                    <p className="text-sm mt-2 text-muted-foreground">
-                      Recommendation: {issue.recommendation}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-        ))}
-      </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={methodColors[finding.method] as any || "secondary"}>
+                    {finding.method}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {finding.file_path}:{finding.line_number}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {finding.api_security_issues?.length || 0} issues found
+                </TableCell>
+              </TableRow>
+              {expandedRows.includes(finding.id) && (
+                <TableRow>
+                  <TableCell colSpan={6} className="bg-muted/30">
+                    <div className="space-y-4 p-4">
+                      {finding.api_security_issues?.map((issue, index) => (
+                        <div key={index} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{issue.vulnerability_type}</span>
+                            <Badge variant={severityColors[issue.severity.toLowerCase()] as any || "secondary"}>
+                              {issue.severity}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{issue.description}</p>
+                          {issue.recommendation && (
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-medium">Recommendation:</span> {issue.recommendation}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 };
