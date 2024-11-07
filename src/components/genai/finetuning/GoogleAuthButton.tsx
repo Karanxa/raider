@@ -16,7 +16,7 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
     try {
       const { data, error } = await supabase.functions.invoke('exchange-google-token', {
         body: { 
-          credential: response.credential,
+          code: response.code, // Changed from credential to code
           userId: session.user.id
         }
       });
@@ -49,7 +49,8 @@ export const GoogleAuthButton = ({ onAuthSuccess }: { onAuthSuccess: () => void 
           console.error("Google Sign In Failed");
           toast.error("Google Sign In Failed");
         }}
-        useOneTap
+        flow="auth-code"
+        scope="https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile"
       />
     </div>
   );

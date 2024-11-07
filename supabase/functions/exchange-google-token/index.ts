@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,28 +12,28 @@ serve(async (req) => {
   }
 
   try {
-    const { credential, userId } = await req.json();
+    const { code, userId } = await req.json();
 
-    if (!credential || !userId) {
-      throw new Error('Credential and userId are required');
+    if (!code || !userId) {
+      throw new Error('Code and userId are required');
     }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-    const redirectUri = "https://preview--raider.gptengineer.run/";
+    const redirectUri = "postmessage"; // Special value for Google OAuth2 popup flow
 
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth credentials not configured');
     }
 
-    // Exchange the credential for tokens
+    // Exchange the code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        code: credential,
+        code,
         client_id: clientId,
         client_secret: clientSecret,
         redirect_uri: redirectUri,
