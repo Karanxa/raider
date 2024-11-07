@@ -7,17 +7,16 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { url, userId } = await req.json();
+    const { userId } = await req.json();
 
-    if (!url || !userId) {
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: 'URL and userId are required' }),
+        JSON.stringify({ error: 'userId is required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -31,37 +30,52 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Mock OWASP scan results for demonstration
-    const mockVulnerabilities = [
-      {
-        user_id: userId,
-        target_url: url,
-        vulnerability_type: "SQL Injection",
-        severity: "high",
-        description: "Potential SQL injection vulnerability detected in API endpoint",
-        recommendation: "Use parameterized queries and input validation",
-        owasp_category: "Injection"
-      },
-      {
-        user_id: userId,
-        target_url: url,
-        vulnerability_type: "XSS",
-        severity: "medium",
-        description: "Cross-site scripting vulnerability found in response",
-        recommendation: "Implement proper output encoding",
-        owasp_category: "Cross-Site Scripting"
-      }
-    ];
+    // Fetch all API findings for the user
+    const { data: findings, error: findingsError } = await supabaseClient
+      .from('github_api_findings')
+      .select('*')
+      .eq('user_id', userId);
 
-    // Insert results into database
-    const { error: insertError } = await supabaseClient
-      .from('api_security_issues')
-      .insert(mockVulnerabilities);
+    if (findingsError) throw findingsError;
 
-    if (insertError) throw insertError;
+    // For each API endpoint found, perform OWASP scan
+    const scanResults = await Promise.all(findings.map(async (finding) => {
+      // Mock OWASP scan results - in production this would be real scanning logic
+      const vulnerabilities = [
+        {
+          user_id: userId,
+          finding_id: finding.id,
+          vulnerability_type: "Authentication",
+          severity: "high",
+          description: "API endpoint lacks proper authentication mechanisms",
+          recommendation: "Implement OAuth 2.0 or JWT authentication",
+          owasp_category: "Broken Authentication",
+          target_url: finding.api_path
+        },
+        {
+          user_id: userId,
+          finding_id: finding.id,
+          vulnerability_type: "Rate Limiting",
+          severity: "medium",
+          description: "No rate limiting detected on API endpoint",
+          recommendation: "Implement rate limiting to prevent abuse",
+          owasp_category: "Lack of Resources & Rate Limiting",
+          target_url: finding.api_path
+        }
+      ];
+
+      // Insert scan results
+      const { error: insertError } = await supabaseClient
+        .from('api_security_issues')
+        .insert(vulnerabilities);
+
+      if (insertError) throw insertError;
+
+      return vulnerabilities;
+    }));
 
     return new Response(
-      JSON.stringify({ success: true, data: mockVulnerabilities }),
+      JSON.stringify({ success: true, data: scanResults.flat() }),
       { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
