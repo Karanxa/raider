@@ -1,4 +1,4 @@
-# project_id = ""
+project_id = ""
 
 [functions.analyze-apk]
 verify_jwt = true
@@ -22,4 +22,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.generate-finetuning-script]
+verify_jwt = true
+
+[functions.owasp-scan]
 verify_jwt = true

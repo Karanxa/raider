@@ -1,23 +1,19 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from '@supabase/supabase-js'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { url, userId } = await req.json()
+    const { url, userId } = await req.json();
 
     if (!url || !userId) {
       return new Response(
@@ -26,14 +22,14 @@ serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
 
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
     // Mock OWASP scan results for demonstration
     const mockVulnerabilities = [
@@ -55,14 +51,14 @@ serve(async (req) => {
         recommendation: "Implement proper output encoding",
         owasp_category: "Cross-Site Scripting"
       }
-    ]
+    ];
 
     // Insert results into database
     const { error: insertError } = await supabaseClient
       .from('api_security_issues')
-      .insert(mockVulnerabilities)
+      .insert(mockVulnerabilities);
 
-    if (insertError) throw insertError
+    if (insertError) throw insertError;
 
     return new Response(
       JSON.stringify({ success: true, data: mockVulnerabilities }),
@@ -70,16 +66,16 @@ serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
 
   } catch (error) {
-    console.error('OWASP scan error:', error)
+    console.error('OWASP scan error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
   }
-})
+});
