@@ -4,10 +4,12 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { ProviderSelect } from "./llm-scanner/ProviderSelect";
 import { PromptInput } from "./llm-scanner/PromptInput";
 import { CustomProviderSettings } from "./llm-scanner/CustomProviderSettings";
-import { NotificationSettings } from "./llm-scanner/NotificationSettings";
 import { CategorySelect } from "./llm-scanner/CategorySelect";
+import { ScheduleScanner } from "./llm-scanner/ScheduleScanner";
 import { useScanLogic } from "./llm-scanner/useScanLogic";
 import { toast } from "sonner";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 interface PromptWithCategory {
   prompt: string;
@@ -24,6 +26,7 @@ const LLMScanner = () => {
   const [promptText, setPromptText] = useState("");
   const [category, setCategory] = useState("");
   const [prompts, setPrompts] = useState<PromptWithCategory[]>([]);
+  const [label, setLabel] = useState("");
   
   const session = useSession();
   const { scanning, processPrompts } = useScanLogic(session);
@@ -53,7 +56,8 @@ const LLMScanner = () => {
       customHeaders,
       "",
       10,
-      categories
+      categories,
+      label
     );
   };
 
@@ -91,10 +95,18 @@ const LLMScanner = () => {
             onPromptsFromCSV={setPrompts}
           />
 
+          <div className="space-y-2">
+            <Label>Label (Optional)</Label>
+            <Input
+              placeholder="Enter a label for this scan"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </div>
+
           <div className="flex justify-end">
-            <NotificationSettings scanning={scanning} />
             <button
-              className="ml-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
               onClick={handleScan}
               disabled={scanning}
             >
@@ -103,6 +115,17 @@ const LLMScanner = () => {
           </div>
         </div>
       </Card>
+
+      <ScheduleScanner
+        prompt={promptText}
+        provider={selectedProvider}
+        model=""
+        customEndpoint={customEndpoint}
+        curlCommand={curlCommand}
+        promptPlaceholder={promptPlaceholder}
+        customHeaders={customHeaders}
+        apiKey={apiKey}
+      />
     </div>
   );
 };
