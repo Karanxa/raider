@@ -476,6 +476,42 @@ export type Database = {
         }
         Relationships: []
       }
+      model_security_tests: {
+        Row: {
+          created_at: string | null
+          id: string
+          model_endpoint: string
+          recommendations: Json
+          risk_level: string
+          test_status: string
+          test_type: string
+          user_id: string
+          vulnerabilities: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          model_endpoint: string
+          recommendations?: Json
+          risk_level: string
+          test_status?: string
+          test_type: string
+          user_id: string
+          vulnerabilities?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          model_endpoint?: string
+          recommendations?: Json
+          risk_level?: string
+          test_status?: string
+          test_type?: string
+          user_id?: string
+          vulnerabilities?: Json
+        }
+        Relationships: []
+      }
       notification_settings: {
         Row: {
           created_at: string | null
