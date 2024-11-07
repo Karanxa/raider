@@ -11,10 +11,10 @@ serve(async (req) => {
   }
 
   try {
-    const { code, userId } = await req.json();
+    const { credential, userId } = await req.json();
 
-    if (!code || !userId) {
-      throw new Error('Code and userId are required');
+    if (!credential || !userId) {
+      throw new Error('Credential and userId are required');
     }
 
     const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
@@ -25,14 +25,14 @@ serve(async (req) => {
       throw new Error('Google OAuth credentials not configured');
     }
 
-    // Exchange the authorization code for tokens
+    // Exchange the credential for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        code,
+        code: credential,
         client_id: clientId,
         client_secret: clientSecret,
         redirect_uri: redirectUri,
@@ -47,6 +47,24 @@ serve(async (req) => {
     }
 
     const tokens = await tokenResponse.json();
+
+    // Store tokens in integration_settings table
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const { error: updateError } = await supabaseClient
+      .from('integration_settings')
+      .upsert({
+        user_id: userId,
+        google_oauth_tokens: tokens,
+        updated_at: new Date().toISOString()
+      });
+
+    if (updateError) {
+      throw new Error(`Failed to store tokens: ${updateError.message}`);
+    }
 
     return new Response(
       JSON.stringify({ tokens }),
