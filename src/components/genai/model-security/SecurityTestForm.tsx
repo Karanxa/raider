@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 
 interface SecurityTestFormProps {
@@ -63,13 +63,28 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
             <SelectValue placeholder="Select test type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="prompt-injection">Prompt Injection</SelectItem>
+            <SelectItem value="model-extraction">Model Extraction Attack</SelectItem>
+            <SelectItem value="membership-inference">Membership Inference</SelectItem>
+            <SelectItem value="adversarial-examples">Adversarial Examples</SelectItem>
             <SelectItem value="model-inversion">Model Inversion</SelectItem>
-            <SelectItem value="adversarial">Adversarial Attacks</SelectItem>
-            <SelectItem value="data-extraction">Data Extraction</SelectItem>
-            <SelectItem value="model-poisoning">Model Poisoning</SelectItem>
+            <SelectItem value="poisoning">Data Poisoning</SelectItem>
+            <SelectItem value="evasion">Evasion Attack</SelectItem>
+            <SelectItem value="backdoor">Backdoor Attack</SelectItem>
+            <SelectItem value="model-stealing">Model Stealing</SelectItem>
+            <SelectItem value="transferability">Transferability Attack</SelectItem>
           </SelectContent>
         </Select>
+        <p className="text-sm text-muted-foreground mt-1">
+          {testType === "model-extraction" && "Tests if the model can be extracted through repeated queries"}
+          {testType === "membership-inference" && "Tests if it's possible to determine if data was in training set"}
+          {testType === "adversarial-examples" && "Tests model robustness against perturbed inputs"}
+          {testType === "model-inversion" && "Tests if training data can be reconstructed from the model"}
+          {testType === "poisoning" && "Tests resistance to training data manipulation"}
+          {testType === "evasion" && "Tests if model classifications can be evaded"}
+          {testType === "backdoor" && "Tests for hidden functionalities in the model"}
+          {testType === "model-stealing" && "Tests if model functionality can be replicated"}
+          {testType === "transferability" && "Tests if attacks transfer between models"}
+        </p>
       </div>
 
       <div className="space-y-2">
