@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface SecurityTestFormProps {
   onSubmit: (data: {
@@ -12,6 +13,10 @@ interface SecurityTestFormProps {
     apiKey: string;
     testType: string;
     sampleInput: string;
+    accessMethod: string;
+    modelArchitecture?: string;
+    modelWeights?: File;
+    localModelPath?: string;
   }) => void;
   isLoading: boolean;
 }
@@ -21,6 +26,10 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
   const [apiKey, setApiKey] = useState("");
   const [testType, setTestType] = useState("");
   const [sampleInput, setSampleInput] = useState("");
+  const [accessMethod, setAccessMethod] = useState("api");
+  const [modelArchitecture, setModelArchitecture] = useState("");
+  const [modelWeights, setModelWeights] = useState<File | null>(null);
+  const [localModelPath, setLocalModelPath] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,33 +37,100 @@ export const SecurityTestForm = ({ onSubmit, isLoading }: SecurityTestFormProps)
       modelEndpoint,
       apiKey,
       testType,
-      sampleInput
+      sampleInput,
+      accessMethod,
+      ...(accessMethod === "architecture" && { modelArchitecture }),
+      ...(accessMethod === "weights" && { modelWeights: modelWeights! }),
+      ...(accessMethod === "local" && { localModelPath })
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label>Model Endpoint URL</Label>
-        <Input
-          type="url"
-          value={modelEndpoint}
-          onChange={(e) => setModelEndpoint(e.target.value)}
-          placeholder="https://api.example.com/v1/predict"
-          required
-        />
+        <Label>Model Access Method</Label>
+        <RadioGroup value={accessMethod} onValueChange={setAccessMethod} className="flex flex-col space-y-2">
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="api" id="api" />
+            <Label htmlFor="api">API Endpoint</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="local" id="local" />
+            <Label htmlFor="local">Local Model Path</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="weights" id="weights" />
+            <Label htmlFor="weights">Model Weights File</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="architecture" id="architecture" />
+            <Label htmlFor="architecture">Model Architecture</Label>
+          </div>
+        </RadioGroup>
       </div>
 
-      <div className="space-y-2">
-        <Label>API Key</Label>
-        <Input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="Enter your API key"
-          required
-        />
-      </div>
+      {accessMethod === "api" && (
+        <>
+          <div className="space-y-2">
+            <Label>Model Endpoint URL</Label>
+            <Input
+              type="url"
+              value={modelEndpoint}
+              onChange={(e) => setModelEndpoint(e.target.value)}
+              placeholder="https://api.example.com/v1/predict"
+              required={accessMethod === "api"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <Input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API key"
+              required={accessMethod === "api"}
+            />
+          </div>
+        </>
+      )}
+
+      {accessMethod === "local" && (
+        <div className="space-y-2">
+          <Label>Local Model Path</Label>
+          <Input
+            type="text"
+            value={localModelPath}
+            onChange={(e) => setLocalModelPath(e.target.value)}
+            placeholder="/path/to/model"
+            required={accessMethod === "local"}
+          />
+        </div>
+      )}
+
+      {accessMethod === "weights" && (
+        <div className="space-y-2">
+          <Label>Model Weights File</Label>
+          <Input
+            type="file"
+            onChange={(e) => setModelWeights(e.files?.[0] || null)}
+            required={accessMethod === "weights"}
+          />
+        </div>
+      )}
+
+      {accessMethod === "architecture" && (
+        <div className="space-y-2">
+          <Label>Model Architecture (JSON)</Label>
+          <Textarea
+            value={modelArchitecture}
+            onChange={(e) => setModelArchitecture(e.target.value)}
+            placeholder='{"layers": [...], "config": {...}}'
+            required={accessMethod === "architecture"}
+            className="font-mono"
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label>Test Type</Label>

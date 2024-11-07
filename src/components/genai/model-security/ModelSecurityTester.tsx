@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Shield, AlertTriangle } from "lucide-react";
+import { Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@supabase/auth-helpers-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +18,10 @@ export const ModelSecurityTester = () => {
     apiKey: string;
     testType: string;
     sampleInput: string;
+    accessMethod: string;
+    modelArchitecture?: string;
+    modelWeights?: File;
+    localModelPath?: string;
   }) => {
     if (!session?.user?.id) {
       toast.error("Please login to use this feature");
