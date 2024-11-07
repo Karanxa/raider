@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
@@ -8,15 +8,12 @@ import { toast } from "sonner";
 import { categoryConfigs } from "@/components/navigation/TabConfig";
 import { useRBAC } from "@/hooks/useRBAC";
 import { CentralPanel } from "@/components/navigation/CentralPanel";
-import DomainRecon from "@/components/DomainRecon";
-import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
 import LLMResultsDashboard from "@/components/LLMResultsDashboard";
 import NucleiScanner from "@/components/NucleiScanner";
 import NucleiResults from "@/components/NucleiResults";
 import Datasets from "@/components/Datasets";
 import PromptAugmentation from "@/components/PromptAugmentation";
-import BountyReporting from "@/components/bounty/BountyReporting";
 import PostmanDashboard from "@/components/postman/PostmanDashboard";
 import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGenerator";
 import XSSPayloads from "@/components/xss/XSSPayloads";
@@ -44,8 +41,6 @@ const Index = () => {
 
   const renderContent = (value: string) => {
     switch (value) {
-      case "recon": return <DomainRecon />;
-      case "recon-results": return <ReconResults />;
       case "nuclei": return <NucleiScanner />;
       case "nuclei-results": return <NucleiResults domain={null} />;
       case "postman": return <PostmanDashboard />;
@@ -58,7 +53,6 @@ const Index = () => {
       case "prompt-augmentation": return <PromptAugmentation />;
       case "upload": return <ApkUpload />;
       case "dashboard": return <ApkDashboard />;
-      case "reporting": return <BountyReporting />;
       case "finetuning": return <FineTuning />;
       case "github-scan": return <GitHubScanner />;
       case "api-findings": return <APIFindings />;

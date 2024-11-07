@@ -19,8 +19,6 @@ export const categoryConfigs: CategoryConfig[] = [
     label: "Web Security",
     icon: <Shield className="h-4 w-4" />,
     tabs: [
-      { value: "recon", label: "Domain Recon", icon: <FileCode className="h-4 w-4" /> },
-      { value: "recon-results", label: "Recon Results", icon: <Database className="h-4 w-4" /> },
       { value: "nuclei", label: "Nuclei Scanner", icon: <AlertTriangle className="h-4 w-4" /> },
       { value: "nuclei-results", label: "Nuclei Results", icon: <Database className="h-4 w-4" /> },
       { value: "postman", label: "Postman Collections", icon: <Package className="h-4 w-4" /> },
@@ -57,14 +55,6 @@ export const categoryConfigs: CategoryConfig[] = [
     tabs: [
       { value: "upload", label: "APK Upload", icon: <FileCode className="h-4 w-4" /> },
       { value: "dashboard", label: "APK Dashboard", icon: <Database className="h-4 w-4" /> },
-    ],
-  },
-  {
-    value: "bounty",
-    label: "Bounty",
-    icon: <Target className="h-4 w-4" />,
-    tabs: [
-      { value: "reporting", label: "Reporting", icon: <FileCode className="h-4 w-4" /> },
     ],
   },
 ];
