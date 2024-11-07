@@ -14,6 +14,10 @@ export const handleSingleScan = async (
   batchId?: string | null,
   label?: string
 ) => {
+  if (!apiKey && selectedProvider === "openai") {
+    throw new Error("OpenAI API key is required");
+  }
+
   if (selectedProvider === "custom") {
     return await handleCustomProviderScan(
       prompt,
@@ -60,7 +64,6 @@ const handleCustomProviderScan = async (
       const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g);
       if (headerMatches) {
         headerMatches.forEach(match => {
-          const headerContent = match.slice(4, -1);
           const [key, value] = headerContent.split(': ');
           if (key && value) {
             headers[key] = value;
@@ -130,13 +133,18 @@ const handleStandardProviderScan = async (
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: model || "gpt-4-mini",
+      model: model || "gpt-4o-mini",
       messages: [
         { role: 'system', content: 'You are a helpful assistant that generates content based on user prompts.' },
         { role: 'user', content: prompt }
       ],
     }),
   });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'OpenAI API error');
+  }
 
   const data = await response.json();
   const generatedText = data.choices[0].message.content;

@@ -36,6 +36,11 @@ export const useScanLogic = (session: Session | null) => {
       return;
     }
 
+    if (selectedProvider === "openai" && !apiKey) {
+      toast.error("Please provide your OpenAI API key in Settings");
+      return;
+    }
+
     setScanning(true);
     setCurrentPromptIndex(0);
 
@@ -56,7 +61,7 @@ export const useScanLogic = (session: Session | null) => {
             session.user.id,
             'batch',
             null,
-            categories[i]
+            label
           );
 
           if (i < prompts.length - 1) {
@@ -77,7 +82,6 @@ export const useScanLogic = (session: Session | null) => {
           session.user.id,
           'manual',
           null,
-          categories[0],
           label
         );
         toast.success("Scan completed successfully");
