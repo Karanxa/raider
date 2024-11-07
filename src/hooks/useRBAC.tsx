@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { categoryConfigs } from "@/components/navigation/TabConfig";
+import { toast } from "sonner";
 
 export type UserRole = 'superadmin' | 'admin' | 'user';
 
@@ -24,21 +24,33 @@ export const useRBAC = () => {
           return;
         }
 
-        // Get user role
-        const { data: roleData } = await supabase
+        // Get user role with error handling
+        const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
           .single();
 
-        if (!roleData) {
+        if (roleError) {
+          console.error('Error fetching user role:', roleError);
+          toast.error('Failed to fetch user permissions');
           setPermissions(null);
           setLoading(false);
           return;
         }
 
-        // Get allowed categories for the role
-        const { data: permissionsData } = await supabase
+        if (!roleData) {
+          // If no role is found, set default role
+          setPermissions({
+            role: 'user',
+            allowedCategories: []
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Get allowed categories for the role with error handling
+        const { data: permissionsData, error: permissionsError } = await supabase
           .from('role_permissions')
           .select(`
             category_id,
@@ -48,7 +60,18 @@ export const useRBAC = () => {
           `)
           .eq('role', roleData.role);
 
-        const allowedCategories = permissionsData?.map(p => p.categories.value) || [];
+        if (permissionsError) {
+          console.error('Error fetching permissions:', permissionsError);
+          toast.error('Failed to fetch category permissions');
+          setPermissions({
+            role: roleData.role,
+            allowedCategories: []
+          });
+          setLoading(false);
+          return;
+        }
+
+        const allowedCategories = permissionsData?.map(p => p.categories?.value) || [];
 
         setPermissions({
           role: roleData.role,
@@ -56,6 +79,7 @@ export const useRBAC = () => {
         });
       } catch (error) {
         console.error('Error fetching permissions:', error);
+        toast.error('Failed to fetch user permissions');
         setPermissions(null);
       } finally {
         setLoading(false);
