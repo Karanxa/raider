@@ -12,6 +12,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useApiKeys } from "@/hooks/useApiKeys";
 
 interface PromptWithCategory {
   prompt: string;
@@ -21,7 +22,6 @@ interface PromptWithCategory {
 const LLMScanner = () => {
   const [selectedProvider, setSelectedProvider] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [customEndpoint, setCustomEndpoint] = useState("");
   const [curlCommand, setCurlCommand] = useState("");
   const [promptPlaceholder, setPromptPlaceholder] = useState("");
@@ -34,10 +34,17 @@ const LLMScanner = () => {
   
   const session = useSession();
   const { scanning, processPrompts } = useScanLogic(session);
+  const { getApiKey } = useApiKeys();
 
   const handleScan = async () => {
     if (scanType === "single" && !category) {
       toast.error("Please select an attack category");
+      return;
+    }
+
+    const apiKey = getApiKey("openai");
+    if (selectedProvider === "openai" && !apiKey) {
+      toast.error("Please configure your OpenAI API key in Settings");
       return;
     }
 
@@ -53,7 +60,7 @@ const LLMScanner = () => {
       promptsList,
       promptText,
       selectedProvider,
-      apiKey,
+      apiKey || "",
       customEndpoint,
       curlCommand,
       promptPlaceholder,
@@ -164,7 +171,7 @@ const LLMScanner = () => {
         curlCommand={curlCommand}
         promptPlaceholder={promptPlaceholder}
         customHeaders={customHeaders}
-        apiKey={apiKey}
+        apiKey={getApiKey("openai") || ""}
       />
     </div>
   );
