@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -42,13 +43,10 @@ serve(async (req) => {
     const scanResults = await Promise.all(findings.map(async (finding, index) => {
       if (verbose) {
         // Send progress updates through realtime
-        await supabaseClient.channel('scan-progress').send({
-          type: 'broadcast',
-          event: 'scan-progress',
-          payload: { 
-            progress: Math.round((index / findings.length) * 100),
-            message: `Scanning ${finding.api_path} (${finding.method})...`
-          }
+        await supabaseClient.from('scan_progress').insert({
+          user_id: userId,
+          progress: Math.round((index / findings.length) * 100),
+          message: `Scanning ${finding.api_path} (${finding.method})...`
         });
       }
 
@@ -76,16 +74,6 @@ serve(async (req) => {
         }
       ];
 
-      if (verbose) {
-        await supabaseClient.channel('scan-progress').send({
-          type: 'broadcast',
-          event: 'scan-progress',
-          payload: { 
-            message: `Found ${vulnerabilities.length} vulnerabilities in ${finding.api_path}`
-          }
-        });
-      }
-
       // Insert scan results
       const { error: insertError } = await supabaseClient
         .from('api_security_issues')
@@ -95,17 +83,6 @@ serve(async (req) => {
 
       return vulnerabilities;
     }));
-
-    if (verbose) {
-      await supabaseClient.channel('scan-progress').send({
-        type: 'broadcast',
-        event: 'scan-progress',
-        payload: { 
-          progress: 100,
-          message: `Scan completed. Total vulnerabilities found: ${scanResults.flat().length}`
-        }
-      });
-    }
 
     return new Response(
       JSON.stringify({ success: true, data: scanResults.flat() }),

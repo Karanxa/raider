@@ -1,6 +1,6 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions.analyze-apk]
+[functions.analyze-code-snippet]
 verify_jwt = true
 
 [functions.domain-recon]
