@@ -17,12 +17,14 @@ interface PromptInputProps {
   prompt: string;
   onPromptChange: (value: string) => void;
   onPromptsFromCSV: (prompts: PromptWithCategory[]) => void;
+  scanType: "single" | "batch";
 }
 
 export const PromptInput = ({
   prompt,
   onPromptChange,
   onPromptsFromCSV,
+  scanType,
 }: PromptInputProps) => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -67,10 +69,10 @@ export const PromptInput = ({
     });
   };
 
-  return (
-    <div className="space-y-4">
+  if (scanType === "single") {
+    return (
       <div className="space-y-2">
-        <Label>Single Prompt</Label>
+        <Label>Prompt</Label>
         <Textarea
           placeholder="Enter your prompt for scanning"
           value={prompt}
@@ -78,9 +80,13 @@ export const PromptInput = ({
           className="min-h-[100px]"
         />
       </div>
-      
+    );
+  }
+
+  return (
+    <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Or Upload CSV with Prompts</Label>
+        <Label>Upload CSV with Prompts</Label>
         <div className="flex items-center gap-2">
           <Input
             type="file"

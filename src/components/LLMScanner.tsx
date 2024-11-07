@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface PromptWithCategory {
   prompt: string;
@@ -29,21 +30,22 @@ const LLMScanner = () => {
   const [category, setCategory] = useState("");
   const [prompts, setPrompts] = useState<PromptWithCategory[]>([]);
   const [label, setLabel] = useState("");
+  const [scanType, setScanType] = useState<"single" | "batch">("single");
   
   const session = useSession();
   const { scanning, processPrompts } = useScanLogic(session);
 
   const handleScan = async () => {
-    if (!category && prompts.length === 0) {
+    if (scanType === "single" && !category) {
       toast.error("Please select an attack category");
       return;
     }
 
-    const promptsList = prompts.length > 0 
+    const promptsList = scanType === "batch" && prompts.length > 0 
       ? prompts.map(p => p.prompt)
       : [promptText];
     
-    const categories = prompts.length > 0
+    const categories = scanType === "batch" && prompts.length > 0
       ? prompts.map(p => p.category)
       : [category];
 
@@ -67,6 +69,24 @@ const LLMScanner = () => {
     <div className="space-y-6">
       <Card className="p-6">
         <div className="space-y-6">
+          <div className="space-y-2">
+            <Label>Scan Type</Label>
+            <RadioGroup
+              value={scanType}
+              onValueChange={(value) => setScanType(value as "single" | "batch")}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="single" id="single" />
+                <Label htmlFor="single">Single Prompt</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="batch" id="batch" />
+                <Label htmlFor="batch">Batch Scan (CSV)</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <ProviderSelect
             selectedProvider={selectedProvider}
             onProviderChange={setSelectedProvider}
@@ -101,15 +121,18 @@ const LLMScanner = () => {
             />
           )}
 
-          <CategorySelect 
-            category={category}
-            onCategoryChange={setCategory}
-          />
+          {scanType === "single" && (
+            <CategorySelect 
+              category={category}
+              onCategoryChange={setCategory}
+            />
+          )}
 
           <PromptInput
             prompt={promptText}
             onPromptChange={setPromptText}
             onPromptsFromCSV={setPrompts}
+            scanType={scanType}
           />
 
           <div className="space-y-2">
