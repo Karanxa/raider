@@ -40,7 +40,7 @@ export const GitHubScanner = () => {
     setProgress(0);
 
     try {
-      const { data, error } = await supabase.functions.invoke('scan-github-repos', {
+      const { error } = await supabase.functions.invoke('scan-github-repos', {
         body: { 
           repository_url: repositoryUrl,
           userId: session.user.id
@@ -49,9 +49,10 @@ export const GitHubScanner = () => {
 
       if (error) throw error;
 
-      // Start polling for results
-      const startTime = Date.now();
-      const pollInterval = setInterval(async () => {
+      // Poll for results with exponential backoff
+      let attempts = 0;
+      const maxAttempts = 20; // Maximum polling attempts
+      const pollForResults = async () => {
         const { data: findings } = await supabase
           .from('github_api_findings')
           .select('*')
@@ -59,23 +60,30 @@ export const GitHubScanner = () => {
           .eq('user_id', session.user.id);
         
         if (findings && findings.length > 0) {
-          clearInterval(pollInterval);
           setProgress(100);
           toast.success(`Scan completed! Found ${findings.length} API endpoints`);
           setRepositoryUrl("");
           setScanning(false);
+          return;
         }
 
-        // Timeout after 2 minutes
-        if (Date.now() - startTime > 120000) {
-          clearInterval(pollInterval);
+        attempts++;
+        if (attempts >= maxAttempts) {
           setScanning(false);
-          toast.error("Scan timed out. Please try again.");
+          toast.error("Scan timed out. The repository might be too large or there might be connection issues.");
+          return;
         }
 
-        // Update progress
-        setProgress((prev) => Math.min(prev + 10, 90));
-      }, 3000);
+        // Update progress based on attempts
+        setProgress(Math.min((attempts / maxAttempts) * 90, 90));
+
+        // Exponential backoff with a maximum of 10 seconds
+        const delay = Math.min(1000 * Math.pow(1.5, attempts), 10000);
+        setTimeout(pollForResults, delay);
+      };
+
+      // Start polling
+      pollForResults();
 
     } catch (error: any) {
       console.error('GitHub scan error:', error);
