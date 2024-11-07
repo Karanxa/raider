@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@supabase/auth-helpers-react";
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Code } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const APIFindings = () => {
   const session = useSession();
@@ -64,6 +65,78 @@ export const APIFindings = () => {
     PUT: "warning",
     DELETE: "destructive",
     PATCH: "secondary"
+  };
+
+  const generateApiContract = (finding: any) => {
+    // Extract path parameters
+    const pathParams = finding.api_path.match(/\{([^}]+)\}/g)?.map((param: string) => param.slice(1, -1)) || [];
+    
+    // Generate example response based on path structure
+    const exampleResponse = {
+      success: true,
+      data: {
+        id: "example-id",
+        ...pathParams.reduce((acc: any, param: string) => ({
+          ...acc,
+          [param]: `example-${param}`
+        }), {})
+      }
+    };
+
+    return {
+      endpoint: finding.api_path,
+      method: finding.method,
+      description: "API endpoint found in repository",
+      parameters: {
+        path: pathParams.map(param => ({
+          name: param,
+          type: "string",
+          required: true,
+          description: `${param} parameter`
+        })),
+        query: [],
+        body: finding.method !== "GET" ? {
+          type: "object",
+          properties: {}
+        } : undefined
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {token}"
+      },
+      responses: {
+        200: {
+          description: "Successful response",
+          content: {
+            "application/json": {
+              example: exampleResponse
+            }
+          }
+        },
+        400: {
+          description: "Bad request",
+          content: {
+            "application/json": {
+              example: {
+                error: "Bad Request",
+                message: "Invalid parameters"
+              }
+            }
+          }
+        },
+        401: {
+          description: "Unauthorized",
+          content: {
+            "application/json": {
+              example: {
+                error: "Unauthorized",
+                message: "Authentication required"
+              }
+            }
+          }
+        }
+      }
+    };
   };
 
   const toggleRow = (id: string) => {
@@ -168,24 +241,96 @@ export const APIFindings = () => {
               {expandedRows.includes(finding.id) && (
                 <TableRow>
                   <TableCell colSpan={6} className="bg-muted/30">
-                    <div className="space-y-4 p-4">
-                      {finding.api_security_issues?.map((issue, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{issue.vulnerability_type}</span>
-                            <Badge variant={severityColors[issue.severity.toLowerCase()] as any || "secondary"}>
-                              {issue.severity}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{issue.description}</p>
-                          {issue.recommendation && (
-                            <p className="text-sm text-muted-foreground">
-                              <span className="font-medium">Recommendation:</span> {issue.recommendation}
-                            </p>
-                          )}
+                    <Tabs defaultValue="issues" className="w-full">
+                      <TabsList>
+                        <TabsTrigger value="issues">Security Issues</TabsTrigger>
+                        <TabsTrigger value="contract">API Contract</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="issues">
+                        <div className="space-y-4 p-4">
+                          {finding.api_security_issues?.map((issue: any, index: number) => (
+                            <div key={index} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{issue.vulnerability_type}</span>
+                                <Badge variant={severityColors[issue.severity.toLowerCase()] as any || "secondary"}>
+                                  {issue.severity}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground">{issue.description}</p>
+                              {issue.recommendation && (
+                                <p className="text-sm text-muted-foreground">
+                                  <span className="font-medium">Recommendation:</span> {issue.recommendation}
+                                </p>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </TabsContent>
+                      <TabsContent value="contract">
+                        <div className="p-4 space-y-4">
+                          <div className="bg-muted rounded-lg p-4">
+                            <h3 className="text-lg font-semibold mb-4">API Contract</h3>
+                            <div className="space-y-4">
+                              {(() => {
+                                const contract = generateApiContract(finding);
+                                return (
+                                  <>
+                                    <div>
+                                      <h4 className="font-medium mb-2">Endpoint</h4>
+                                      <code className="bg-background px-2 py-1 rounded">{contract.endpoint}</code>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium mb-2">Parameters</h4>
+                                      {contract.parameters.path.length > 0 ? (
+                                        <div className="space-y-2">
+                                          {contract.parameters.path.map((param: any, index: number) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                              <Badge variant="outline">{param.name}</Badge>
+                                              <span className="text-sm text-muted-foreground">{param.description}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-sm text-muted-foreground">No parameters required</p>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium mb-2">Headers</h4>
+                                      <div className="space-y-2">
+                                        {Object.entries(contract.headers).map(([key, value]) => (
+                                          <div key={key} className="flex items-center gap-2">
+                                            <Badge variant="outline">{key}</Badge>
+                                            <span className="text-sm text-muted-foreground">{value}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium mb-2">Response Examples</h4>
+                                      <div className="space-y-4">
+                                        {Object.entries(contract.responses).map(([code, response]: [string, any]) => (
+                                          <div key={code} className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              <Badge>{code}</Badge>
+                                              <span className="text-sm">{response.description}</span>
+                                            </div>
+                                            <pre className="bg-background p-2 rounded overflow-x-auto">
+                                              <code>
+                                                {JSON.stringify(response.content["application/json"].example, null, 2)}
+                                              </code>
+                                            </pre>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </TableCell>
                 </TableRow>
               )}
