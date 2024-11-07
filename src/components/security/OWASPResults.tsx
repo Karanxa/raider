@@ -20,7 +20,7 @@ interface OWASPResult {
   vulnerability_type: string;
   severity: string;
   description: string;
-  recommendation: string;
+  recommendation: string | null;
   owasp_category: string;
 }
 
