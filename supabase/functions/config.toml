@@ -1,28 +1,16 @@
-project_id = ""
+project_id = "facextdabmrqllgdzkms"
 
 [functions.analyze-apk]
-verify_jwt = true
-
-[functions.scan-github-repos]
-verify_jwt = true
-
-[functions.send-notification]
-verify_jwt = true
-
-[functions.view-apk-file]
 verify_jwt = true
 
 [functions.domain-recon]
 verify_jwt = true
 
-[functions.exchange-google-token]
-verify_jwt = true
-
-[functions.export-results]
-verify_jwt = true
-
-[functions.generate-finetuning-script]
+[functions.ip-intelligence]
 verify_jwt = true
 
 [functions.owasp-scan]
+verify_jwt = true
+
+[functions.send-notification]
 verify_jwt = true
