@@ -1,12 +1,19 @@
 project_id = "facextdabmrqllgdzkms"
 
-[global.env]
-OPENAI_API_KEY = "OPENAI_API_KEY"
+[functions.llm-operations]
+verify_jwt = true
 
-[[edge_functions]]
-name = "fetch-xss-payloads"
-verify_jwt = false
+[functions.nuclei-scan]
+verify_jwt = true
 
-[[edge_functions]]
-name = "analyze-document"
-verify_jwt = false
+[functions.init-colab-session]
+verify_jwt = true
+
+[functions.augment-prompts]
+verify_jwt = true
+
+[functions.crawl-postman-collections]
+verify_jwt = true
+
+[functions.huggingface-datasets]
+verify_jwt = true
