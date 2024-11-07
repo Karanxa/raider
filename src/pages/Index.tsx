@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { categoryConfigs } from "@/components/navigation/TabConfig";
 import { useRBAC } from "@/hooks/useRBAC";
 import { CentralPanel } from "@/components/navigation/CentralPanel";
-import ReconResults from "@/components/ReconResults";
 import LLMScanner from "@/components/LLMScanner";
 import LLMResultsDashboard from "@/components/LLMResultsDashboard";
 import NucleiScanner from "@/components/NucleiScanner";
@@ -45,7 +44,6 @@ const Index = () => {
 
   const renderContent = (value: string) => {
     switch (value) {
-      case "recon-results": return <ReconResults />;
       case "nuclei": return <NucleiScanner />;
       case "nuclei-results": return <NucleiResults domain={null} />;
       case "postman": return <PostmanDashboard />;
