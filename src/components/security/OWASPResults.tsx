@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 interface OWASPResultsProps {
   targetUrl: string | null;
@@ -41,50 +42,61 @@ export const OWASPResults = ({ targetUrl }: OWASPResultsProps) => {
   });
 
   if (isLoading) {
-    return <div className="text-center py-4">Loading results...</div>;
+    return (
+      <Card className="p-8">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="ml-2">Loading results...</span>
+        </div>
+      </Card>
+    );
   }
 
   if (!results?.length) {
     return (
-      <Card className="p-4">
+      <Card className="p-6">
         <p className="text-center text-muted-foreground">
-          No security scan results available for this API yet.
+          No security vulnerabilities found for this API.
         </p>
       </Card>
     );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Category</TableHead>
-          <TableHead>Severity</TableHead>
-          <TableHead>Description</TableHead>
-          <TableHead>Recommendation</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {results.map((result) => (
-          <TableRow key={result.id}>
-            <TableCell>{result.owasp_category}</TableCell>
-            <TableCell>
-              <Badge
-                variant={
-                  result.severity === 'critical' ? 'destructive' :
-                  result.severity === 'high' ? 'destructive' :
-                  result.severity === 'medium' ? 'default' :
-                  'secondary'
-                }
-              >
-                {result.severity}
-              </Badge>
-            </TableCell>
-            <TableCell className="max-w-md">{result.description}</TableCell>
-            <TableCell className="max-w-md">{result.recommendation}</TableCell>
+    <Card className="p-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Category</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Severity</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Recommendation</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {results.map((result) => (
+            <TableRow key={result.id}>
+              <TableCell>{result.owasp_category}</TableCell>
+              <TableCell>{result.vulnerability_type}</TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    result.severity === 'critical' ? 'destructive' :
+                    result.severity === 'high' ? 'destructive' :
+                    result.severity === 'medium' ? 'default' :
+                    'secondary'
+                  }
+                >
+                  {result.severity}
+                </Badge>
+              </TableCell>
+              <TableCell className="max-w-md">{result.description}</TableCell>
+              <TableCell className="max-w-md">{result.recommendation}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 };

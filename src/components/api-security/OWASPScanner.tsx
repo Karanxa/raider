@@ -41,6 +41,14 @@ export const OWASPScanner = () => {
     setShowResults(false);
 
     try {
+      // Start progress animation
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) return 90;
+          return prev + 10;
+        });
+      }, 500);
+
       const { data, error } = await supabase.functions.invoke('owasp-scan', {
         body: { 
           url: targetUrl,
@@ -48,12 +56,14 @@ export const OWASPScanner = () => {
         }
       });
 
+      clearInterval(interval);
+
       if (error) throw error;
 
       if (data?.success) {
-        toast.success("OWASP scan completed successfully");
-        setShowResults(true);
         setProgress(100);
+        toast.success(data.message || "OWASP scan completed successfully");
+        setShowResults(true);
       } else {
         throw new Error("Scan failed to complete");
       }
