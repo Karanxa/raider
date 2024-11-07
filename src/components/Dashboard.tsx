@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Domain } from "@/types/domain";
-import DomainDetails from "./DomainDetails";
+import DomainDetails from "./DomainDetails"; // Ensure this path is correct
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from '@supabase/auth-helpers-react';
 

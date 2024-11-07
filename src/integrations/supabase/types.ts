@@ -388,6 +388,7 @@ export type Database = {
       }
       llm_scan_results: {
         Row: {
+          attack_category: string | null
           batch_id: string | null
           batch_name: string | null
           created_at: string | null
@@ -403,6 +404,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attack_category?: string | null
           batch_id?: string | null
           batch_name?: string | null
           created_at?: string | null
@@ -418,6 +420,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attack_category?: string | null
           batch_id?: string | null
           batch_name?: string | null
           created_at?: string | null
