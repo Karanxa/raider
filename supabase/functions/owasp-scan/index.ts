@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json();
+    const { userId, verbose } = await req.json();
 
     if (!userId) {
       return new Response(
@@ -39,7 +39,19 @@ serve(async (req) => {
     if (findingsError) throw findingsError;
 
     // For each API endpoint found, perform OWASP scan
-    const scanResults = await Promise.all(findings.map(async (finding) => {
+    const scanResults = await Promise.all(findings.map(async (finding, index) => {
+      if (verbose) {
+        // Send progress updates through realtime
+        await supabaseClient.channel('scan-progress').send({
+          type: 'broadcast',
+          event: 'scan-progress',
+          payload: { 
+            progress: Math.round((index / findings.length) * 100),
+            message: `Scanning ${finding.api_path} (${finding.method})...`
+          }
+        });
+      }
+
       // Mock OWASP scan results - in production this would be real scanning logic
       const vulnerabilities = [
         {
@@ -64,6 +76,16 @@ serve(async (req) => {
         }
       ];
 
+      if (verbose) {
+        await supabaseClient.channel('scan-progress').send({
+          type: 'broadcast',
+          event: 'scan-progress',
+          payload: { 
+            message: `Found ${vulnerabilities.length} vulnerabilities in ${finding.api_path}`
+          }
+        });
+      }
+
       // Insert scan results
       const { error: insertError } = await supabaseClient
         .from('api_security_issues')
@@ -73,6 +95,17 @@ serve(async (req) => {
 
       return vulnerabilities;
     }));
+
+    if (verbose) {
+      await supabaseClient.channel('scan-progress').send({
+        type: 'broadcast',
+        event: 'scan-progress',
+        payload: { 
+          progress: 100,
+          message: `Scan completed. Total vulnerabilities found: ${scanResults.flat().length}`
+        }
+      });
+    }
 
     return new Response(
       JSON.stringify({ success: true, data: scanResults.flat() }),

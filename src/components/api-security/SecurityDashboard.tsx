@@ -3,12 +3,17 @@ import { APIFindings } from "./APIFindings";
 import { GitHubScanner } from "./GitHubScanner";
 import { OWASPResults } from "@/components/security/OWASPResults";
 import { Card } from "@/components/ui/card";
+import { OWASPScanButton } from "./OWASPScanButton";
 
 export const SecurityDashboard = () => {
   return (
     <div className="space-y-6">
       <Card className="p-6">
         <GitHubScanner />
+      </Card>
+
+      <Card className="p-6">
+        <OWASPScanButton />
       </Card>
 
       <Tabs defaultValue="findings" className="space-y-4">
