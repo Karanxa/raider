@@ -122,48 +122,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bounty_reports: {
-        Row: {
-          created_at: string | null
-          description: string
-          id: string
-          impact: string
-          proof_of_concept: string | null
-          recommendations: string | null
-          severity: string
-          status: string | null
-          steps_to_reproduce: string
-          title: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description: string
-          id?: string
-          impact: string
-          proof_of_concept?: string | null
-          recommendations?: string | null
-          severity: string
-          status?: string | null
-          steps_to_reproduce: string
-          title: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string
-          id?: string
-          impact?: string
-          proof_of_concept?: string | null
-          recommendations?: string | null
-          severity?: string
-          status?: string | null
-          steps_to_reproduce?: string
-          title?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       categories: {
         Row: {
           created_at: string | null
