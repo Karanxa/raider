@@ -1,6 +1,7 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { fetchGitHubContent } from "./utils/githubApi.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { BatchProcessor } from "./utils/batchProcessor.ts";
+import { fetchGitHubContent } from "./utils/githubApi.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,20 +36,34 @@ serve(async (req) => {
     }
 
     const batchProcessor = new BatchProcessor();
+    const processedPaths = new Set<string>();
+    const maxDepth = 5; // Limit directory depth
 
-    async function scanDirectory(path = '') {
-      console.log(`Scanning directory: ${path}`);
+    async function scanDirectory(path = '', depth = 0) {
+      if (depth >= maxDepth || processedPaths.has(path)) {
+        return;
+      }
+      
+      processedPaths.add(path);
+      console.log(`Scanning directory: ${path} at depth ${depth}`);
       
       try {
         const contents = await fetchGitHubContent(owner, repo, path, githubToken);
         
-        // Process files in current directory
+        // Process files in batches
         const files = contents.filter((item: any) => item.type === 'file');
         await batchProcessor.processBatch(files, userId, { owner, repo, url: repository_url });
 
-        // Recursively process subdirectories
+        // Process subdirectories with concurrency limit
         const directories = contents.filter((item: any) => item.type === 'dir');
-        await Promise.all(directories.map((dir: any) => scanDirectory(dir.path)));
+        const concurrencyLimit = 3;
+        
+        for (let i = 0; i < directories.length; i += concurrencyLimit) {
+          const batch = directories.slice(i, i + concurrencyLimit);
+          await Promise.all(
+            batch.map(dir => scanDirectory(dir.path, depth + 1))
+          );
+        }
 
       } catch (error) {
         console.error(`Error scanning directory ${path}:`, error);

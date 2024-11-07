@@ -45,6 +45,6 @@ export const analyzeFileContent = (content: string, filePath: string): Finding[]
 };
 
 export const isRelevantFile = (fileName: string): boolean => {
-  const relevantExtensions = ['.js', '.ts', '.jsx', '.tsx'];
-  return relevantExtensions.some(ext => fileName.endsWith(ext));
+  const relevantExtensions = ['.js', '.ts', '.jsx', '.tsx', '.vue', '.php', '.py', '.rb'];
+  return relevantExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
 };

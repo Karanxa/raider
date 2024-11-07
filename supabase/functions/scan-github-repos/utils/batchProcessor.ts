@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import { analyzeFileContent, isRelevantFile } from './fileAnalyzer';
-import { fetchFileContent } from './githubApi';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
+import { analyzeFileContent, isRelevantFile } from './fileAnalyzer.ts';
+import { fetchFileContent } from './githubApi.ts';
 
 const BATCH_SIZE = 5;
 const BATCH_DELAY = 1000; // 1 second delay between batches
