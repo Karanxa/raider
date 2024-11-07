@@ -2,3 +2,6 @@ project_id = "facextdabmrqllgdzkms"
 
 [functions.owasp-scan]
 verify_jwt = true
+
+[functions.analyze-api]
+verify_jwt = true

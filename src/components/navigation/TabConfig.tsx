@@ -36,6 +36,7 @@ export const categoryConfigs: CategoryConfig[] = [
     tabs: [
       { value: "github-scan", label: "GitHub Scanner", icon: <FileCode className="h-4 w-4" /> },
       { value: "owasp-scan", label: "OWASP Scanner", icon: <AlertTriangle className="h-4 w-4" /> },
+      { value: "api-tester", label: "API Tester", icon: <Package className="h-4 w-4" /> },
       { value: "scan-results", label: "Security Dashboard", icon: <Database className="h-4 w-4" /> },
     ],
   },
