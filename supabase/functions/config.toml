@@ -1,19 +1,4 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions.analyze-code-snippet]
-verify_jwt = true
-
-[functions.domain-recon]
-verify_jwt = true
-
-[functions.ip-intelligence]
-verify_jwt = true
-
 [functions.owasp-scan]
-verify_jwt = true
-
-[functions.scan-github-repos]
-verify_jwt = true
-
-[functions.send-notification]
 verify_jwt = true

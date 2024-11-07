@@ -13,11 +13,11 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, verbose } = await req.json();
+    const { url, userId } = await req.json();
 
-    if (!userId) {
+    if (!url || !userId) {
       return new Response(
-        JSON.stringify({ error: 'userId is required' }),
+        JSON.stringify({ error: 'URL and userId are required' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -40,7 +40,7 @@ serve(async (req) => {
         description: "API endpoint lacks proper authentication mechanisms",
         recommendation: "Implement OAuth 2.0 or JWT authentication",
         owasp_category: "Broken Authentication",
-        target_url: "/api/v1/users"
+        target_url: url
       },
       {
         user_id: userId,
@@ -49,18 +49,9 @@ serve(async (req) => {
         description: "No rate limiting detected on API endpoint",
         recommendation: "Implement rate limiting to prevent abuse",
         owasp_category: "Lack of Resources & Rate Limiting",
-        target_url: "/api/v1/data"
+        target_url: url
       }
     ];
-
-    if (verbose) {
-      // Send progress updates
-      await supabaseClient.from('scan_progress').insert({
-        user_id: userId,
-        progress: 50,
-        message: "Scanning API endpoints..."
-      });
-    }
 
     // Insert scan results
     const { error: insertError } = await supabaseClient
