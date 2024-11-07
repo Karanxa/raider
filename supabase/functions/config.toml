@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.generate-finetuning-script]
 verify_jwt = true
+
+[functions.owasp-scan]
+verify_jwt = true
