@@ -12,9 +12,6 @@ verify_jwt = true
 [functions.view-apk-file]
 verify_jwt = true
 
-[functions.domain-recon]
-verify_jwt = true
-
 [functions.exchange-google-token]
 verify_jwt = true
 

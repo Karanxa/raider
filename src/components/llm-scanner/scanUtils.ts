@@ -64,7 +64,7 @@ const handleCustomProviderScan = async (
       const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g);
       if (headerMatches) {
         headerMatches.forEach(match => {
-          const [key, value] = headerContent.split(': ');
+          const [key, value] = match.slice(4, -1).split(': ');
           if (key && value) {
             headers[key] = value;
           }
@@ -94,6 +94,10 @@ const handleCustomProviderScan = async (
       });
     }
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
     const result = typeof data === "string" ? data : JSON.stringify(data, null, 2);
     
@@ -102,8 +106,8 @@ const handleCustomProviderScan = async (
       result,
       provider: 'custom',
       scan_type: scanType,
-      user_id: userId,
       batch_id: batchId || null,
+      user_id: userId,
       label: label || null,
       response_status: response.status,
       raw_response: data
@@ -155,8 +159,8 @@ const handleStandardProviderScan = async (
     provider,
     model,
     scan_type: scanType,
-    user_id: userId,
     batch_id: batchId || null,
+    user_id: userId,
     label: label || null,
     response_status: response.status,
     raw_response: data
