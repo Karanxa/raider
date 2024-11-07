@@ -22,7 +22,7 @@ export const useScanLogic = (session: Session | null) => {
     customHeaders: string,
     selectedModel: string,
     qps: number,
-    label?: string
+    categories: string[]
   ) => {
     if (!session?.user?.id) {
       toast.error("You must be logged in to perform scans");
@@ -63,7 +63,7 @@ export const useScanLogic = (session: Session | null) => {
             session.user.id,
             'batch',
             newBatchId,
-            label
+            categories[i]
           );
 
           if (i < prompts.length - 1) {
@@ -83,7 +83,7 @@ export const useScanLogic = (session: Session | null) => {
           session.user.id,
           'manual',
           null,
-          label
+          categories[0]
         );
         setResult(result);
       }

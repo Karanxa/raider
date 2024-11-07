@@ -6,11 +6,17 @@ import { Upload } from "lucide-react";
 import { useState } from "react";
 import Papa from "papaparse";
 import { toast } from "sonner";
+import { ADVERSARIAL_CATEGORIES } from "./CategorySelect";
+
+interface PromptWithCategory {
+  prompt: string;
+  category: string;
+}
 
 interface PromptInputProps {
   prompt: string;
   onPromptChange: (value: string) => void;
-  onPromptsFromCSV: (prompts: string[]) => void;
+  onPromptsFromCSV: (prompts: PromptWithCategory[]) => void;
 }
 
 export const PromptInput = ({
@@ -28,11 +34,25 @@ export const PromptInput = ({
     Papa.parse(file, {
       complete: (results) => {
         const prompts = results.data
-          .filter((row: any) => row.prompts)
-          .map((row: any) => row.prompts.toString());
+          .filter((row: any) => row.prompts && row.category)
+          .map((row: any) => ({
+            prompt: row.prompts.toString(),
+            category: row.category.toString()
+          }));
 
         if (prompts.length === 0) {
-          toast.error("No valid prompts found in CSV file. Make sure you have a 'prompts' column.");
+          toast.error("No valid prompts found in CSV file. Make sure you have 'prompts' and 'category' columns.");
+          setIsUploading(false);
+          return;
+        }
+
+        // Validate categories
+        const invalidCategories = prompts.filter(
+          p => !ADVERSARIAL_CATEGORIES.includes(p.category as any)
+        );
+
+        if (invalidCategories.length > 0) {
+          toast.error("Some categories in the CSV are invalid. Please check the allowed categories.");
           setIsUploading(false);
           return;
         }
@@ -81,7 +101,7 @@ export const PromptInput = ({
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          CSV must have a "prompts" column
+          CSV must have "prompts" and "category" columns. Valid categories: {ADVERSARIAL_CATEGORIES.join(", ")}
         </p>
       </div>
     </div>
