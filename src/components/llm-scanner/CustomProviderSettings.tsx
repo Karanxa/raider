@@ -1,7 +1,6 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ApiKeyInput } from "./ApiKeyInput";
 
 interface CustomProviderSettingsProps {
   customEndpoint: string;
@@ -20,7 +19,6 @@ export const CustomProviderSettings = ({
   customHeaders,
   curlCommand,
   promptPlaceholder,
-  requiresApiKey,
   onEndpointChange,
   onHeadersChange,
   onCurlCommandChange,
@@ -37,13 +35,6 @@ export const CustomProviderSettings = ({
           onChange={(e) => onEndpointChange(e.target.value)}
         />
       </div>
-      
-      {requiresApiKey && (
-        <ApiKeyInput
-          provider="custom"
-          onApiKeyChange={() => {}}
-        />
-      )}
 
       <div className="space-y-2">
         <Label>Custom Headers (Optional JSON)</Label>

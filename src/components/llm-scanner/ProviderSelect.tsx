@@ -24,28 +24,18 @@ export const providers = {
 
 interface ProviderSelectProps {
   selectedProvider: string;
-  selectedModel: string;
   onProviderChange: (value: string) => void;
-  onModelChange: (value: string) => void;
 }
 
 export const ProviderSelect = ({
   selectedProvider,
-  selectedModel,
   onProviderChange,
-  onModelChange,
 }: ProviderSelectProps) => {
   return (
     <>
       <div className="space-y-2">
         <Label>Select Provider</Label>
-        <Select
-          value={selectedProvider}
-          onValueChange={(value) => {
-            onProviderChange(value);
-            onModelChange("");
-          }}
-        >
+        <Select value={selectedProvider} onValueChange={onProviderChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select a provider" />
           </SelectTrigger>
@@ -58,24 +48,6 @@ export const ProviderSelect = ({
           </SelectContent>
         </Select>
       </div>
-
-      {selectedProvider && selectedProvider !== "custom" && (
-        <div className="space-y-2">
-          <Label>Select Model</Label>
-          <Select value={selectedModel} onValueChange={onModelChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a model" />
-            </SelectTrigger>
-            <SelectContent>
-              {providers[selectedProvider].models.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
     </>
   );
 };
