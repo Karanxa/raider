@@ -6,7 +6,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { categoryConfigs } from "@/components/navigation/TabConfig";
-import { useRBAC } from "@/hooks/useRBAC";
 import { CentralPanel } from "@/components/navigation/CentralPanel";
 import LLMScanner from "@/components/LLMScanner";
 import LLMResultsDashboard from "@/components/LLMResultsDashboard";
@@ -26,7 +25,6 @@ import { APIFindings } from "@/components/api-security/APIFindings";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { hasAccess, loading: rbacLoading } = useRBAC();
   const { category, tab } = useParams();
 
   const handleLogout = async () => {
@@ -59,10 +57,6 @@ const Index = () => {
       default: return null;
     }
   };
-
-  if (rbacLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-background">
