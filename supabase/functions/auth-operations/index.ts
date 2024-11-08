@@ -15,8 +15,6 @@ serve(async (req) => {
     const { operation, ...params } = await req.json();
     
     switch (operation) {
-      case 'invite-user':
-        return await handleInviteUser(params);
       case 'exchange-token':
         return await handleExchangeToken(params);
       default:
@@ -30,28 +28,6 @@ serve(async (req) => {
     );
   }
 });
-
-async function handleInviteUser({ email, role }) {
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  const { data: user, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
-  if (inviteError) throw inviteError;
-
-  if (role) {
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({ user_id: user.id, role });
-    if (roleError) throw roleError;
-  }
-
-  return new Response(
-    JSON.stringify({ message: 'User invited successfully' }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
 
 async function handleExchangeToken({ code }) {
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
