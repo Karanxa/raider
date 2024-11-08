@@ -16,11 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useRBAC, UserRole } from "@/hooks/useRBAC";
+
+type UserRole = 'superadmin' | 'admin' | 'user';
 
 export const UserManagement = () => {
-  const { role } = useRBAC();
-  
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
@@ -57,10 +56,6 @@ export const UserManagement = () => {
       toast.error(error.message || "Failed to update user role");
     }
   };
-
-  if (role !== 'superadmin') {
-    return null;
-  }
 
   return (
     <div className="space-y-6">
