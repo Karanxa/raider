@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { scanApiEndpoint } from "@/utils/apiSecurityScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@supabase/auth-helpers-react";
@@ -47,7 +48,7 @@ export const APISecurityContent = ({ finding }: APISecurityContentProps) => {
     scanAndUpdateIssues();
   }, [finding.id, finding.api_path, finding.method, session?.user?.id]);
 
-  const generateApiContract = (finding: any) => {
+  const generateApiContract = () => {
     // Extract path parameters
     const pathParams = finding.api_path.match(/\{([^}]+)\}/g)?.map((param: string) => param.slice(1, -1)) || [];
     
@@ -63,60 +64,41 @@ export const APISecurityContent = ({ finding }: APISecurityContentProps) => {
       }
     };
 
-    return {
-      endpoint: finding.api_path,
-      method: finding.method,
-      description: "API endpoint found in repository",
-      parameters: {
-        path: pathParams.map(param => ({
-          name: param,
-          type: "string",
-          required: true,
-          description: `${param} parameter`
-        })),
-        query: [],
-        body: finding.method !== "GET" ? {
-          type: "object",
-          properties: {}
-        } : undefined
-      },
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer {token}"
-      },
-      responses: {
-        200: {
-          description: "Successful response",
-          content: {
-            "application/json": {
-              example: exampleResponse
-            }
-          }
-        },
-        400: {
-          description: "Bad request",
-          content: {
-            "application/json": {
-              example: {
-                error: "Bad Request",
-                message: "Invalid parameters"
-              }
-            }
-          }
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              example: {
-                error: "Unauthorized",
-                message: "Authentication required"
-              }
-            }
-          }
-        }
-      }
-    };
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-medium mb-2">API Contract</h3>
+          <div className="space-y-2">
+            <p><span className="font-medium">Endpoint:</span> {finding.api_path}</p>
+            <p><span className="font-medium">Method:</span> {finding.method}</p>
+            <p><span className="font-medium">Description:</span> API endpoint found in repository</p>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-medium mb-2">Parameters</h4>
+          <div className="space-y-2">
+            {pathParams.length > 0 ? (
+              pathParams.map(param => (
+                <div key={param} className="pl-4">
+                  <p><span className="font-medium">{param}</span> (path parameter)</p>
+                  <p className="text-sm text-muted-foreground">Required</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No parameters required</p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="font-medium mb-2">Example Response</h4>
+          <pre className="bg-muted p-4 rounded-md overflow-x-auto">
+            <code>{JSON.stringify(exampleResponse, null, 2)}</code>
+          </pre>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -146,9 +128,11 @@ export const APISecurityContent = ({ finding }: APISecurityContentProps) => {
         </div>
       </TabsContent>
       <TabsContent value="contract">
-        <div className="p-4">
-          {generateApiContract(finding)}
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            {generateApiContract()}
+          </CardContent>
+        </Card>
       </TabsContent>
     </Tabs>
   );
