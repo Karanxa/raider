@@ -263,14 +263,20 @@ export type Database = {
       github_api_findings: {
         Row: {
           api_path: string
+          commit_hash: string | null
+          context_end: number | null
+          context_start: number | null
           created_at: string | null
           description: string | null
+          file_content: string | null
           file_path: string
           id: string
           line_number: number | null
           method: string
+          org_id: string | null
           pii_classification: boolean | null
           pii_types: string[] | null
+          repository_id: string | null
           repository_name: string
           repository_owner: string | null
           repository_url: string
@@ -278,14 +284,20 @@ export type Database = {
         }
         Insert: {
           api_path: string
+          commit_hash?: string | null
+          context_end?: number | null
+          context_start?: number | null
           created_at?: string | null
           description?: string | null
+          file_content?: string | null
           file_path: string
           id?: string
           line_number?: number | null
           method: string
+          org_id?: string | null
           pii_classification?: boolean | null
           pii_types?: string[] | null
+          repository_id?: string | null
           repository_name: string
           repository_owner?: string | null
           repository_url: string
@@ -293,20 +305,109 @@ export type Database = {
         }
         Update: {
           api_path?: string
+          commit_hash?: string | null
+          context_end?: number | null
+          context_start?: number | null
           created_at?: string | null
           description?: string | null
+          file_content?: string | null
           file_path?: string
           id?: string
           line_number?: number | null
           method?: string
+          org_id?: string | null
           pii_classification?: boolean | null
           pii_types?: string[] | null
+          repository_id?: string | null
           repository_name?: string
           repository_owner?: string | null
           repository_url?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "github_api_findings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "github_organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "github_api_findings_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "github_repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      github_organizations: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          last_scanned_at: string | null
+          org_name: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          last_scanned_at?: string | null
+          org_name: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          last_scanned_at?: string | null
+          org_name?: string
+          user_id?: string
+        }
         Relationships: []
+      }
+      github_repositories: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_commit_hash: string | null
+          last_scanned_at: string | null
+          org_id: string | null
+          repository_name: string
+          repository_url: string
+          total_files: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_commit_hash?: string | null
+          last_scanned_at?: string | null
+          org_id?: string | null
+          repository_name: string
+          repository_url: string
+          total_files?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_commit_hash?: string | null
+          last_scanned_at?: string | null
+          org_id?: string | null
+          repository_name?: string
+          repository_url?: string
+          total_files?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "github_repositories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "github_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integration_settings: {
         Row: {
