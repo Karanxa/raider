@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -16,66 +15,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRBAC, UserRole } from "@/hooks/useRBAC";
 
 export const UserManagement = () => {
-  const [newUserEmail, setNewUserEmail] = useState("");
   const { role } = useRBAC();
   
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      // First get all user roles
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('id, user_id, role');
       
       if (rolesError) throw rolesError;
 
-      // Then get the corresponding profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email');
       
       if (profilesError) throw profilesError;
 
-      // Combine the data
       return userRoles.map(userRole => ({
         ...userRole,
         email: profiles.find(profile => profile.id === userRole.user_id)?.email
       }));
     },
   });
-
-  const handleInviteUser = async () => {
-    try {
-      const response = await fetch(
-        'https://facextdabmrqllgdzkms.supabase.co/functions/v1/invite-user',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-          body: JSON.stringify({ email: newUserEmail }),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to invite user');
-      }
-
-      toast.success("User invited successfully");
-      setNewUserEmail("");
-      refetch();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to invite user");
-    }
-  };
 
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
@@ -98,19 +64,7 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col space-y-4">
-        <h2 className="text-2xl font-bold">User Management</h2>
-        <div className="flex gap-4">
-          <Input
-            placeholder="Enter email to invite"
-            value={newUserEmail}
-            onChange={(e) => setNewUserEmail(e.target.value)}
-            className="max-w-md"
-          />
-          <Button onClick={handleInviteUser}>Invite User</Button>
-        </div>
-      </div>
-
+      <h2 className="text-2xl font-bold">User Management</h2>
       <Table>
         <TableHeader>
           <TableRow>

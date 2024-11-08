@@ -1,4 +1,3 @@
-import { InviteUser } from "@/components/settings/InviteUser";
 import { UserManagement } from "@/components/settings/UserManagement";
 import { ApiKeySettings } from "@/components/settings/ApiKeySettings";
 import { useRBAC } from "@/hooks/useRBAC";
@@ -9,12 +8,7 @@ const Settings = () => {
   return (
     <div className="space-y-8">
       <ApiKeySettings />
-      {role === 'superadmin' && (
-        <>
-          <InviteUser />
-          <UserManagement />
-        </>
-      )}
+      {role === 'superadmin' && <UserManagement />}
     </div>
   );
 };
