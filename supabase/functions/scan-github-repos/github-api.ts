@@ -199,17 +199,31 @@ export async function processFilesBatch(repo: any, files: any[], githubToken: st
                 apiPath.includes('/graphql')
               )) {
                 const piiTypes = detectPIITypes(apiPath);
-                findings.push({
-                  repository_name: repo.name,
-                  repository_url: repo.html_url,
-                  api_path: apiPath,
-                  method: method,
-                  file_path: file.path,
-                  line_number: i + 1,
-                  user_id: userId,
-                  pii_classification: piiTypes.length > 0,
-                  pii_types: piiTypes
-                });
+                
+                // Check if this API endpoint already exists for this repository
+                const { data: existingFindings } = await supabaseClient
+                  .from('github_api_findings')
+                  .select('id')
+                  .eq('repository_name', repo.name)
+                  .eq('api_path', apiPath)
+                  .eq('method', method)
+                  .eq('user_id', userId);
+
+                // Only add if it's a new finding
+                if (!existingFindings || existingFindings.length === 0) {
+                  findings.push({
+                    repository_name: repo.name,
+                    repository_url: repo.html_url,
+                    api_path: apiPath,
+                    method: method,
+                    file_path: file.path,
+                    line_number: i + 1,
+                    user_id: userId,
+                    pii_classification: piiTypes.length > 0,
+                    pii_types: piiTypes,
+                    file_content: content // Store file content for better API contract analysis
+                  });
+                }
               }
             }
           }

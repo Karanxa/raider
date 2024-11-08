@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { scanApiEndpoint } from "@/utils/apiSecurityScanner";
+import { scanApiEndpoint, analyzeCodeContext } from "@/utils/apiSecurityScanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@supabase/auth-helpers-react";
 import { toast } from "sonner";
@@ -22,11 +22,9 @@ export const APISecurityContent = ({ finding }: APISecurityContentProps) => {
   useEffect(() => {
     const scanAndUpdateIssues = async () => {
       if (!finding.api_security_issues?.length) {
-        // Perform security scan
         const securityIssues = scanApiEndpoint(finding.api_path, finding.method);
         
         try {
-          // Insert security issues into database
           const { error } = await supabase
             .from('api_security_issues')
             .insert(securityIssues.map(issue => ({
@@ -52,16 +50,27 @@ export const APISecurityContent = ({ finding }: APISecurityContentProps) => {
     // Extract path parameters
     const pathParams = finding.api_path.match(/\{([^}]+)\}/g)?.map((param: string) => param.slice(1, -1)) || [];
     
-    // Generate example response based on path structure
-    const exampleResponse = {
-      success: true,
-      data: {
-        id: "example-id",
-        ...pathParams.reduce((acc: any, param: string) => ({
-          ...acc,
-          [param]: `example-${param}`
-        }), {})
-      }
+    // Analyze code context to generate API contract
+    const { parameters, requestBody, responses } = analyzeCodeContext(
+      finding.file_path,
+      finding.line_number,
+      finding.file_content || ''
+    );
+
+    const contract = {
+      endpoint: finding.api_path,
+      method: finding.method,
+      description: "API endpoint found in repository",
+      parameters: {
+        path: parameters.path,
+        query: parameters.query,
+        body: requestBody
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer {token}"
+      },
+      responses
     };
 
     return (
@@ -69,33 +78,65 @@ export const APISecurityContent = ({ finding }: APISecurityContentProps) => {
         <div>
           <h3 className="font-medium mb-2">API Contract</h3>
           <div className="space-y-2">
-            <p><span className="font-medium">Endpoint:</span> {finding.api_path}</p>
-            <p><span className="font-medium">Method:</span> {finding.method}</p>
-            <p><span className="font-medium">Description:</span> API endpoint found in repository</p>
+            <p><span className="font-medium">Endpoint:</span> {contract.endpoint}</p>
+            <p><span className="font-medium">Method:</span> {contract.method}</p>
+            <p><span className="font-medium">Description:</span> {contract.description}</p>
           </div>
         </div>
 
-        <div>
-          <h4 className="font-medium mb-2">Parameters</h4>
-          <div className="space-y-2">
-            {pathParams.length > 0 ? (
-              pathParams.map(param => (
+        {Object.keys(contract.parameters.path).length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Path Parameters</h4>
+            <div className="space-y-2">
+              {Object.entries(contract.parameters.path).map(([param, config]: [string, any]) => (
                 <div key={param} className="pl-4">
-                  <p><span className="font-medium">{param}</span> (path parameter)</p>
-                  <p className="text-sm text-muted-foreground">Required</p>
+                  <p>
+                    <span className="font-medium">{param}</span>
+                    {config.required && <span className="text-destructive">*</span>}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Type: {config.type}</p>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No parameters required</p>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {contract.parameters.query.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Query Parameters</h4>
+            <div className="space-y-2">
+              {contract.parameters.query.map((param: any) => (
+                <div key={param.name} className="pl-4">
+                  <p><span className="font-medium">{param.name}</span></p>
+                  <p className="text-sm text-muted-foreground">Type: {param.schema.type}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {Object.keys(contract.parameters.body?.properties || {}).length > 0 && (
+          <div>
+            <h4 className="font-medium mb-2">Request Body</h4>
+            <pre className="bg-muted p-4 rounded-md overflow-x-auto">
+              <code>{JSON.stringify(contract.parameters.body, null, 2)}</code>
+            </pre>
+          </div>
+        )}
 
         <div>
-          <h4 className="font-medium mb-2">Example Response</h4>
-          <pre className="bg-muted p-4 rounded-md overflow-x-auto">
-            <code>{JSON.stringify(exampleResponse, null, 2)}</code>
-          </pre>
+          <h4 className="font-medium mb-2">Example Responses</h4>
+          {Object.entries(contract.responses).map(([status, response]: [string, any]) => (
+            <div key={status} className="mt-2">
+              <p className="font-medium">Status {status}</p>
+              <p className="text-sm text-muted-foreground">{response.description}</p>
+              {response.content && (
+                <pre className="bg-muted p-4 rounded-md overflow-x-auto mt-2">
+                  <code>{JSON.stringify(response.content, null, 2)}</code>
+                </pre>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     );
