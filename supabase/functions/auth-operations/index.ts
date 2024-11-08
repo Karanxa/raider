@@ -31,57 +31,44 @@ serve(async (req) => {
   }
 });
 
-async function handleInviteUser({ email }) {
-  const supabaseClient = createClient(
+async function handleInviteUser({ email, role }) {
+  const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
-  
-  const { data, error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(email);
+
+  const { data: user, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
   if (inviteError) throw inviteError;
 
+  if (role) {
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({ user_id: user.id, role });
+    if (roleError) throw roleError;
+  }
+
   return new Response(
-    JSON.stringify({ data }),
+    JSON.stringify({ message: 'User invited successfully' }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
 
-async function handleExchangeToken({ code, userId }) {
-  if (!code || !userId) {
-    throw new Error('Code and userId are required');
-  }
-
-  const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
-  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-  const redirectUri = "https://preview--raider.gptengineer.run/";
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Google OAuth credentials not configured');
-  }
-
+async function handleExchangeToken({ code }) {
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       code,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
+      client_id: Deno.env.get('GOOGLE_CLIENT_ID'),
+      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET'),
       grant_type: 'authorization_code',
-    }),
+      redirect_uri: `${Deno.env.get('SUPABASE_URL')}/auth/v1/callback`
+    })
   });
 
-  if (!tokenResponse.ok) {
-    const errorData = await tokenResponse.text();
-    throw new Error(`Failed to exchange token: ${errorData}`);
-  }
-
   const tokens = await tokenResponse.json();
-
   return new Response(
-    JSON.stringify({ tokens }),
+    JSON.stringify(tokens),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }

@@ -2,21 +2,12 @@ project_id = "facextdabmrqllgdzkms"
 
 [ai-operations]
 verify_jwt = true
+import_map = "./import_map.json"
 
 [security-scanner]
 verify_jwt = true
+import_map = "./import_map.json"
 
 [auth-operations]
 verify_jwt = true
-
-[execute-colab-cell]
-verify_jwt = true
-
-[ip-intelligence]
-verify_jwt = true
-
-[llm-operations]
-verify_jwt = true
-
-[send-notification]
-verify_jwt = true
+import_map = "./import_map.json"

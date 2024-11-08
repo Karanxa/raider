@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { fetchRepositories, fetchRepositoryContents, processFilesBatch } from './github-api.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +22,8 @@ serve(async (req) => {
         return await handleDomainRecon(params);
       case 'github-scan':
         return await handleGithubScan(params);
+      case 'ip-intelligence':
+        return await handleIPIntelligence(params);
       default:
         throw new Error('Invalid operation specified');
     }
@@ -303,6 +306,35 @@ async function handleGithubScan({ githubToken, userId, specificRepo }) {
       message: 'Scan completed successfully',
       totalFindings
     }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function handleIPIntelligence({ ipAddress, userId }) {
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Simulate IP intelligence gathering
+  const result = {
+    asn_info: { asn: '12345', organization: 'Example ISP' },
+    dns_records: ['example.com', 'test.example.com'],
+    geolocation: { country: 'US', city: 'New York' },
+    reverse_dns: 'host.example.com',
+    whois_data: { registrar: 'Example Registrar' }
+  };
+
+  await supabaseAdmin
+    .from('ip_intelligence_results')
+    .insert({
+      user_id: userId,
+      ip_address: ipAddress,
+      ...result
+    });
+
+  return new Response(
+    JSON.stringify(result),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }

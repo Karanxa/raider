@@ -22,6 +22,8 @@ serve(async (req) => {
         return await handleCodeAnalysis(params);
       case 'analyze-document':
         return await handleDocumentAnalysis(params);
+      case 'chat-support':
+        return await handleChatSupport(params);
       default:
         throw new Error('Invalid operation specified');
     }
@@ -204,6 +206,40 @@ async function handleDocumentAnalysis({ file, apiKey }) {
 
   return new Response(
     JSON.stringify(analysis),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+async function handleChatSupport({ message, userId, context }) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4-mini',
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a helpful security testing assistant.' 
+        },
+        {
+          role: 'user',
+          content: `Context: ${context}\n\nQuestion: ${message}`
+        }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('OpenAI API error');
+  }
+
+  const data = await response.json();
+  return new Response(
+    JSON.stringify({ response: data.choices[0].message.content }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
