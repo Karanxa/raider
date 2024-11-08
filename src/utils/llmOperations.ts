@@ -5,7 +5,7 @@ export async function performModelSecurityTest(params: {
   modelEndpoint: string;
   testType: string;
 }) {
-  const { data, error } = await supabase.functions.invoke('security-scanner', {
+  const { data, error } = await supabase.functions.invoke('llm-operations', {
     body: { 
       operation: 'security-test',
       ...params
@@ -24,7 +24,7 @@ export async function executeScheduledScan(params: {
   customEndpoint?: string;
   customHeaders?: string;
 }) {
-  const { data, error } = await supabase.functions.invoke('ai-operations', {
+  const { data, error } = await supabase.functions.invoke('llm-operations', {
     body: { 
       operation: 'scheduled-scan',
       ...params
