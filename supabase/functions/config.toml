@@ -4,20 +4,11 @@ project_id = "facextdabmrqllgdzkms"
 verify_jwt = true
 import_map = "./import_map.json"
 
-[analyze-code-snippet]
-verify_jwt = true
-
-[analyze-document]
-verify_jwt = true
-
-[domain-recon]
-verify_jwt = true
-
-[ip-intelligence]
-verify_jwt = true
-
-[nuclei-scan]
+[analyze-apk]
 verify_jwt = true
 
 [security-scanner]
+verify_jwt = true
+
+[ip-intelligence]
 verify_jwt = true
