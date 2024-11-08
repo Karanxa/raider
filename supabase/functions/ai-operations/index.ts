@@ -37,18 +37,11 @@ serve(async (req) => {
 });
 
 async function handlePromptAugmentation({ prompts, keyword, provider, apiKey, userId }) {
-  const systemPrompt = `You are an expert in helping generate authentic customer voice prompts. Your task is to help us write prompts that sound like they're coming directly from real customers in the ${keyword} context.
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
 
-Guidelines:
-- Write as if you are a real customer expressing their needs, questions, or concerns
-- Use first-person perspective ("I need", "I'm looking for", "Can you help me with")
-- Include realistic customer emotions, frustrations, and desires
-- Reference common situations that customers in ${keyword} context face
-- Keep the language casual and conversational, like how real people talk
-- Avoid any business or technical jargon unless it's commonly used by customers
-- Make it personal and relatable
-- Include specific details that a real customer would mention
-- Focus on what the customer wants to achieve or solve`;
+  const systemPrompt = `You are an expert in helping generate authentic customer voice prompts. Your task is to help us write prompts that sound like they're coming directly from real customers in the ${keyword} context.`;
 
   let augmentedPrompts = [];
   
@@ -74,29 +67,22 @@ Guidelines:
       return data.choices[0].message.content.trim();
     }));
   } else if (provider === 'gemini') {
-      augmentedPrompts = await Promise.all(prompts.map(async (prompt: string) => {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [{
-                text: `${systemPrompt}\n\nHelp me transform this into a natural customer voice: "${prompt}"`
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-            },
-          }),
-        });
+    augmentedPrompts = await Promise.all(prompts.map(async (prompt: string) => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [{ text: `${systemPrompt}\n\nHelp me transform this into a natural customer voice: "${prompt}"` }]
+          }],
+          generationConfig: { temperature: 0.7 },
+        }),
+      });
 
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text.trim();
-      }));
-    } else {
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text.trim();
+    }));
   }
 
   const supabaseClient = createClient(
@@ -119,9 +105,36 @@ Guidelines:
   );
 }
 
+async function handleChatSupport({ message, context }) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4-mini',
+      messages: [
+        { role: 'system', content: 'You are a helpful security testing assistant.' },
+        { role: 'user', content: `Context: ${context}\n\nQuestion: ${message}` }
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('OpenAI API error');
+  }
+
+  const data = await response.json();
+  return new Response(
+    JSON.stringify({ response: data.choices[0].message.content }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
 async function handleCodeAnalysis({ codeSnippet, language, apiKey, userId }) {
-  const systemPrompt = `You are an expert in web security and XSS vulnerabilities. Analyze the following ${language} code snippet for potential XSS vulnerabilities.
-Focus on identifying vulnerable points and contexts where user input is used. Do not suggest payloads.`;
+  const systemPrompt = `You are an expert in web security and XSS vulnerabilities. Analyze the following ${language} code snippet for potential XSS vulnerabilities.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -184,7 +197,7 @@ async function handleDocumentAnalysis({ file, apiKey }) {
       messages: [
         { 
           role: 'system', 
-          content: `You are an expert security analyst specializing in threat modeling and security architecture review. Analyze the provided document and identify potential security threats, recommend security controls, and provide specific recommendations.`
+          content: 'You are an expert security analyst specializing in threat modeling and security architecture review.'
         },
         { 
           role: 'user', 
@@ -206,40 +219,6 @@ async function handleDocumentAnalysis({ file, apiKey }) {
 
   return new Response(
     JSON.stringify(analysis),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
-
-async function handleChatSupport({ message, userId, context }) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4-mini',
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are a helpful security testing assistant.' 
-        },
-        {
-          role: 'user',
-          content: `Context: ${context}\n\nQuestion: ${message}`
-        }
-      ],
-      temperature: 0.7,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('OpenAI API error');
-  }
-
-  const data = await response.json();
-  return new Response(
-    JSON.stringify({ response: data.choices[0].message.content }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
