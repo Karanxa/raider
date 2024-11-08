@@ -1,19 +1,22 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions.llm-operations]
+[ai-operations]
 verify_jwt = true
 
-[functions.nuclei-scan]
+[security-scanner]
 verify_jwt = true
 
-[functions.init-colab-session]
+[auth-operations]
 verify_jwt = true
 
-[functions.augment-prompts]
+[execute-colab-cell]
 verify_jwt = true
 
-[functions.crawl-postman-collections]
+[ip-intelligence]
 verify_jwt = true
 
-[functions.huggingface-datasets]
+[llm-operations]
+verify_jwt = true
+
+[send-notification]
 verify_jwt = true
