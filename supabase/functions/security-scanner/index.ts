@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { handleGithubScan } from './handlers/github-handler.ts';
-import { handleNucleiScan } from './handlers/nuclei-handler.ts';
 import { handleDomainRecon } from './handlers/domain-handler.ts';
 import { handleIPIntelligence } from './handlers/ip-handler.ts';
 
@@ -19,8 +17,6 @@ serve(async (req) => {
     const { operation, ...params } = await req.json();
     
     switch (operation) {
-      case 'nuclei-scan':
-        return await handleNucleiScan(params);
       case 'domain-recon':
         return await handleDomainRecon(params);
       case 'scan-github-repos':

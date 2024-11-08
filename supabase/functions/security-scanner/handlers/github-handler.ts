@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { fetchRepositories, fetchRepositoryContents, processFilesBatch } from '../utils/github-api.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

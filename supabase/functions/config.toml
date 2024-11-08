@@ -1,13 +1,5 @@
 project_id = "facextdabmrqllgdzkms"
 
-[ai-operations]
-verify_jwt = true
-import_map = "./import_map.json"
-
 [security-scanner]
-verify_jwt = true
-import_map = "./import_map.json"
-
-[auth-operations]
 verify_jwt = true
 import_map = "./import_map.json"
