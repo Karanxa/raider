@@ -26,15 +26,22 @@ export const APIFindingRow = ({
     PATCH: "secondary"
   };
 
+  const getGitHubRawUrl = (repoUrl: string, filePath: string, branch: string) => {
+    // Convert GitHub web URL to raw content URL
+    return repoUrl
+      .replace('github.com', 'raw.githubusercontent.com')
+      .replace('/blob/', '/') + 
+      `/${branch}/${filePath}`;
+  };
+
   const getCorrectBranchUrl = async () => {
     const branches = ['main', 'master', 'develop'];
     const uncheckedBranches = branches.filter(b => !checkedBranches.includes(b));
     
     for (const branch of uncheckedBranches) {
       try {
-        const response = await fetch(
-          `${finding.repository_url}/blob/${branch}/${finding.file_path}`
-        );
+        const rawUrl = getGitHubRawUrl(finding.repository_url, finding.file_path, branch);
+        const response = await fetch(rawUrl);
         
         if (response.ok) {
           setCheckedBranches(prev => [...prev, branch]);
