@@ -57,14 +57,17 @@ const handleCustomProviderScan = async (
 ) => {
   try {
     let response;
+    let headers: Record<string, string> = {
+      "Content-Type": "application/json"
+    };
+    let body: string;
+
     if (curlCommand) {
-      const headers: Record<string, string> = {};
-      const curlWithPrompt = curlCommand.replace(promptPlaceholder, prompt);
-      
-      const headerMatches = curlWithPrompt.match(/-H "([^"]+)"/g);
+      // Parse headers from curl command
+      const headerMatches = curlCommand.match(/-H ["']([^"']+)["']/g);
       if (headerMatches) {
         headerMatches.forEach(match => {
-          const headerContent = match.slice(4, -1);
+          const headerContent = match.slice(3, -1);
           const [key, value] = headerContent.split(': ');
           if (key && value) {
             headers[key] = value;
@@ -72,32 +75,34 @@ const handleCustomProviderScan = async (
         });
       }
 
-      const bodyMatch = curlWithPrompt.match(/-d '([^']+)'/) || curlWithPrompt.match(/-d "([^"]+)"/);
-      const body = bodyMatch ? bodyMatch[1] : '';
-
-      response = await fetch(customEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
-        body,
-      });
+      // Parse body from curl command
+      const bodyMatch = curlCommand.match(/-d ['"]([^'"]+)['"]/);
+      body = bodyMatch ? bodyMatch[1].replace(promptPlaceholder, prompt) : JSON.stringify({ prompt });
     } else {
-      const headers = customHeaders ? JSON.parse(customHeaders) : {};
-      response = await fetch(customEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
-        body: JSON.stringify({ prompt }),
-      });
+      // Use custom headers if provided
+      if (customHeaders) {
+        try {
+          headers = { ...headers, ...JSON.parse(customHeaders) };
+        } catch (error) {
+          console.error('Error parsing custom headers:', error);
+        }
+      }
+      body = JSON.stringify({ prompt });
+    }
+
+    response = await fetch(customEndpoint, {
+      method: "POST",
+      headers,
+      body
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();
     const result = typeof data === "string" ? data : JSON.stringify(data, null, 2);
-    
+
     await supabase.from('llm_scan_results').insert({
       prompt,
       result,
@@ -114,7 +119,7 @@ const handleCustomProviderScan = async (
     return result;
   } catch (error) {
     console.error("Custom provider error:", error);
-    throw new Error(`Error with custom provider: ${error.message}`);
+    throw error;
   }
 };
 
@@ -143,6 +148,10 @@ const handleStandardProviderScan = async (
       ],
     }),
   });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.statusText}`);
+  }
 
   const data = await response.json();
   const generatedText = data.choices[0].message.content;
