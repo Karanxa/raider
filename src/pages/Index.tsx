@@ -57,7 +57,7 @@ const Index = () => {
         <TabsContent value="web-security" className="m-0">
           <CentralPanel>
             {!tab && <NucleiScanner />}
-            {tab === "nuclei-results" && <NucleiResults />}
+            {tab === "nuclei-results" && <NucleiResults domain="example.com" />}
             {tab === "recon-results" && <ReconResults />}
             {tab === "postman" && <PostmanDashboard />}
           </CentralPanel>
