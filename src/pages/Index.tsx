@@ -2,28 +2,28 @@ import { useParams } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveTabs } from "@/components/navigation/ResponsiveTabs";
 import { CentralPanel } from "@/components/navigation/CentralPanel";
-import { Dashboard } from "@/components/Dashboard";
+import Dashboard from "@/components/Dashboard";
 import { APISecurityContent } from "@/components/api-security/APISecurityContent";
-import { LLMScanner } from "@/components/LLMScanner";
-import { LLMResultsDashboard } from "@/components/LLMResultsDashboard";
-import { PromptAugmentation } from "@/components/PromptAugmentation";
-import { NucleiScanner } from "@/components/NucleiScanner";
-import { NucleiResults } from "@/components/NucleiResults";
-import { ReconResults } from "@/components/ReconResults";
+import LLMScanner from "@/components/LLMScanner";
+import LLMResultsDashboard from "@/components/LLMResultsDashboard";
+import PromptAugmentation from "@/components/PromptAugmentation";
+import NucleiScanner from "@/components/NucleiScanner";
+import NucleiResults from "@/components/NucleiResults";
+import ReconResults from "@/components/ReconResults";
 import { ModelSecurityTesting } from "@/components/genai/ModelSecurityTesting";
 import { FineTuning } from "@/components/genai/finetuning/FineTuning";
-import { Datasets } from "@/components/Datasets";
-import { XSSPayloads } from "@/components/xss/XSSPayloads";
-import { CodeSnippetAnalysis } from "@/components/xss/CodeSnippetAnalysis";
-import { DynamicXSSAnalysis } from "@/components/xss/DynamicXSSAnalysis";
-import { PostmanDashboard } from "@/components/postman/PostmanDashboard";
+import Datasets from "@/components/Datasets";
+import XSSPayloads from "@/components/xss/XSSPayloads";
+import CodeSnippetAnalysis from "@/components/xss/CodeSnippetAnalysis";
+import DynamicXSSAnalysis from "@/components/xss/DynamicXSSAnalysis";
+import PostmanDashboard from "@/components/postman/PostmanDashboard";
 
 const Index = () => {
   const { category = "dashboard", tab } = useParams();
 
   return (
     <div className="flex flex-col space-y-4">
-      <ResponsiveTabs defaultValue={category} />
+      <ResponsiveTabs tabs={[]} value={category} />
       <Tabs value={category} className="flex-1">
         <TabsContent value="dashboard" className="m-0">
           <CentralPanel>
@@ -32,7 +32,15 @@ const Index = () => {
         </TabsContent>
 
         <TabsContent value="api-security" className="m-0">
-          <APISecurityContent />
+          <APISecurityContent finding={{
+            id: "",
+            api_path: "",
+            method: "",
+            repository_name: "",
+            user_id: "",
+            file_path: "",
+            repository_url: ""
+          }} />
         </TabsContent>
 
         <TabsContent value="llm-security" className="m-0">
