@@ -24,7 +24,7 @@ export async function scheduleScans(params: {
   customEndpoint?: string;
   customHeaders?: string;
 }) {
-  const { data, error } = await supabase.functions.invoke('scheduled-llm-scan', {
+  const { data, error } = await supabase.functions.invoke('llm-scan', {
     body: params
   });
 

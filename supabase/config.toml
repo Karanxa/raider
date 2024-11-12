@@ -6,9 +6,6 @@ verify_jwt = true
 [functions.gemini-scan]
 verify_jwt = true
 
-[functions.scheduled-llm-scan]
-verify_jwt = true
-
 [functions.huggingface-datasets]
 verify_jwt = true
 
