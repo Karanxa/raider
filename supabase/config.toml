@@ -3,16 +3,10 @@ project_id = "facextdabmrqllgdzkms"
 [functions.llm-scan]
 verify_jwt = true
 
-[functions.gemini-scan]
-verify_jwt = true
-
-[functions.huggingface-datasets]
-verify_jwt = true
-
 [functions.augment-prompts]
 verify_jwt = true
 
-[functions.ai-augment-prompts]
+[functions.huggingface-datasets]
 verify_jwt = true
 
 [functions.export-results]
