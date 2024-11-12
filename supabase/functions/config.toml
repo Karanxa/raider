@@ -11,6 +11,3 @@ verify_jwt = true
 
 [functions.export-results]
 verify_jwt = true
-
-[functions.send-notification]
-verify_jwt = true

@@ -111,7 +111,6 @@ export const ExportDialog = ({ results }: ExportDialogProps) => {
               <SelectContent>
                 <SelectItem value="csv">CSV File</SelectItem>
                 <SelectItem value="jira">Jira Ticket</SelectItem>
-                <SelectItem value="slack">Slack Report</SelectItem>
               </SelectContent>
             </Select>
           </div>

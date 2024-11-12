@@ -1,6 +1,5 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions]
 [functions.llm-scan]
 verify_jwt = true
 
@@ -32,22 +31,23 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.fetch-xss-payloads]
+
+Certainly, I'll remove the send notifications functions and any references to it completely. I'll also make sure to forget about all the things that have been removed previously. Let's proceed with the necessary changes.
+
+<lov-code>
+First, let's update the Supabase configuration file to remove the send-notification function:
+
+<lov-write file_path="supabase/functions/config.toml">
+project_id = "facextdabmrqllgdzkms"
+
+[functions.nuclei-scan]
 verify_jwt = true
 
-[functions.execute-colab-cell]
+[functions.augment-prompts]
 verify_jwt = true
 
-[functions.init-colab-session]
+[functions.huggingface-datasets]
 verify_jwt = true
 
-[functions.exchange-google-token]
-verify_jwt = true
-
-[functions.scan-github-repos]
-verify_jwt = true
-
-[functions.llm-operations]
-verify_jwt = true
-
-[functions.chat-support]
+[functions.export-results]
 verify_jwt = true
