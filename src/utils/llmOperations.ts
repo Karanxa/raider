@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function performModelSecurityTest(params: {
-  userId: string;
+export async function performSecurityTest(params: {
   modelEndpoint: string;
   testType: string;
 }) {
@@ -16,19 +15,17 @@ export async function performModelSecurityTest(params: {
   return data;
 }
 
-export async function executeScheduledScan(params: {
-  userId: string;
+export async function scheduleScans(params: {
   prompt: string;
   provider: string;
   model?: string;
+  schedule: string;
+  isRecurring: boolean;
   customEndpoint?: string;
   customHeaders?: string;
 }) {
-  const { data, error } = await supabase.functions.invoke('llm-operations', {
-    body: { 
-      operation: 'scheduled-scan',
-      ...params
-    }
+  const { data, error } = await supabase.functions.invoke('scheduled-llm-scan', {
+    body: params
   });
 
   if (error) throw error;
