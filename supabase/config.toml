@@ -1,3 +1,5 @@
+project_id = "facextdabmrqllgdzkms"
+
 [functions]
 [functions.llm-scan]
 verify_jwt = true
