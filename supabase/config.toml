@@ -1,8 +1,5 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions.llm-scan]
-verify_jwt = true
-
 [functions.augment-prompts]
 verify_jwt = true
 
@@ -10,16 +7,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.export-results]
-verify_jwt = true
-
-[functions.ip-intelligence]
-verify_jwt = true
-
-[functions.analyze-code-snippet]
-verify_jwt = true
-
-[functions.generate-finetuning-script]
-verify_jwt = true
-
-[functions.fetch-xss-payloads]
 verify_jwt = true
