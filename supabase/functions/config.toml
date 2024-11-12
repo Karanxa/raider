@@ -1,8 +1,5 @@
 project_id = "facextdabmrqllgdzkms"
 
-[functions.llm-operations]
-verify_jwt = true
-
 [functions.nuclei-scan]
 verify_jwt = true
 
