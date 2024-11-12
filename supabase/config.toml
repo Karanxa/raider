@@ -49,8 +49,5 @@ verify_jwt = true
 [functions.llm-operations]
 verify_jwt = true
 
-[functions.auth-operations]
-verify_jwt = true
-
 [functions.chat-support]
 verify_jwt = true
