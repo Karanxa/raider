@@ -7,6 +7,7 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/useTheme";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ChatSupport } from "@/components/chat-support/ChatSupport";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Index from "@/pages/Index";
@@ -72,6 +73,7 @@ const App = () => {
                         }
                       />
                     </Routes>
+                    <ChatSupport />
                     <Toaster />
                     <SonnerToaster 
                       position="top-right"

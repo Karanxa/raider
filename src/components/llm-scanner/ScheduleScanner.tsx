@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { scheduleScans } from "@/utils/llmOperations";
+import { supabase } from "@/integrations/supabase/client";
 import { useSession } from '@supabase/auth-helpers-react';
 
 interface ScheduleScannerProps {
@@ -50,15 +50,22 @@ export const ScheduleScanner = ({
     }
 
     try {
-      await scheduleScans({
+      const { error } = await supabase.from('scheduled_llm_scans').insert({
+        user_id: session.user.id,
         prompt,
         provider,
         model,
+        custom_endpoint: customEndpoint,
+        curl_command: curlCommand,
+        prompt_placeholder: promptPlaceholder,
+        custom_headers: customHeaders,
+        api_key: apiKey,
         schedule,
-        isRecurring,
-        customEndpoint,
-        customHeaders
+        is_recurring: isRecurring,
+        next_run: new Date().toISOString(), // Convert Date to ISO string
       });
+
+      if (error) throw error;
 
       toast.success("Scan scheduled successfully");
     } catch (error) {
