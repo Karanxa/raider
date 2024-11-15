@@ -1,16 +1,19 @@
 project_id = "facextdabmrqllgdzkms"
 
+[functions.llm-operations]
+verify_jwt = true
+
 [functions.nuclei-scan]
+verify_jwt = true
+
+[functions.init-colab-session]
 verify_jwt = true
 
 [functions.augment-prompts]
 verify_jwt = true
 
+[functions.crawl-postman-collections]
+verify_jwt = true
+
 [functions.huggingface-datasets]
-verify_jwt = true
-
-[functions.export-results]
-verify_jwt = true
-
-[functions.send-notification]
 verify_jwt = true

@@ -1,76 +1,92 @@
-import { useParams } from "react-router-dom";
+import { useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { ResponsiveTabs } from "@/components/navigation/ResponsiveTabs";
+import { Button } from "@/components/ui/button";
+import { useNavigate, useParams } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { categoryConfigs } from "@/components/navigation/TabConfig";
+import { useRBAC } from "@/hooks/useRBAC";
 import { CentralPanel } from "@/components/navigation/CentralPanel";
-import Dashboard from "@/components/Dashboard";
-import { APISecurityContent } from "@/components/api-security/APISecurityContent";
 import LLMScanner from "@/components/LLMScanner";
 import LLMResultsDashboard from "@/components/LLMResultsDashboard";
-import PromptAugmentation from "@/components/PromptAugmentation";
 import NucleiScanner from "@/components/NucleiScanner";
 import NucleiResults from "@/components/NucleiResults";
-import ReconResults from "@/components/ReconResults";
-import { ModelSecurityTesting } from "@/components/genai/ModelSecurityTesting";
-import { FineTuning } from "@/components/genai/finetuning/FineTuning";
 import Datasets from "@/components/Datasets";
-import XSSPayloads from "@/components/xss/XSSPayloads";
-import CodeSnippetAnalysis from "@/components/xss/CodeSnippetAnalysis";
-import DynamicXSSAnalysis from "@/components/xss/DynamicXSSAnalysis";
+import PromptAugmentation from "@/components/PromptAugmentation";
 import PostmanDashboard from "@/components/postman/PostmanDashboard";
+import TurboIntruderGenerator from "@/components/turbo-intruder/TurboIntruderGenerator";
+import XSSPayloads from "@/components/xss/XSSPayloads";
+import IPIntelligence from "@/components/ip-intelligence/IPIntelligence";
+import ApkUpload from "@/components/mobile/ApkUpload";
+import ApkDashboard from "@/components/mobile/ApkDashboard";
+import { FineTuning } from "@/components/genai/finetuning/FineTuning";
+import { GitHubScanner } from "@/components/api-security/GitHubScanner";
+import { APIFindings } from "@/components/api-security/APIFindings";
 
 const Index = () => {
-  const { category = "dashboard", tab } = useParams();
+  const navigate = useNavigate();
+  const { hasAccess, loading: rbacLoading } = useRBAC();
+  const { category, tab } = useParams();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      toast.error("Error logging out");
+    }
+  };
+
+  const renderContent = (value: string) => {
+    switch (value) {
+      case "nuclei": return <NucleiScanner />;
+      case "nuclei-results": return <NucleiResults domain={null} />;
+      case "postman": return <PostmanDashboard />;
+      case "turbo-intruder": return <TurboIntruderGenerator />;
+      case "ip-intelligence": return <IPIntelligence />;
+      case "xss": return <XSSPayloads />;
+      case "llm": return <LLMScanner />;
+      case "llm-results": return <LLMResultsDashboard />;
+      case "datasets": return <Datasets />;
+      case "prompt-augmentation": return <PromptAugmentation />;
+      case "upload": return <ApkUpload />;
+      case "dashboard": return <ApkDashboard />;
+      case "finetuning": return <FineTuning />;
+      case "github-scan": return <GitHubScanner />;
+      case "api-findings": return <APIFindings />;
+      default: return null;
+    }
+  };
+
+  if (rbacLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
-    <div className="flex flex-col space-y-4">
-      <ResponsiveTabs tabs={[]} value={category} />
-      <Tabs value={category} className="flex-1">
-        <TabsContent value="dashboard" className="m-0">
-          <CentralPanel>
-            <Dashboard />
-          </CentralPanel>
-        </TabsContent>
-
-        <TabsContent value="api-security" className="m-0">
-          <APISecurityContent finding={{
-            id: "",
-            api_path: "",
-            method: "",
-            repository_name: "",
-            user_id: "",
-            file_path: "",
-            repository_url: ""
-          }} />
-        </TabsContent>
-
-        <TabsContent value="llm-security" className="m-0">
-          <CentralPanel>
-            {!tab && <LLMScanner />}
-            {tab === "llm-results" && <LLMResultsDashboard />}
-            {tab === "datasets" && <Datasets />}
-            {tab === "prompt-augmentation" && <PromptAugmentation />}
-            {tab === "finetuning" && <FineTuning />}
-            {tab === "model-security" && <ModelSecurityTesting />}
-          </CentralPanel>
-        </TabsContent>
-
-        <TabsContent value="web-security" className="m-0">
-          <CentralPanel>
-            {!tab && <NucleiScanner />}
-            {tab === "nuclei-results" && <NucleiResults domain="example.com" />}
-            {tab === "recon-results" && <ReconResults />}
-            {tab === "postman" && <PostmanDashboard />}
-          </CentralPanel>
-        </TabsContent>
-
-        <TabsContent value="xss" className="m-0">
-          <CentralPanel>
-            {!tab && <XSSPayloads />}
-            {tab === "code-analysis" && <CodeSnippetAnalysis />}
-            {tab === "dynamic-analysis" && <DynamicXSSAnalysis />}
-          </CentralPanel>
-        </TabsContent>
-      </Tabs>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-foreground">Raider</h1>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
+        </div>
+        
+        <CentralPanel>
+          {tab && (
+            <Tabs value={tab} className="w-full">
+              <TabsContent value={tab}>
+                {renderContent(tab)}
+              </TabsContent>
+            </Tabs>
+          )}
+        </CentralPanel>
+      </div>
     </div>
   );
 };

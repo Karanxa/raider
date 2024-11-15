@@ -12,7 +12,12 @@
    - Prompt injection detection
    - Batch scanning capabilities
 
-3. [Web Security](./web-security.md)
+3. [Mobile Security](./mobile-security.md)
+   - APK analysis
+   - Permission inspection
+   - Component security review
+
+4. [Web Security](./web-security.md)
    - Nuclei integration
    - Custom template support
    - Vulnerability reporting
