@@ -166,7 +166,7 @@ const handleStandardProviderScan = async (
     batch_id: batchId || null,
     label: label || null,
     response_status: response.status,
-    raw_response: data,
+    raw_response: data, // Store the complete API response
     attack_category: attackCategory || null
   });
 
